@@ -1,10 +1,27 @@
 document.addEventListener('DOMContentLoaded', function () {
+
     const form = document.querySelector('form');
     const dniInput = document.getElementById('dni');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('contrasena');
     const confirmPasswordInput = document.getElementById('confirmarContrasena');
     const emailDomainSpan = document.querySelector('.campo-con-dominio span');
+
+    // Evita que el usuario escriba '@' en el campo de email
+    if (emailInput) {
+        emailInput.addEventListener('keypress', function(e) {
+            if (e.key === '@') {
+                e.preventDefault();
+                alert("No debes ingresar el símbolo '@'. Solo escribe el usuario antes del dominio.");
+            }
+        });
+        emailInput.addEventListener('input', function(e) {
+            if (emailInput.value.includes('@')) {
+                alert("No debes ingresar el símbolo '@'. Solo escribe el usuario antes del dominio.");
+                emailInput.value = emailInput.value.replace(/@/g, '');
+            }
+        });
+    }
 
     form.addEventListener('submit', function (event) {
         // Evita que el formulario se envíe automáticamente

@@ -32,9 +32,15 @@ def frm_login():
 def frm_registro():
     return render_template('registro.html')
 
+
+@app.route("/home")
 def frm_home():
     return render_template('home.html')
 
+@app.route("/errorsistema")
+def frm_error():
+    return render_template('errorsistema.html')
+    
 # Ruta para procesar el registro de usuario
 @app.route("/procesarregistro", methods=['POST'])
 def procesarregistro():
@@ -43,33 +49,53 @@ def procesarregistro():
     email = request.form.get('email')
     contrasena = request.form.get('contrasena')
     confirmar = request.form.get('confirmarContrasena')
+    # Validaciones básicas de formulario
+    if not tipo or not dni or not email or not contrasena or not confirmar:
+        print("Faltan campos obligatorios")
+        return redirect(url_for('frm_registro'))
+    if len(dni) < 8 or not dni.isdigit():
+        print("DNI inválido")
+        return redirect(url_for('frm_registro'))
     if contrasena != confirmar:
+        print("Las contraseñas no coinciden")
         return redirect(url_for('frm_registro'))
     if not email.endswith('@usat.edu.pe'):
         email = f"{email}@usat.edu.pe"
     conexion = obtenerConexion()
-    if conexion:
+    if not conexion:
+        print("No se pudo conectar a la base de datos")
+        return redirect(url_for('frm_error'))
+    try:
         with conexion:
             with conexion.cursor() as cursor:
-                sql = "INSERT INTO usuario (username, nombre, contrasena, correo, tipo_usuario, cant_monedas) VALUES (%s, %s, %s, %s, %s, %s)"
+                # Validar si el usuario ya existe por correo o dni
+                sql_check = "SELECT usuario_id FROM usuario WHERE correo=%s OR username=%s"
                 username = email.split('@')[0]
+                cursor.execute(sql_check, (email, username))
+                existe = cursor.fetchone()
+                if existe:
+                    print("Usuario ya registrado")
+                    return redirect(url_for('frm_registro'))
+                # Insertar nuevo usuario
+                sql = "INSERT INTO usuario (username, nombre, contrasena, correo, tipo_usuario, cant_monedas) VALUES (%s, %s, %s, %s, %s, %s)"
                 nombre = username.replace('_', ' ').title()
                 tipo_usuario = 'A' if tipo == 'Alumno' else 'P'
-                try:
-                    cursor.execute(sql, (username, nombre, contrasena, email, tipo_usuario, 0))
-                    conexion.commit()
-                except Exception as e:
-                    print(f"Error al registrar usuario: {e}")
-                    return redirect(url_for('frm_registro'))
+                cursor.execute(sql, (username, nombre, contrasena, email, tipo_usuario, 0))
+                conexion.commit()
         return redirect(url_for('frm_login'))
-    return redirect(url_for('frm_registro'))
+    except Exception as e:
+        print(f"Error en el registro: {e}")
+        return redirect(url_for('frm_error'))
 
 @app.route("/procesarlogin", methods=['POST'])
 def procesarlogin():
     correo = request.form['correo']
     contrasena = request.form['contrasena']
     conexion = obtenerConexion()
-    if conexion:
+    if not conexion:
+        print("No se pudo conectar a la base de datos (login)")
+        return redirect(url_for('frm_error'))
+    try:
         with conexion:
             with conexion.cursor() as cursor:
                 sql = "SELECT `usuario_id` FROM `usuario` WHERE `correo`=%s AND `contrasena`=%s"
@@ -81,3 +107,6 @@ def procesarlogin():
             else:
                 #Cargar nuevamente el login
                 return redirect(url_for('frm_login'))
+    except Exception as e:
+        print(f"Error en el login: {e}")
+        return redirect(url_for('frm_error'))
