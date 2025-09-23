@@ -191,8 +191,7 @@ h1 {
     justify-content: flex-end;
     padding: 40px;
     position: relative;
-    background-image: url('placeholder-image.png');
-    /* Reemplaza con una imagen real */
+    background: url(../img/registro.png);
     background-size: cover;
     background-position: center;
 }
