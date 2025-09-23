@@ -1,0 +1,54 @@
+:root {
+    --primary-color: #000;
+    --secondary-color: #fff;
+    --text-color-dark: #333;
+    --btn-bg-color: #000;
+    --btn-text-color: #fff;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--secondary-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.error-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 2rem;
+}
+
+.error-box {
+    text-align: center;
+    width: 100%;
+    max-width: 450px;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    background-color: var(--secondary-color);
+}
+
+.error-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-color-dark);
+    margin-bottom: 1rem;
+}
+
+.error-message {
+    font-size: 1rem;
+    color: var(--text-color-dark);
+    line-height: 1.5;
+    margin-bottom: 2rem;
+}

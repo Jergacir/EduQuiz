@@ -10,7 +10,7 @@
     <div class="contenedor">
         <div class="panel-izquierdo">
             <div class="logo">
-                <img src="{{url_for('static', filename='logo.png')}}" alt="Logo de EduQuiz">
+                <img src="{{url_for('static', filename='img/logo.png')}}" alt="Logo de EduQuiz">
             </div>
             <div class="barra-progreso">
                 <div class="paso">
@@ -25,36 +25,36 @@
             </div>
             <div class="formulario-contenedor">
                 <h1>¡Regístrate en EduQuiz!</h1>
-                <form>
+                <form action="{{ url_for('procesarregistro') }}" method="post">
                     <div class="grupo-formulario">
                         <label for="tipo">Tipo</label>
-                        <select id="tipo">
+                        <select id="tipo" name="tipo">
                             <option>Docente</option>
                             <option>Alumno</option>
                         </select>
                     </div>
                     <div class="grupo-formulario">
                         <label for="dni">DNI</label>
-                        <input type="text" id="dni" placeholder="DNI*" required>
+                        <input type="text" id="dni" name="dni" placeholder="DNI*" required>
                     </div>
                     <div class="grupo-formulario">
                         <label for="email">Correo electrónico</label>
                         <div class="campo-con-dominio">
-                            <input type="text" id="email" placeholder="Correo electrónico*" required>
+                            <input type="text" id="email" name="email" placeholder="Correo electrónico*" required>
                             <span>@usat.edu.pe</span>
                         </div>
                     </div>
                     <div class="grupo-formulario campo-contrasena">
                         <label for="contrasena">Contraseña</label>
-                        <input type="password" id="contrasena" placeholder="Crear tu contraseña*" required>
+                        <input type="password" id="contrasena" name="contrasena" placeholder="Crear tu contraseña*" required>
                     </div>
                     <div class="grupo-formulario campo-contrasena">
                         <label for="confirmarContrasena">Confirmar Contraseña</label>
-                        <input type="password" id="confirmarContrasena" placeholder="Confirmar tu contraseña*" required>
+                        <input type="password" id="confirmarContrasena" name="confirmarContrasena" placeholder="Confirmar tu contraseña*" required>
                     </div>
                     <button type="submit" class="btn-primario">CONTINUAR</button>
                 </form>
-                <p class="enlace-sesion">¿Ya tienes una cuenta? <a href="#">Inicia Sesión</a></p>
+                <p class="enlace-sesion">¿Ya tienes una cuenta? <a href="{{ url_for('frm_login') }}">Inicia Sesión</a></p>
             </div>
         </div>
         <div class="panel-derecho">

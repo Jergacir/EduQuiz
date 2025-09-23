@@ -21,15 +21,13 @@ body {
 
 .left-panel {
     flex: 1;
-    background-color: #333;
     color: #fff;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     padding: 40px;
     position: relative;
-    background-image: url('placeholder-image.png');
-    /* Reemplaza con una imagen real */
+    background: url(../img/inicio_sesion.png);
     background-size: cover;
     background-position: center;
 }
