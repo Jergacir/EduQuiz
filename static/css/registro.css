@@ -1,0 +1,226 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f2f5;
+}
+
+.contenedor {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.panel-izquierdo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 40px;
+    box-sizing: border-box;
+}
+
+.logo {
+    margin-bottom: 20px;
+}
+
+.logo img {
+    width: 100px;
+}
+
+.barra-progreso {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 40px;
+}
+
+.paso {
+    display: flex;
+    align-items: center;
+}
+
+.paso-numero {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #007bff;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+.paso-descripcion {
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.paso.inactivo .paso-numero {
+    background-color: #ccc;
+    color: #666;
+}
+
+.paso.inactivo .paso-descripcion {
+    color: #999;
+}
+
+.linea-progreso {
+    flex-grow: 1;
+    height: 2px;
+    background-color: #ccc;
+}
+
+.formulario-contenedor {
+    width: 100%;
+    margin: 10px auto;
+    max-width: 320px;
+}
+
+h1 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.grupo-formulario {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.grupo-formulario label {
+    display: block;
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.grupo-formulario input,
+.grupo-formulario select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
+.campo-con-dominio {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.campo-con-dominio input {
+    flex-grow: 1;
+}
+
+.campo-con-dominio span {
+    color: #666;
+    font-size: 1rem;
+    white-space: nowrap;
+}
+
+.campo-contrasena {
+    position: relative;
+}
+
+.campo-contrasena input {
+    padding-right: 40px;
+}
+
+.campo-contrasena .icono-ojo {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #888;
+}
+
+.btn-primario {
+    width: 100%;
+    padding: 12px;
+    background-color: #000;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primario:hover {
+    background-color: #333;
+}
+
+.enlace-sesion {
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: #666;
+    text-align: center;
+}
+
+.enlace-sesion a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.enlace-sesion a:hover {
+    text-decoration: underline;
+}
+
+.panel-derecho {
+    flex: 1;
+    background-color: #333;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 40px;
+    position: relative;
+    background-image: url('placeholder-image.png');
+    /* Reemplaza con una imagen real */
+    background-size: cover;
+    background-position: center;
+}
+
+.panel-derecho-contenido h2 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.panel-derecho-contenido p {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.puntos-carrusel {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.punto-carrusel {
+    width: 8px;
+    height: 8px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+}
+
+.punto-carrusel.activo {
+    background-color: #ffffff;
+}

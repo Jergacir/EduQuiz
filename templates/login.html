@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduQuiz - Iniciar Sesión</title>
+    <link rel="stylesheet" href="../static/css/login.css">
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <div class="left-panel-content">
+                <h2>Aprende de forma divertida</h2>
+                <p>Gana puntos y compite con tus amigos mientras estudias tus cursos.</p>
+                <div class="carousel-dots">
+                    <div class="carousel-dot active"></div>
+                    <div class="carousel-dot"></div>
+                    <div class="carousel-dot"></div>
+                </div>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="logo">
+                <img src="{{url_for('static', filename='logo.png')}}" alt="Logo de EduQuiz">
+            </div>
+            <div class="form-container">
+                <h1>¡Hola! Bienvenido a EduQuiz</h1>
+                <p class="subtitle">Inicia sesión con tu cuenta</p>
+                <form>
+                    <div class="form-group">
+                        <label for="email">Ingresa tu correo electrónico</label>
+                        <input type="email" id="email" placeholder="ejemplo@dominio.com*" required>
+                    </div>
+                    <div class="form-group password-group">
+                        <label for="password">Ingresa tu contraseña</label>
+                        <input type="password" id="password" placeholder="Ingresar contraseña*" required>
+                    </div>
+                    <div class="options-group">
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="rememberMe">
+                            <label for="rememberMe">Recordarme</label>
+                        </div>
+                        <a href="#" class="link">¿Olvidaste tu contraseña?</a>
+                    </div>
+                    <button type="submit" class="btn-primary">INICIAR SESIÓN</button>
+                </form>
+                <p class="signup-link">¿No tienes una cuenta? <a href="#" class="link">Regístrate</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

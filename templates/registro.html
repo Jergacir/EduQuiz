@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduQuiz - Crear Cuenta</title>
+    <link rel="stylesheet" href="../static/css/registro.css">
+</head>
+<body>
+    <div class="contenedor">
+        <div class="panel-izquierdo">
+            <div class="logo">
+                <img src="{{url_for('static', filename='logo.png')}}" alt="Logo de EduQuiz">
+            </div>
+            <div class="barra-progreso">
+                <div class="paso">
+                    <div class="paso-numero">1</div>
+                    <div class="paso-descripcion">Primer paso<br>Crea una cuenta</div>
+                </div>
+                <div class="linea-progreso"></div>
+                <div class="paso inactivo">
+                    <div class="paso-numero">2</div>
+                    <div class="paso-descripcion">Segundo paso<br>Verificar email</div>
+                </div>
+            </div>
+            <div class="formulario-contenedor">
+                <h1>¡Regístrate en EduQuiz!</h1>
+                <form>
+                    <div class="grupo-formulario">
+                        <label for="tipo">Tipo</label>
+                        <select id="tipo">
+                            <option>Docente</option>
+                            <option>Alumno</option>
+                        </select>
+                    </div>
+                    <div class="grupo-formulario">
+                        <label for="dni">DNI</label>
+                        <input type="text" id="dni" placeholder="DNI*" required>
+                    </div>
+                    <div class="grupo-formulario">
+                        <label for="email">Correo electrónico</label>
+                        <div class="campo-con-dominio">
+                            <input type="text" id="email" placeholder="Correo electrónico*" required>
+                            <span>@usat.edu.pe</span>
+                        </div>
+                    </div>
+                    <div class="grupo-formulario campo-contrasena">
+                        <label for="contrasena">Contraseña</label>
+                        <input type="password" id="contrasena" placeholder="Crear tu contraseña*" required>
+                    </div>
+                    <div class="grupo-formulario campo-contrasena">
+                        <label for="confirmarContrasena">Confirmar Contraseña</label>
+                        <input type="password" id="confirmarContrasena" placeholder="Confirmar tu contraseña*" required>
+                    </div>
+                    <button type="submit" class="btn-primario">CONTINUAR</button>
+                </form>
+                <p class="enlace-sesion">¿Ya tienes una cuenta? <a href="#">Inicia Sesión</a></p>
+            </div>
+        </div>
+        <div class="panel-derecho">
+            <div class="panel-derecho-contenido">
+                <h2>Tu camino al éxito académico</h2>
+                <p>Domina cada materia y alcanza el máximo potencial en tu carrera.</p>
+                <div class="puntos-carrusel">
+                    <div class="punto-carrusel activo"></div>
+                    <div class="punto-carrusel"></div>
+                    <div class="punto-carrusel"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
