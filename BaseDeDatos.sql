@@ -7,7 +7,7 @@ CREATE TABLE `USUARIO` (
   `tipo_usuario` CHAR(1) NOT NULL,
   `cant_monedas` INT(11) NOT NULL,
   PRIMARY KEY (`usuario_id`)
-)
+);
 
 INSERT INTO `USUARIO` (`username`, `nombre`, `contrasena`, `correo`, `tipo_usuario`, `cant_monedas`) VALUES
 ('yamir_zamora', 'Yamir Zamora', 'pass123', 'zamora@gmail.com', 'A', 0),
