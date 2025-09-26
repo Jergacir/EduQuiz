@@ -1,31 +1,47 @@
 document.addEventListener('DOMContentLoaded', function () {
-
     const form = document.querySelector('form');
+    const tipoSelect = document.getElementById('tipo');
     const dniInput = document.getElementById('dni');
+    const grupoDni = document.getElementById('grupo-dni');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('contrasena');
     const confirmPasswordInput = document.getElementById('confirmarContrasena');
-    const emailDomainSpan = document.querySelector('.campo-con-dominio span');
+    const emailDomainSpan = document.getElementById('email-domain');
+    const labelEmail = document.getElementById('label-email');
 
-    form.addEventListener('submit', function (event) {
-        // Evita que el formulario se envíe automáticamente
-        event.preventDefault(); 
+    // 🔹 Cambia dinámicamente según el tipo de usuario
+    tipoSelect.addEventListener('change', function () {
+        if (tipoSelect.value === 'Alumno') {
+            grupoDni.style.display = 'none'; // ocultar DNI
+            dniInput.removeAttribute('required');
 
-        // Validaciones en un orden lógico
-        if (dniInput.value.trim() === '') {
-            alert('Por favor, ingresa tu DNI.');
-            dniInput.focus();
-            return; 
+            labelEmail.textContent = 'DNI';
+            emailInput.placeholder = 'DNI*';
+            emailDomainSpan.textContent = '@usat.pe';
+        } else {
+            grupoDni.style.display = 'block'; // mostrar DNI
+            dniInput.setAttribute('required', true);
+
+            labelEmail.textContent = 'Correo electrónico';
+            emailInput.placeholder = 'Correo electrónico*';
+            emailDomainSpan.textContent = '@usat.edu.pe';
         }
+    });
 
-        if (dniInput.value.length !== 8) {
-            alert('El DNI debe tener 8 dígitos.');
-            dniInput.focus();
-            return;
+    // 🔹 Validación y envío
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        if (tipoSelect.value === 'Docente') {
+            if (dniInput.value.trim() === '' || dniInput.value.length !== 8) {
+                alert('Por favor, ingresa un DNI válido de 8 dígitos.');
+                dniInput.focus();
+                return;
+            }
         }
 
         if (emailInput.value.trim() === '') {
-            alert('Por favor, ingresa tu correo electrónico.');
+            alert('Por favor, ingresa el ' + (tipoSelect.value === 'Alumno' ? 'DNI' : 'correo'));
             emailInput.focus();
             return;
         }
@@ -42,18 +58,74 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Valida que las contraseñas coincidan
         if (passwordInput.value !== confirmPasswordInput.value) {
             alert('Las contraseñas no coinciden. Por favor, inténtalo de nuevo.');
             confirmPasswordInput.focus();
             return;
         }
 
-        // Si todas las validaciones pasaron, completa el email y envía el formulario
-        const fullEmail = emailInput.value.trim() + emailDomainSpan.textContent;
-        emailInput.value = fullEmail;
-        
+        // 🔹 Completar correo y dni automáticamente para alumnos
+        if (tipoSelect.value === 'Alumno') {
+            const dni = emailInput.value.trim();
+            if (dni.length !== 8 || isNaN(dni)) {
+                alert('El DNI debe tener exactamente 8 dígitos numéricos.');
+                emailInput.focus();
+                return;
+            }
+            // El correo será dni@usat.pe
+            emailInput.value = dni + emailDomainSpan.textContent;
+            // Mandamos el dni en el input oculto
+            dniInput.value = dni;
+        } else {
+            // Docente → correo normal
+            emailInput.value = emailInput.value.trim() + emailDomainSpan.textContent;
+        }
 
         form.submit();
     });
+
+    // --- Carrusel Registro ---
+    const frases = [
+        { titulo: "Tu camino al éxito académico", texto: "Domina cada materia y alcanza el máximo potencial en tu carrera." },
+        { titulo: "Aprendizaje dinámico", texto: "Convierte cada clase en una experiencia interactiva y entretenida." },
+        { titulo: "Alcanza tus metas", texto: "EduQuiz te acompaña en cada paso hacia el logro de tus objetivos." }
+    ];
+
+    const titulo = document.querySelector('.panel-derecho-contenido h2');
+    const texto = document.querySelector('.panel-derecho-contenido p');
+    const dots = document.querySelectorAll('.punto-carrusel');
+    const imagenes = document.querySelectorAll('.carousel-image'); // 🔹 capturar imágenes
+
+    let indice = 0;
+
+    function cambiarFrase(i) {
+        // Cambiar título y texto
+        titulo.textContent = frases[i].titulo;
+        texto.textContent = frases[i].texto;
+
+        // Cambiar imagen activa
+        imagenes.forEach((img, idx) => {
+            img.classList.toggle('active', idx === i);
+        });
+
+        // Cambiar punto activo
+        dots.forEach((dot, idx) => {
+            dot.classList.toggle('activo', idx === i);
+        });
+    }
+
+    // Cambio automático cada 4s
+    setInterval(() => {
+        indice = (indice + 1) % frases.length;
+        cambiarFrase(indice);
+    }, 4000);
+
+    // Clic manual en los puntos
+    dots.forEach((dot, idx) => {
+        dot.addEventListener('click', () => {
+            indice = idx;
+            cambiarFrase(indice);
+        });
+    });
+
 });
