@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido a EduQuiz</title>
+    <link rel="stylesheet" href="../static/css/bienvenido.css">
+</head>
+<body>
+    <div class="contenedor-bienvenida">
+        <div class="imagen-fondo-contenedor"></div>
+        <div class="contenido-principal">
+            <h1>Bienvenido a EduQuiz</h1>
+            <p>Crea, enseña, aprende y alcanza tus metas académicas, todo en un solo lugar. Donde tu conocimiento es el único límite</p>
+            <div class="botones-contenedor">
+                <a href="{{ url_for('frm_registro') }}" class="boton boton-primario">Registrarse</a>
+                <a href="{{ url_for('frm_login') }}" class="boton boton-secundario">Iniciar Sesión</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

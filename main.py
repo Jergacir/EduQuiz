@@ -25,13 +25,16 @@ def probarconexion():
         return "<p>Conexión exitosa</p>"
 
 @app.route("/")
+def frm_bienvenido():
+    return render_template('bienvenido.html')
+
+@app.route("/login")
 def frm_login():
     return render_template('login.html')
 
 @app.route("/registro")
 def frm_registro():
     return render_template('registro.html')
-
 
 @app.route("/home")
 def frm_home():
