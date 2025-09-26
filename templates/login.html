@@ -36,6 +36,12 @@
             <div class="form-container">
                 <h1>¡Hola! Bienvenido a EduQuiz</h1>
                 <p class="subtitle">Inicia sesión con tu cuenta</p>
+                <!--  
+                {{url_for('procesarlogin')}} -> Este atributo le dice al navegador a dónde enviar los datos del formulario una vez que el usuario hace clic en el botón de envío. 
+                -->
+                <!-- 
+                "name" -> se usará para identificar los datos en el servidor
+                -->
                 <form action="{{url_for('procesarlogin')}}" method="post">
                     <div class="form-group">
                         <label for="correo">Ingresa tu correo electrónico</label>
@@ -54,6 +60,9 @@
                         <a href="#" class="link">¿Olvidaste tu contraseña?</a>
                     </div>
                     <button type="submit" class="btn-primary">INICIAR SESIÓN</button>
+                    <!-- 
+                    "submit" -> le dice al navegador que este botón es el que envía los datos del formulario al action especificado.
+                    -->
                 </form>
                 <p class="signup-link">¿No tienes una cuenta? <a href="{{ url_for('frm_registro') }}"
                         class="link">Regístrate</a></p>

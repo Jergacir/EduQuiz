@@ -3,6 +3,7 @@ import pymysql.cursors
 
 app = Flask(__name__)
 #IMPORTANTE: cambiar el puerto porfavor
+
 def obtenerConexion():
     try:
         connection = pymysql.connect(host='localhost',
@@ -31,7 +32,6 @@ def frm_login():
 @app.route("/registro")
 def frm_registro():
     return render_template('registro.html')
-
 
 @app.route("/home")
 def frm_home():
@@ -77,9 +77,11 @@ def procesarregistro():
         return redirect(url_for('frm_error'))  # Error real de sistema
 
     try:
-        with conexion:
+        
+        with conexion: # Abrir conexión (la conexión se cierra automáticamente)
             with conexion.cursor() as cursor:
                 # Validar si ya existe usuario con mismo correo, username o dni
+                # Práctica de seguridad llamada parametrización
                 sql_check = "SELECT usuario_id FROM usuario WHERE correo=%s OR username=%s OR dni=%s"
                 username = email.split('@')[0]
                 cursor.execute(sql_check, (email, username, dni))
@@ -108,7 +110,6 @@ def procesarregistro():
         # Error REAL de sistema (SQL mal, tabla no existe, etc.)
         print(f"Error en el registro (sistema): {e}")
         return redirect(url_for('frm_error'))
-
 
 
 @app.route("/procesarlogin", methods=['POST'])
