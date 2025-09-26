@@ -1,14 +1,24 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduQuiz - Iniciar Sesión</title>
     <link rel="stylesheet" href="../static/css/login.css">
+    <link rel="stylesheet" href="../static/css/carrusel.css">
 </head>
+
 <body>
     <div class="container">
         <div class="left-panel">
+            <div class="carousel">
+                <img src="{{ url_for('static', filename='/img/inicio_sesion.png') }}" class="carousel-image active"
+                    alt="Imagen 1">
+                <img src="{{ url_for('static', filename='/img/inicio_1.png') }}" class="carousel-image" alt="Imagen 2">
+                <img src="{{ url_for('static', filename='/img/inicio_2.png') }}" class="carousel-image" alt="Imagen 3">
+            </div>
+
             <div class="left-panel-content">
                 <h2>Aprende de forma divertida</h2>
                 <p>Gana puntos y compite con tus amigos mientras estudias tus cursos.</p>
@@ -29,11 +39,12 @@
                 <form action="{{url_for('procesarlogin')}}" method="post">
                     <div class="form-group">
                         <label for="correo">Ingresa tu correo electrónico</label>
-                            <input type="email" id="correo" name="correo" placeholder="ejemplo@dominio.com*" required>
+                        <input type="email" id="correo" name="correo" placeholder="ejemplo@dominio.com*" required>
                     </div>
                     <div class="form-group password-group">
                         <label for="contrasena">Ingresa tu contraseña</label>
-                            <input type="password" id="contrasena" name="contrasena" placeholder="Ingresar contraseña*" required>
+                        <input type="password" id="contrasena" name="contrasena" placeholder="Ingresar contraseña*"
+                            required>
                     </div>
                     <div class="options-group">
                         <div class="checkbox-container">
@@ -44,9 +55,12 @@
                     </div>
                     <button type="submit" class="btn-primary">INICIAR SESIÓN</button>
                 </form>
-                <p class="signup-link">¿No tienes una cuenta? <a href="{{ url_for('frm_registro') }}" class="link">Regístrate</a></p>
+                <p class="signup-link">¿No tienes una cuenta? <a href="{{ url_for('frm_registro') }}"
+                        class="link">Regístrate</a></p>
             </div>
         </div>
     </div>
+    <script src="../static/js/login.js"></script>
 </body>
+
 </html>

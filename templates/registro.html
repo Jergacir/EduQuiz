@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduQuiz - Crear Cuenta</title>
     <link rel="stylesheet" href="../static/css/registro.css">
+    <link rel="stylesheet" href="../static/css/carrusel.css">
+
 </head>
 <body>
     <div class="contenedor">
@@ -26,6 +28,8 @@
             <div class="formulario-contenedor">
                 <h1>¡Regístrate en EduQuiz!</h1>
                 <form action="{{ url_for('procesarregistro') }}" method="post">
+                    
+                    <!-- Tipo de usuario -->
                     <div class="grupo-formulario">
                         <label for="tipo">Tipo</label>
                         <select id="tipo" name="tipo">
@@ -33,31 +37,51 @@
                             <option>Alumno</option>
                         </select>
                     </div>
-                    <div class="grupo-formulario">
+                    
+                    <!-- DNI (solo docentes) -->
+                    <div class="grupo-formulario" id="grupo-dni">
                         <label for="dni">DNI</label>
                         <input type="text" id="dni" name="dni" placeholder="DNI*" required>
                     </div>
+                    
+                    <!-- Correo o DNI (según tipo) -->
                     <div class="grupo-formulario">
-                        <label for="email">Correo electrónico</label>
+                        <label for="email" id="label-email">Correo electrónico</label>
                         <div class="campo-con-dominio">
                             <input type="text" id="email" name="email" placeholder="Correo electrónico*" required>
-                            <span>@usat.edu.pe</span>
+                            <span id="email-domain">@usat.edu.pe</span>
                         </div>
                     </div>
+                    
+                    <!-- Contraseña -->
                     <div class="grupo-formulario campo-contrasena">
                         <label for="contrasena">Contraseña</label>
                         <input type="password" id="contrasena" name="contrasena" placeholder="Crear tu contraseña*" required>
                     </div>
+                    
+                    <!-- Confirmar contraseña -->
                     <div class="grupo-formulario campo-contrasena">
                         <label for="confirmarContrasena">Confirmar Contraseña</label>
                         <input type="password" id="confirmarContrasena" name="confirmarContrasena" placeholder="Confirmar tu contraseña*" required>
                     </div>
+                    
+                    <!-- Botón -->
                     <button type="submit" class="btn-primario">CONTINUAR</button>
                 </form>
                 <p class="enlace-sesion">¿Ya tienes una cuenta? <a href="{{ url_for('frm_login') }}">Inicia Sesión</a></p>
             </div>
         </div>
+        
+        <!-- Panel derecho -->
         <div class="panel-derecho">
+            
+            <div class="carousel">
+                <img src="{{ url_for('static', filename='/img/registro.png') }}" class="carousel-image active"
+                    alt="Imagen 1">
+                <img src="{{ url_for('static', filename='/img/inicio_sesion.png') }}" class="carousel-image" alt="Imagen 2">
+                <img src="{{ url_for('static', filename='/img/registro.png') }}" class="carousel-image" alt="Imagen 3">
+            </div>
+            
             <div class="panel-derecho-contenido">
                 <h2>Tu camino al éxito académico</h2>
                 <p>Domina cada materia y alcanza el máximo potencial en tu carrera.</p>

@@ -27,7 +27,6 @@ body {
     justify-content: flex-end;
     padding: 40px;
     position: relative;
-    background: url(../img/inicio_sesion.png);
     background-size: cover;
     background-position: center;
 }
