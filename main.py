@@ -1,14 +1,16 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import pymysql.cursors
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = 'supersecreto123' # Importante para la autenticación
 #IMPORTANTE: cambiar el puerto porfavor
 
+# port zamora: 3306
 def obtenerConexion():
     try:
         connection = pymysql.connect(host='localhost',
-                                    port=3306,
+                                    port=3339, 
                                     user='root',
                                     password='',
                                     database='bd_eduquiz',
@@ -17,6 +19,54 @@ def obtenerConexion():
     except Exception as e:
         print("Error al obtener la conexión: %s" % (repr(e)))
         return None
+
+# VERIFICACIÓN DE SESIÓN:
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 1. Protección de la Ruta: Verifica si hay un user_id en la sesión
+        if 'user_id' not in session:
+            flash("Debes iniciar sesión para acceder a esta página.", 'warning')
+            return redirect(url_for('frm_login'))
+        
+        # Si el usuario está autenticado, ejecuta la función original
+        return f(*args, **kwargs)
+    return decorated_function
+
+# CONTIENE LOS DATOS DEL USUARIO AUTENTICADO
+@app.context_processor
+def inject_user_data():
+    """
+    Inyecta el diccionario 'logged_in_user' en el contexto de todas las plantillas.
+    Contiene los datos del usuario autenticado.
+    """
+    if 'user_id' in session:
+        user_id = session['user_id']
+        conexion = obtenerConexion()
+        
+        if not conexion:
+            return {} # Si no hay conexión, no inyecta datos.
+
+        try:
+            with conexion:
+                with conexion.cursor() as cursor:
+                    # Traemos los datos que necesitamos en el frontend
+                    sql = "SELECT nombre, cant_monedas FROM usuario WHERE usuario_id=%s"
+                    cursor.execute(sql, (user_id,))
+                    user_data = cursor.fetchone()
+                    
+            if user_data:
+                # Retornamos el diccionario que se inyectará en las plantillas
+                return dict(logged_in_user=user_data)
+            else:
+                # Limpiamos la sesión si el ID no es válido
+                session.pop('user_id', None)
+                return {}
+        except Exception:
+            return {} # Fallo de DB
+            
+    # Si el usuario no ha iniciado sesión, retorna vacío
+    return {}
 
 @app.route("/probarconexion")
 def probarconexion():
@@ -39,11 +89,8 @@ def frm_registro():
     return render_template('registro.html')
 
 @app.route("/home")
+@login_required
 def frm_home():
-    # VERIFICACIÓN DE SESIÓN: Si el user_id NO está en la sesión...
-    if 'user_id' not in session:
-        flash("Debes iniciar sesión para acceder a esta página.", 'warning')    
-        return redirect(url_for('frm_login'))
     
     return render_template('home.html')
 
@@ -55,6 +102,7 @@ def logout():
     # Redirige al usuario a la página de login
     flash("Has cerrado sesión exitosamente.", 'success')
     return redirect(url_for('frm_login'))
+
 
 @app.route("/errorsistema")
 def frm_error():

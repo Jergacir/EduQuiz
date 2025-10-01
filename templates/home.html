@@ -9,8 +9,12 @@
 </head>
 <body>
     <div class="container">
-        <h1>Bienvenido a EduQuiz</h1>
+        <h1>Bienvenido a EduQuiz {{ logged_in_user.nombre }}</h1>
         <p>Crea, enseña, aprende y alcanza tus metas académicas, todo en un solo lugar. Donde tu conocimiento es el único límite</p>
+        <div class="user_info">
+            <p>Monedas Ganadas: {{ logged_in_user.cant_monedas }} 💰</p>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Cerrar Sesión</a>
+        </div>
     </div>
 </body>
 </html>
