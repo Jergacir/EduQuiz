@@ -1,16 +1,22 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import pymysql.cursors
 from functools import wraps
+from flask_bcrypt import Bcrypt # <-- Importar Bcrypt
+
+# pip install Flask-Bcrypt
+# Si no quieres usar la extensión de Flask, puedes usar solo la librería bcrypt:
+
 
 app = Flask(__name__)
 app.secret_key = 'supersecreto123' # Importante para la autenticación
 #IMPORTANTE: cambiar el puerto porfavor
+bcrypt = Bcrypt(app) # <-- Inicializar Bcrypt con tu aplicación Flask
 
 # port zamora: 3306
 def obtenerConexion():
     try:
         connection = pymysql.connect(host='localhost',
-                                    port=3339, 
+                                    port=3306, 
                                     user='root',
                                     password='',
                                     database='bd_eduquiz',
@@ -108,27 +114,26 @@ def logout():
 def frm_error():
     return render_template('errorsistema.html')
     
-# Ruta para procesar el registro de usuario
+# Ruta para procesar el registro de usuario (CON ENCRIPTACIÓN BCrypt)
 @app.route("/procesarregistro", methods=['POST'])
 def procesarregistro():
     tipo = request.form.get('tipo')
     dni = request.form.get('dni')
     email = request.form.get('email')
-    contrasena = request.form.get('contrasena')
+    contrasena_plana = request.form.get('contrasena') # Contraseña en texto plano
     confirmar = request.form.get('confirmarContrasena')
 
     # Validaciones básicas de formulario
-    if not tipo or not dni or not email or not contrasena or not confirmar:
-        print("Faltan campos obligatorios")
+    if not tipo or not dni or not email or not contrasena_plana or not confirmar:
+        flash("Faltan campos obligatorios.", 'error')
         return redirect(url_for('frm_registro'))
     
-    # Solo validar longitud DNI si es Alumno o Docente (en ambos debe ser 8 dígitos)
     if len(dni) != 8 or not dni.isdigit():
-        print("DNI inválido")
+        flash("DNI inválido. Debe contener 8 dígitos.", 'error')
         return redirect(url_for('frm_registro'))
     
-    if contrasena != confirmar:
-        print("Las contraseñas no coinciden")
+    if contrasena_plana != confirmar:
+        flash("Las contraseñas no coinciden.", 'error')
         return redirect(url_for('frm_registro'))
 
     # Ajustar dominio de correo según tipo
@@ -136,71 +141,93 @@ def procesarregistro():
         email = f"{email}@usat.edu.pe"
     elif tipo == "Alumno" and not email.endswith('@usat.pe'):
         email = f"{dni}@usat.pe"
+        
+    # --- INICIO CAMBIO BCrypt ---
+    # 1. Cifrar la contraseña ANTES de guardarla
+    hashed_password_bytes = bcrypt.generate_password_hash(contrasena_plana) 
+    
+    # 2. Decodificar a string para guardarlo en la base de datos (VARCHAR)
+    contrasena_cifrada = hashed_password_bytes.decode('utf-8') 
+    # --- FIN CAMBIO BCrypt ---
 
     # Intentar conexión
     conexion = obtenerConexion()
     if not conexion:
         print("No se pudo conectar a la base de datos")
-        return redirect(url_for('frm_error'))  # Error real de sistema
+        return redirect(url_for('frm_error')) 
 
     try:
-        
-        with conexion: # Abrir conexión (la conexión se cierra automáticamente)
+        with conexion: 
             with conexion.cursor() as cursor:
                 # Validar si ya existe usuario con mismo correo, username o dni
-                # Práctica de seguridad llamada parametrización
-                sql_check = "SELECT usuario_id FROM usuario WHERE correo=%s OR username=%s OR dni=%s"
+                sql_check = "SELECT usuario_id FROM usuario WHERE correo=%s OR dni=%s"
                 username = email.split('@')[0]
-                cursor.execute(sql_check, (email, username, dni))
+                cursor.execute(sql_check, (email, dni))
                 existe = cursor.fetchone()
                 if existe:
-                    print("Usuario ya registrado (correo o dni)")
+                    flash("El DNI o correo ya está registrado.", 'error')
                     return redirect(url_for('frm_registro'))
 
                 # Insertar nuevo usuario
                 sql = """INSERT INTO usuario
-                         (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas)
-                         VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+                             (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas)
+                             VALUES (%s, %s, %s, %s, %s, %s, %s)"""
                 nombre = username.replace('_', ' ').title()
                 tipo_usuario = 'A' if tipo == 'Alumno' else 'P'
-                cursor.execute(sql, (username, nombre, contrasena, email, dni, tipo_usuario, 0))
+                
+                # 3. Usar la contraseña CIFRADA en la inserción
+                cursor.execute(sql, (username, nombre, contrasena_cifrada, email, dni, tipo_usuario, 0))
                 conexion.commit()
 
+        flash("Registro exitoso. ¡Ya puedes iniciar sesión!", 'success')
         return redirect(url_for('frm_login'))
 
-    except pymysql.err.IntegrityError as ie:
-        # Error de negocio (duplicado de clave única)
-        print(f"Error de negocio: {ie}")
+    except pymysql.err.IntegrityError:
+        flash("Error de registro: El usuario ya existe o hay un problema con los datos.", 'error')
         return redirect(url_for('frm_registro'))
 
     except Exception as e:
-        # Error REAL de sistema (SQL mal, tabla no existe, etc.)
+        flash("Ocurrió un error en el sistema.", 'error')
         print(f"Error en el registro (sistema): {e}")
         return redirect(url_for('frm_error'))
 
 
+# Ruta para procesar el Login (CON VERIFICACIÓN BCrypt)
 @app.route("/procesarlogin", methods=['POST'])
 def procesarlogin():
     correo = request.form['correo']
-    contrasena = request.form['contrasena']
+    contrasena_plana = request.form['contrasena'] # Contraseña en texto plano
     conexion = obtenerConexion()
     if not conexion:
         print("No se pudo conectar a la base de datos (login)")
         return redirect(url_for('frm_error'))
+    
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                sql = "SELECT `usuario_id` FROM `usuario` WHERE `correo`=%s AND `contrasena`=%s"
-                cursor.execute(sql, (correo, contrasena))
-                result = cursor.fetchone()
+                # 1. CAMBIO CLAVE: Solo buscamos por correo y traemos la contraseña cifrada
+                sql = "SELECT `usuario_id`, `contrasena` AS hashed_password FROM `usuario` WHERE `correo`=%s"
+                cursor.execute(sql, (correo,))
+                result = cursor.fetchone() # Trae el usuario si existe
+            
+            # Verificación
             if result:
-                # PASO CLAVE: Guardar el ID del usuario en la sesión para mantener el estado
-                session['user_id'] = result['usuario_id'] 
-                #Redireccionar a bienvenida
-                return redirect(url_for('frm_home'))
+                hashed_password = result['hashed_password']
+                
+                # 2. Usar check_password_hash para comparar la plana (usuario) con la cifrada (DB)
+                if bcrypt.check_password_hash(hashed_password, contrasena_plana):
+                    # Login Exitoso
+                    session['user_id'] = result['usuario_id'] 
+                    return redirect(url_for('frm_home'))
+                else:
+                    # Contraseña incorrecta
+                    flash("Credenciales incorrectas. Verifica tu correo y contraseña.", 'error')
+                    return redirect(url_for('frm_login'))
             else:
+                # El correo no existe
                 flash("Credenciales incorrectas. Verifica tu correo y contraseña.", 'error')
                 return redirect(url_for('frm_login'))
+                
     except Exception as e:
         print(f"Error en el login: {e}")
         return redirect(url_for('frm_error'))
