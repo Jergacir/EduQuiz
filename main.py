@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session 
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import pymysql.cursors
 
 app = Flask(__name__)
@@ -8,7 +8,7 @@ app.secret_key = 'supersecreto123' # Importante para la autenticación
 def obtenerConexion():
     try:
         connection = pymysql.connect(host='localhost',
-                                    port=3339,
+                                    port=3306,
                                     user='root',
                                     password='',
                                     database='bd_eduquiz',
@@ -40,7 +40,21 @@ def frm_registro():
 
 @app.route("/home")
 def frm_home():
+    # VERIFICACIÓN DE SESIÓN: Si el user_id NO está en la sesión...
+    if 'user_id' not in session:
+        flash("Debes iniciar sesión para acceder a esta página.", 'warning')    
+        return redirect(url_for('frm_login'))
+    
     return render_template('home.html')
+
+@app.route("/logout")
+def logout():
+    # Elimina el user_id de la sesión si existe
+    session.pop('user_id', None)
+    
+    # Redirige al usuario a la página de login
+    flash("Has cerrado sesión exitosamente.", 'success')
+    return redirect(url_for('frm_login'))
 
 @app.route("/errorsistema")
 def frm_error():
@@ -132,10 +146,12 @@ def procesarlogin():
                 cursor.execute(sql, (correo, contrasena))
                 result = cursor.fetchone()
             if result:
+                # PASO CLAVE: Guardar el ID del usuario en la sesión para mantener el estado
+                session['user_id'] = result['usuario_id'] 
                 #Redireccionar a bienvenida
                 return redirect(url_for('frm_home'))
             else:
-                #Cargar nuevamente el login
+                flash("Credenciales incorrectas. Verifica tu correo y contraseña.", 'error')
                 return redirect(url_for('frm_login'))
     except Exception as e:
         print(f"Error en el login: {e}")
