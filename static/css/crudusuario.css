@@ -1,0 +1,243 @@
+/* Variables para colores */
+:root {
+    --color-principal: #303030; /* Color oscuro para botones principales */
+    --color-fondo: #f5f5f5; /* Gris claro para el fondo */
+    --color-sidebar: #ffffff; /* Fondo blanco para el sidebar y contenido */
+    --color-texto: #4a4a4a;
+    --color-gris-claro: #e0e0e0;
+    --color-gris-deshabilitado: #cccccc;
+    --color-seleccion-menu: #e6f7ff; /* Fondo para el item de menú activo */
+    --color-borde: #dcdcdc;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif; /* Fuente por defecto */
+}
+
+body {
+    background-color: var(--color-fondo);
+    color: var(--color-texto);
+}
+
+.contenedor-principal {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* --- Sidebar (Menú Lateral) --- */
+.sidebar {
+    width: 250px;
+    background-color: var(--color-sidebar);
+    padding: 20px 0;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    padding: 0 20px 30px 20px;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.logo img {
+    margin-right: 10px;
+}
+
+.menu ul {
+    list-style: none;
+}
+
+.menu li a {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    text-decoration: none;
+    color: var(--color-texto);
+    transition: background-color 0.2s;
+}
+
+.menu li a:hover {
+    background-color: var(--color-gris-claro);
+}
+
+.menu li.activo a {
+    background-color: var(--color-seleccion-menu);
+    color: var(--color-principal);
+    font-weight: bold;
+    border-left: 3px solid var(--color-principal); /* Indicador visual */
+}
+
+.icono {
+    margin-right: 15px;
+    font-size: 1.1em;
+}
+
+/* --- Contenido Principal --- */
+.contenido {
+    flex-grow: 1;
+    padding: 30px;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-borde);
+}
+
+.titulo {
+    font-size: 1.5em;
+    font-weight: 500;
+}
+
+.perfil-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1em;
+}
+
+.perfil-info .avatar {
+    border: 1px solid var(--color-borde);
+}
+
+/* --- Configuración del Perfil --- */
+.perfil-configuracion {
+    background-color: var(--color-sidebar);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Pestañas */
+.tabs {
+    display: flex;
+    border-bottom: 2px solid var(--color-gris-claro);
+    margin-bottom: 30px;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1em;
+    color: var(--color-texto);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab-button.activo {
+    font-weight: bold;
+    color: var(--color-principal);
+    border-bottom-color: var(--color-principal);
+}
+
+/* Formulario */
+#form-perfil {
+    max-width: 600px;
+}
+
+.campo {
+    margin-bottom: 25px;
+}
+
+.campo label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.campo input[type="text"],
+.campo input[type="email"] {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid var(--color-borde);
+    border-radius: 4px;
+    font-size: 1em;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.campo input:focus {
+    border-color: var(--color-principal);
+}
+
+.input-con-icono {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.input-con-icono input {
+    /* Oculta la flecha que indica edición */
+    padding-right: 40px; 
+}
+
+.editar-icono {
+    position: absolute;
+    right: 15px;
+    cursor: pointer;
+    font-size: 1.1em;
+}
+
+.input-deshabilitado {
+    background-color: var(--color-gris-claro);
+    color: var(--color-texto);
+    font-weight: bold;
+    pointer-events: none; /* Evita que se pueda interactuar */
+    border: 1px solid var(--color-gris-deshabilitado) !important;
+}
+
+/* Acciones (Botones) */
+.acciones {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 40px;
+    padding-top: 20px;
+    /* Esto simula la separación de la imagen de referencia */
+}
+
+.acciones button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1em;
+    cursor: pointer;
+    margin-left: 15px;
+    transition: background-color 0.2s;
+}
+
+.btn-secundario {
+    background-color: var(--color-gris-claro);
+    color: var(--color-texto);
+}
+
+.btn-secundario:hover {
+    background-color: #cacaca;
+}
+
+.btn-principal {
+    background-color: var(--color-principal);
+    color: white;
+}
+
+.btn-principal:hover {
+    background-color: #1a1a1a;
+}
+
+/* Ocultar contenido de pestañas no activas */
+.tab-content {
+    display: none;
+}
+
+.tab-content.activo {
+    display: block;
+}
