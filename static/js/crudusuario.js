@@ -26,7 +26,7 @@ function cargarDatosPerfil() {
     document.getElementById('cant_monedas').textContent = datosUsuarioLogueado.cant_monedas;
 
     // Mapeo del tipo de usuario
-    const tipoMap = { 'E': 'Estudiante', 'P': 'Profesor', 'A': 'Administrador' };
+    const tipoMap = { 'E': 'Estudiante', 'P': 'Profesor', 'A': 'Alumno' };
     const tipo = tipoMap[datosUsuarioLogueado.tipo_usuario] || 'Desconocido';
     document.getElementById('tipo_usuario').value = tipo;
 }
