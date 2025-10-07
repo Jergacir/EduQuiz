@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuración de Perfil - EduQuiz</title>
+    <title>Configuración de Perfil y Administración - EduQuiz</title>
     <link rel="stylesheet" href="../static/css/crudusuario.css">
 </head>
 <body>
@@ -41,6 +41,7 @@
                     <button class="tab-button activo" data-tab="perfil">Editar perfil</button>
                     <button class="tab-button" data-tab="contrasena">Cambiar contraseña</button>
                     <button class="tab-button" data-tab="privacidad">Privacidad</button>
+                    <button class="tab-button" data-tab="administracion">Administración</button>
                 </nav>
 
                 <div id="perfil" class="tab-content activo">
@@ -49,7 +50,6 @@
                             <label for="nombre">Nombres y Apellidos</label>
                             <input type="text" id="nombre" name="nombre" value="Joe Villarreal Mejia">
                         </div>
-
                         <div class="campo">
                             <label for="username">Nombre de Usuario</label>
                             <div class="input-con-icono">
@@ -57,7 +57,6 @@
                                 <span class="editar-icono" onclick="habilitarEdicion('username')">✏️</span>
                             </div>
                         </div>
-
                         <div class="campo">
                             <label for="correo">Email</label>
                             <div class="input-con-icono">
@@ -65,12 +64,10 @@
                                 <span class="editar-icono" onclick="habilitarEdicion('correo')">✏️</span>
                             </div>
                         </div>
-
                         <div class="campo">
                             <label>Tipo de cuenta</label>
                             <input type="text" id="tipo_usuario" name="tipo_usuario" value="Estudiante" readonly class="input-deshabilitado">
-                            </div>
-
+                        </div>
                         <div class="acciones">
                             <button type="button" id="cancelar" class="btn-secundario">Cancelar</button>
                             <button type="submit" id="guardar" class="btn-principal">Guardar</button>
@@ -78,10 +75,65 @@
                     </form>
                 </div>
 
-                <div id="contrasena" class="tab-content">
+                <div id="contrasena" class="tab-content">...</div>
+                <div id="privacidad" class="tab-content">...</div>
+
+                <div id="administracion" class="tab-content">
+                    <h2>Gestión General de Usuarios</h2>
+                    <p>Mantenimiento (CRUD) simulado para la tabla USUARIO2.</p>
+                    <button id="btn-nuevo-usuario" class="btn-principal" style="margin-bottom: 20px;">+ Crear Nuevo Usuario</button>
+                    
+                    <form id="form-gestion-usuario" class="formulario-gestion" style="display:none;">
+                        <h3><span id="form-titulo">Crear</span> Usuario</h3>
+                        <input type="hidden" id="gestion-usuario_id">
+                        
+                        <div class="campo">
+                            <label for="gestion-nombre">Nombres y Apellidos</label>
+                            <input type="text" id="gestion-nombre" required>
+                        </div>
+                        <div class="campo">
+                            <label for="gestion-username">Nombre de Usuario</label>
+                            <input type="text" id="gestion-username" required>
+                        </div>
+                        <div class="campo">
+                            <label for="gestion-correo">Email</label>
+                            <input type="email" id="gestion-correo" required>
+                        </div>
+                        <div class="campo">
+                            <label for="gestion-tipo_usuario">Tipo de Usuario (E/A)</label>
+                            <input type="text" id="gestion-tipo_usuario" maxlength="1" required>
+                        </div>
+                        <div class="campo">
+                            <label for="gestion-contrasena">Contraseña</label>
+                            <input type="password" id="gestion-contrasena" placeholder="Dejar vacío para no cambiar (Editar)">
+                        </div>
+
+                        <div class="acciones">
+                            <button type="button" id="btn-cancelar-gestion" class="btn-secundario">Cancelar</button>
+                            <button type="submit" class="btn-principal">Guardar Cambios</button>
+                        </div>
+                        <hr>
+                    </form>
+
+                    <div class="tabla-contenedor">
+                        <h4>Usuarios del Sistema</h4>
+                        <table id="tabla-usuarios">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Usuario</th>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Tipo</th>
+                                    <th>Monedas</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
                     </div>
-                <div id="privacidad" class="tab-content">
-                    </div>
+                </div>
 
             </div>
         </main>
