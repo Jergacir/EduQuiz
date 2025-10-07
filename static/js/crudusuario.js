@@ -9,14 +9,12 @@ const datosUsuarioLogueado = {
     cant_monedas: 10000
 };
 
-// ARRAY SIMULADO DE TODOS LOS USUARIOS (Tabla USUARIO2)
-let listaUsuarios = [
-    { usuario_id: 1, username: "joe_developer_chatgpt", nombre: "Joe Villarreal Mejia", contrasena: "1234", correo: "DNI@usat.pe", tipo_usuario: "A", cant_monedas: 10000 },
-    { usuario_id: 2, username: "maria_estudiante", nombre: "María Gonzales Perez", contrasena: "5678", correo: "maria@mail.com", tipo_usuario: "E", cant_monedas: 500 },
-    { usuario_id: 3, username: "carlos_profe", nombre: "Carlos Salas Ruiz", contrasena: "abcd", correo: "carlos@mail.com", tipo_usuario: "P", cant_monedas: 2500 }
-];
+// Variable que AHORA contendrá los datos REALES (obtenidos del backend)
+let listaUsuarios = []; 
 
 let usuarioEditandoId = null; // Para rastrear qué usuario estamos editando
+
+// ... (cargarDatosPerfil, habilitarEdicion, manejarGuardarPerfil permanecen iguales) ...
 
 /**
  * Función para cargar los datos del objeto simulado en la interfaz de perfil (EXISTENTE).
@@ -45,7 +43,7 @@ function habilitarEdicion(id) {
 }
 
 /**
- * Maneja el cambio entre las pestañas de configuración (ACTUALIZADO).
+ * Maneja el cambio entre las pestañas de configuración.
  */
 function cambiarPestana(event) {
     const tabButtons = document.querySelectorAll('.tab-button');
@@ -60,7 +58,7 @@ function cambiarPestana(event) {
 
     // Cargar la tabla de usuarios cuando se selecciona la pestaña de administración
     if (targetTab === 'administracion') {
-        renderizarTablaUsuarios();
+        obtenerYRenderizarUsuarios(); // <--- LLAMADA CLAVE A LA API
     }
 }
 
@@ -75,7 +73,8 @@ function manejarGuardarPerfil(event) {
     const nuevoCorreo = document.getElementById('correo').value;
 
     if (!nuevoNombre || !nuevoUsername || !nuevoCorreo) {
-        alert("Todos los campos obligatorios deben estar llenos.");
+        // Reemplazar alert()
+        console.error("Todos los campos obligatorios deben estar llenos.");
         return;
     }
 
@@ -83,24 +82,52 @@ function manejarGuardarPerfil(event) {
     datosUsuarioLogueado.username = nuevoUsername;
     datosUsuarioLogueado.correo = nuevoCorreo;
     
-    // Actualizar el usuario en la lista general también
-    const index = listaUsuarios.findIndex(u => u.usuario_id === datosUsuarioLogueado.usuario_id);
-    if(index !== -1) {
-        listaUsuarios[index].nombre = nuevoNombre;
-        listaUsuarios[index].username = nuevoUsername;
-        listaUsuarios[index].correo = nuevoCorreo;
-    }
+    // NOTA: Para guardar el perfil, se necesitaría otra ruta POST/PUT en main.py
 
     document.getElementById('username').setAttribute('readonly', 'true');
     document.getElementById('correo').setAttribute('readonly', 'true');
 
-    alert("¡Perfil actualizado con éxito!");
+    // Reemplazar alert()
+    console.log("¡Perfil actualizado con éxito!");
 }
 
 /* --- FUNCIONES DE ADMINISTRACIÓN --- */
 
 /**
- * Renderiza la tabla de usuarios con la lista actual.
+ * OBTENER DATOS DEL BACKEND y renderizar la tabla.
+ */
+async function obtenerYRenderizarUsuarios() {
+    try {
+        const response = await fetch('/api/usuarios'); // Llama a la nueva ruta en main.py
+        
+        if (response.status === 401) {
+             console.error("Error 401: Sesión expirada o no iniciada.");
+             return;
+        }
+
+        if (response.status === 403) {
+            console.error("Error 403: No tiene permisos para acceder a la administración.");
+            // Opcional: limpiar la tabla para no mostrar datos
+            document.querySelector('#tabla-usuarios tbody').innerHTML = '<tr><td colspan="6">No tienes permisos para ver la administración de usuarios.</td></tr>';
+            return;
+        }
+        
+        if (!response.ok) {
+            throw new Error(`Error al obtener usuarios: ${response.statusText}`);
+        }
+        
+        // Asignamos la data obtenida del servidor a la variable global
+        listaUsuarios = await response.json(); 
+        
+        renderizarTablaUsuarios(); // Una vez obtenidos los datos, se pinta la tabla
+
+    } catch (error) {
+        console.error("Fallo al cargar la lista de usuarios desde la API:", error);
+    }
+}
+
+/**
+ * Renderiza la tabla de usuarios con la lista actual (ahora listaUsuarios viene del backend).
  */
 function renderizarTablaUsuarios() {
     const tbody = document.querySelector('#tabla-usuarios tbody');
@@ -108,14 +135,14 @@ function renderizarTablaUsuarios() {
 
     listaUsuarios.forEach(usuario => {
         const fila = tbody.insertRow();
-        const tipoMap = { 'E': 'Estudiante', 'P': 'Profesor', 'A': 'Admin' };
+        const tipoMap = { 'E': 'Estudiante', 'P': 'Profesor', 'A': 'Admin', 'G': 'Gestor' };
 
         fila.insertCell().textContent = usuario.usuario_id;
         fila.insertCell().textContent = usuario.username;
         fila.insertCell().textContent = usuario.nombre;
         fila.insertCell().textContent = usuario.correo;
         fila.insertCell().textContent = tipoMap[usuario.tipo_usuario] || usuario.tipo_usuario;
-        fila.insertCell().textContent = usuario.cant_monedas;
+        fila.insertCell().textContent = usuario.cant_monedas || 0; // Mostrar 0 si no hay monedas
 
         // Celda de acciones
         const accionesCell = fila.insertCell();
@@ -129,7 +156,8 @@ function renderizarTablaUsuarios() {
         const btnEliminar = document.createElement('button');
         btnEliminar.textContent = 'Eliminar';
         btnEliminar.classList.add('btn-eliminar');
-        btnEliminar.onclick = () => eliminarUsuario(usuario.usuario_id);
+        // Usaremos console.log en lugar de alert/confirm
+        btnEliminar.onclick = () => console.log(`Iniciando eliminación del usuario con ID ${usuario.usuario_id}`); 
 
         accionesCell.appendChild(btnEditar);
         accionesCell.appendChild(btnEliminar);
@@ -160,19 +188,22 @@ function cargarParaEdicion(id) {
 }
 
 /**
- * Elimina un usuario de la lista.
+ * Elimina un usuario de la lista (Ahora esto solo simula el proceso, se necesita una llamada DELETE API).
  * @param {number} id - El ID del usuario a eliminar.
  */
 function eliminarUsuario(id) {
     if (id === datosUsuarioLogueado.usuario_id) {
-        alert("¡No puedes eliminar tu propia cuenta desde esta interfaz!");
+        console.error("¡No puedes eliminar tu propia cuenta desde esta interfaz!");
         return;
     }
-    if (confirm(`¿Estás seguro de que deseas eliminar al usuario con ID ${id}?`)) {
-        listaUsuarios = listaUsuarios.filter(u => u.usuario_id !== id);
-        renderizarTablaUsuarios();
-        alert(`Usuario con ID ${id} eliminado.`);
-    }
+    
+    // Aquí, en una aplicación real, harías una llamada FETCH con el método DELETE
+    console.warn(`Simulación: Petición DELETE a /api/usuarios/${id}`);
+
+    // Solo para fines de demostración en JS puro:
+    listaUsuarios = listaUsuarios.filter(u => u.usuario_id !== id);
+    renderizarTablaUsuarios();
+    console.log(`Simulación: Usuario con ID ${id} eliminado.`);
 }
 
 /**
@@ -187,47 +218,60 @@ function manejarGuardarGestion(event) {
     const correo = document.getElementById('gestion-correo').value;
     const tipo_usuario = document.getElementById('gestion-tipo_usuario').value.toUpperCase();
     const contrasena = document.getElementById('gestion-contrasena').value;
+    
+    // VALIDACIÓN BÁSICA DE CAMPOS OBLIGATORIOS
+    if (!nombre || !username || !correo || !tipo_usuario) {
+        console.error("Todos los campos de usuario son obligatorios.");
+        return;
+    }
+
+    // El objeto de datos que se enviaría al backend
+    const userData = {
+        nombre,
+        username,
+        correo,
+        tipo_usuario,
+        contrasena: contrasena || undefined // Solo incluir contraseña si se proporciona
+    };
 
     if (id) {
-        // LÓGICA DE ACTUALIZACIÓN
+        // LÓGICA DE ACTUALIZACIÓN (PUT o PATCH)
+        console.log(`Simulación: Petición PUT a /api/usuarios/${id}`, userData);
+        
+        // Simulación: Actualizar la lista local después de una respuesta exitosa
         const usuarioIndex = listaUsuarios.findIndex(u => u.usuario_id == id);
         if (usuarioIndex !== -1) {
-            listaUsuarios[usuarioIndex].nombre = nombre;
-            listaUsuarios[usuarioIndex].username = username;
-            listaUsuarios[usuarioIndex].correo = correo;
-            listaUsuarios[usuarioIndex].tipo_usuario = tipo_usuario;
-            if (contrasena) {
-                listaUsuarios[usuarioIndex].contrasena = contrasena; // Simulación de cambio
-            }
-            alert(`Usuario ${username} actualizado.`);
+            // Actualizar datos locales (solo para simulación)
+            listaUsuarios[usuarioIndex] = { ...listaUsuarios[usuarioIndex], ...userData };
+            console.log(`Simulación: Usuario ${username} actualizado localmente.`);
         }
     } else {
-        // LÓGICA DE CREACIÓN
-        const nuevoId = listaUsuarios.length > 0 ? Math.max(...listaUsuarios.map(u => u.usuario_id)) + 1 : 1;
+        // LÓGICA DE CREACIÓN (POST)
         if (!contrasena) {
-             alert("La contraseña es obligatoria para un nuevo usuario.");
-             return;
+            console.error("La contraseña es obligatoria para un nuevo usuario.");
+            return;
         }
-
+        console.log("Simulación: Petición POST a /api/usuarios", userData);
+        
+        // Simulación: Agregar a la lista local después de una respuesta exitosa
+        const nuevoId = listaUsuarios.length > 0 ? Math.max(...listaUsuarios.map(u => u.usuario_id)) + 1 : 1;
         const nuevoUsuario = {
-            usuario_id: nuevoId,
-            username: username,
-            nombre: nombre,
-            contrasena: contrasena,
-            correo: correo,
-            tipo_usuario: tipo_usuario,
-            cant_monedas: 0
-        };
-        listaUsuarios.push(nuevoUsuario);
-        alert(`Usuario ${username} creado con ID ${nuevoId}.`);
+             usuario_id: nuevoId,
+             cant_monedas: 0,
+             ...userData
+         };
+         listaUsuarios.push(nuevoUsuario);
+         console.log(`Simulación: Usuario ${username} creado con ID ${nuevoId}.`);
     }
 
     // Limpiar y ocultar formulario, y actualizar la tabla
     document.getElementById('form-gestion-usuario').reset();
     document.getElementById('form-gestion-usuario').style.display = 'none';
     usuarioEditandoId = null;
-    renderizarTablaUsuarios();
+    obtenerYRenderizarUsuarios(); // Recargar la lista del backend (o en este caso, renderizar la lista simulada actualizada)
 }
+
+// ... (El resto de la inicialización permanece igual) ...
 
 /**
  * Inicializa los listeners de eventos al cargar el DOM (ACTUALIZADO).
@@ -246,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cargarDatosPerfil();
         document.getElementById('username').setAttribute('readonly', 'true');
         document.getElementById('correo').setAttribute('readonly', 'true');
-        alert("Cambios de perfil cancelados.");
+        console.log("Cambios de perfil cancelados.");
     });
 
     // 3. Listeners para Administración

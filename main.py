@@ -13,7 +13,7 @@ app.secret_key = 'supersecreto123' # Importante para la autenticación
 #IMPORTANTE: cambiar el puerto porfavor
 bcrypt = Bcrypt(app) # Inicializar Bcrypt con tu aplicación Flask
 
-# port zamora: 3306
+# --- FUNCIÓN DE CONEXIÓN A LA BASE DE DATOS ---
 def obtenerConexion():
     try:
         connection = pymysql.connect(host='localhost',
@@ -24,8 +24,34 @@ def obtenerConexion():
                                      cursorclass=pymysql.cursors.DictCursor)
         return connection
     except Exception as e:
-        print("Error al obtener la conexión: %s" % (repr(e)))
+        # Se imprime el error en la salida de errores
+        print("Error al obtener la conexión: %s" % (repr(e)), file=sys.stderr)
         return None
+
+# --- FUNCIÓN PARA OBTENER TODOS LOS USUARIOS DE LA BD (NUEVA IMPLEMENTACIÓN) ---
+def obtener_todos_los_usuarios():
+    """
+    Consulta la base de datos y devuelve una lista de todos los usuarios
+    con los campos necesarios para el CRUD (excluyendo la contraseña).
+    """
+    conexion = obtenerConexion()
+    if not conexion:
+        return []
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # Selecciona solo los campos necesarios y seguros para mostrar en el CRUD
+                sql = "SELECT usuario_id, username, nombre, correo, tipo_usuario, cant_monedas FROM usuario"
+                cursor.execute(sql)
+                # Debido a DictCursor, esto ya retorna una lista de diccionarios
+                usuarios = cursor.fetchall() 
+                return usuarios
+    except Exception as e:
+        print(f"Error al obtener usuarios de la BD: {e}", file=sys.stderr)
+        return []
+
+# --- DECORADORES DE AUTORIZACIÓN ---
 
 # VERIFICACIÓN DE SESIÓN:
 def login_required(f):
@@ -40,9 +66,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# =========================================================
-# >>> CÓDIGO FALTANTE 1: DECORADOR PARA RESTRINGIR ACCESO <<<
-# =========================================================
+# RESTRINGIR ACCESO A GESTORES ('G'):
 def gestor_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -52,7 +76,6 @@ def gestor_required(f):
             return redirect(url_for('frm_login'))
 
         # 2. Obtener los datos del usuario (que ya contiene tipo_usuario gracias al context_processor)
-        # Usamos la misma función que inyecta los datos a las plantillas
         user_data = inject_user_data().get('logged_in_user')
 
         # 3. Verificar el tipo de usuario
@@ -62,8 +85,6 @@ def gestor_required(f):
         
         return f(*args, **kwargs)
     return decorated_function
-# =========================================================
-
 
 # CONTIENE LOS DATOS DEL USUARIO AUTENTICADO
 @app.context_processor
@@ -82,9 +103,7 @@ def inject_user_data():
         try:
             with conexion:
                 with conexion.cursor() as cursor:
-                    # =========================================================
-                    # >>> CÓDIGO FALTANTE 2: AGREGAR tipo_usuario a la consulta SQL <<<
-                    # =========================================================
+                    # Traemos 'tipo_usuario' para usarlo en el decorador 'gestor_required'
                     sql = "SELECT nombre, cant_monedas, tipo_usuario FROM usuario WHERE usuario_id=%s"
                     cursor.execute(sql, (user_id,))
                     user_data = cursor.fetchone()
@@ -102,6 +121,8 @@ def inject_user_data():
             
     # Si el usuario no ha iniciado sesión, retorna vacío
     return {}
+
+# --- RUTAS DE NAVEGACIÓN ---
 
 @app.route("/probarconexion")
 def probarconexion():
@@ -128,9 +149,9 @@ def frm_registro():
 def frm_home():
     return render_template('home.html')
 
-# ESTA RUTA YA ESTABA DEFINIDA CORRECTAMENTE, APLICAMOS EL DECORADOR FALTANTE
+# RUTA HTML PARA EL CRUD DE USUARIOS
 @app.route("/crud-usuarios")
-@gestor_required  # ¡Ahora se usa el decorador gestor_required!
+@gestor_required  # Usa el decorador gestor_required para la página HTML
 def crud_usuarios():
     return render_template('crudUsuario.html')
 
@@ -230,6 +251,46 @@ def procesarregistro():
         print(f"Error en el registro (sistema): {e}")
         return redirect(url_for('frm_error'))
 
+
+# --- RUTA API PARA LISTAR USUARIOS (CONSUMIDA POR crudusuario.js) ---
+@app.route('/api/usuarios', methods=['GET'])
+def listar_usuarios_api():
+    """
+    Ruta API para devolver la lista completa de usuarios.
+    Verifica los permisos antes de consultar la BD.
+    """
+    # 1. Verificar autenticación
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autenticado. Debes iniciar sesión.'}), 401
+    
+    user_id = session['user_id']
+    
+    # 2. Verificar si el usuario actual es un Gestor ('G')
+    conexion = obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # Consulta directa para verificar el rol del usuario logueado
+                sql_check_role = "SELECT tipo_usuario FROM usuario WHERE usuario_id=%s"
+                cursor.execute(sql_check_role, (user_id,))
+                user_role_data = cursor.fetchone()
+
+                if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
+                    # Devolver un error 403 (Prohibido) si no tiene permiso de Gestor
+                    return jsonify({'error': 'Acceso prohibido. No tienes permisos de administrador.'}), 403
+        
+        # 3. Si el rol es 'G', procede a obtener la lista completa de usuarios
+        usuarios = obtener_todos_los_usuarios() 
+        
+        return jsonify(usuarios)
+
+    except Exception as e:
+        print(f"Error al obtener usuarios: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error interno del servidor al obtener datos'}), 500
+
 # Registrar GESTORES/ADMINISTRADORES
 # ==================================
 @app.route("/api/register-gestor", methods=['POST'])
@@ -307,9 +368,7 @@ def procesarlogin():
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                # 1. CAMBIO CLAVE: Solo buscamos por correo y traemos la contraseña cifrada y el tipo_usuario
-                # Es crucial traer el tipo_usuario aquí si no queremos depender del context_processor
-                # Pero para simplicidad, con el user_id ya basta, pues el context_processor lo traerá.
+                # Solo buscamos por correo y traemos la contraseña cifrada
                 sql = "SELECT `usuario_id`, `contrasena` FROM `usuario` WHERE `correo`=%s"
                 cursor.execute(sql, (correo,))
                 result = cursor.fetchone() 
@@ -318,7 +377,7 @@ def procesarlogin():
             if result:
                 hashed_password = result['contrasena']
                 
-                # 2. Usar check_password_hash para comparar la plana (usuario) con la cifrada (DB)
+                # Usar check_password_hash para comparar la plana (usuario) con la cifrada (DB)
                 if bcrypt.check_password_hash(hashed_password, contrasena_plana):
                     # Login Exitoso
                     session['user_id'] = result['usuario_id'] 

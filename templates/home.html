@@ -53,19 +53,9 @@
 </head>
 <body>
     <div class="container">
-        <!-- MOSTRAR MENSAJES FLASH (Solo Error y Warning) -->
-        <!-- Eliminamos los mensajes de éxito (success) en el Home para mayor limpieza visual -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flashes">
-                    {% for category, message in messages %}
-                        {% if category != 'success' %}
-                            <div class="alert {{ category }}">{{ message }}</div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+        <!-- MOSTRAR MENSAJES FLASH -->
+        <!-- Se ha eliminado el bloque de mensajes de Flash. La página Home estará limpia. -->
+        <!-- Si un mensaje de error se arrastra aquí, no se mostrará. -->
 
         <h1>Bienvenido a EduQuiz, {{ logged_in_user.nombre }}!</h1>
         <p>Crea, enseña, aprende y alcanza tus metas académicas, todo en un solo lugar. Donde tu conocimiento es el único límite</p>
