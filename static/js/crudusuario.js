@@ -153,14 +153,16 @@ function renderizarTablaUsuarios() {
         btnEditar.classList.add('btn-editar');
         btnEditar.onclick = () => cargarParaEdicion(usuario.usuario_id);
         
+        // --- INICIO: Código del botón Eliminar que preguntaste ---
         const btnEliminar = document.createElement('button');
         btnEliminar.textContent = 'Eliminar';
         btnEliminar.classList.add('btn-eliminar');
-        // Usaremos console.log en lugar de alert/confirm
-        btnEliminar.onclick = () => console.log(`Iniciando eliminación del usuario con ID ${usuario.usuario_id}`); 
+        // ¡Esta línea es la clave! Conecta el clic con la función asíncrona que elimina.
+        btnEliminar.onclick = () => eliminarUsuario(usuario.usuario_id); 
 
         accionesCell.appendChild(btnEditar);
         accionesCell.appendChild(btnEliminar);
+        // --- FIN: Código del botón Eliminar ---
     });
 }
 
@@ -188,22 +190,47 @@ function cargarParaEdicion(id) {
 }
 
 /**
- * Elimina un usuario de la lista (Ahora esto solo simula el proceso, se necesita una llamada DELETE API).
+ * Elimina un usuario de la lista haciendo una llamada DELETE a la API del backend.
  * @param {number} id - El ID del usuario a eliminar.
  */
-function eliminarUsuario(id) {
-    if (id === datosUsuarioLogueado.usuario_id) {
-        console.error("¡No puedes eliminar tu propia cuenta desde esta interfaz!");
-        return;
+async function eliminarUsuario(id) {
+    // 1. CONFIRMACIÓN
+    const usernameAEliminar = listaUsuarios.find(u => u.usuario_id === id)?.username || id;
+    if (!confirm(`¿Estás seguro de que quieres eliminar al usuario "${usernameAEliminar}" (ID: ${id})? Esta acción es irreversible.`)) {
+        return; // El usuario canceló la eliminación
     }
-    
-    // Aquí, en una aplicación real, harías una llamada FETCH con el método DELETE
-    console.warn(`Simulación: Petición DELETE a /api/usuarios/${id}`);
 
-    // Solo para fines de demostración en JS puro:
-    listaUsuarios = listaUsuarios.filter(u => u.usuario_id !== id);
-    renderizarTablaUsuarios();
-    console.log(`Simulación: Usuario con ID ${id} eliminado.`);
+    try {
+        // 2. LLAMADA A LA API DELETE
+        const response = await fetch(`/api/usuarios/${id}`, {
+            method: 'DELETE',
+            // No se necesita body en una petición DELETE simple
+        });
+
+        const data = await response.json();
+
+        if (response.status === 403 && data.error.includes("propia cuenta")) {
+            // Manejar la restricción de auto-eliminación que pusimos en main.py
+            alert(data.error); 
+            return;
+        }
+
+        if (!response.ok) {
+            // Si la respuesta no es 2xx, manejar el error devuelto por el backend
+            throw new Error(data.error || `Error al eliminar: ${response.status} ${response.statusText}`);
+        }
+
+        // 3. ÉXITO: Recargar la tabla para reflejar los cambios
+        console.log(`Usuario con ID ${id} eliminado exitosamente.`);
+        alert(`¡Usuario ${usernameAEliminar} eliminado con éxito!`);
+        
+        // La clave para actualizar es volver a obtener los datos del servidor
+        await obtenerYRenderizarUsuarios(); 
+
+    } catch (error) {
+        console.error("Fallo en la eliminación del usuario:", error);
+        alert(`Error al eliminar el usuario: ${error.message}`);
+    }
 }
 
 /**

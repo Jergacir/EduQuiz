@@ -355,6 +355,54 @@ def register_gestor_api():
         print(f"Error en el registro de gestor (API): {e}")
         return jsonify({"success": False, "message": "Ocurrió un error en el sistema."}), 500
 
+# --- RUTA API PARA ELIMINAR USUARIO (CONSUMIDA POR crudusuario.js) ---
+@app.route('/api/usuarios/<int:usuario_id>', methods=['DELETE'])
+def eliminar_usuario_api(usuario_id):
+    """
+    Ruta API para eliminar un usuario por su ID.
+    Requiere que el usuario logueado sea un Gestor ('G').
+    """
+    # 1. Verificar autenticación
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autenticado.'}), 401
+    
+    user_id_logueado = session['user_id']
+    
+    # 2. Verificar Permiso de Gestor ('G')
+    conexion = obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # Consulta para verificar el rol del usuario logueado
+                sql_check_role = "SELECT tipo_usuario FROM usuario WHERE usuario_id=%s"
+                cursor.execute(sql_check_role, (user_id_logueado,))
+                user_role_data = cursor.fetchone()
+
+                if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
+                    return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
+                
+                # 3. Restricción de auto-eliminación
+                if usuario_id == user_id_logueado:
+                    return jsonify({'error': 'No puedes eliminar tu propia cuenta de Gestor a través de esta interfaz.'}), 403
+
+                # 4. Ejecutar la Eliminación
+                sql_delete = "DELETE FROM usuario WHERE usuario_id=%s"
+                filas_afectadas = cursor.execute(sql_delete, (usuario_id,))
+                
+                conexion.commit()
+
+                if filas_afectadas == 0:
+                    return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado.'}), 404
+                
+                return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} eliminado exitosamente.'}), 200
+
+    except Exception as e:
+        print(f"Error al eliminar usuario: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error interno del servidor al eliminar datos.'}), 500
+
 # Ruta para procesar el Login (CON VERIFICACIÓN BCrypt)
 @app.route("/procesarlogin", methods=['POST'])
 def procesarlogin():
