@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración de Perfil - EduQuiz</title>
+    <link rel="stylesheet" href="../static/css/crudusuario.css">
+</head>
+<body>
+    <div class="contenedor-principal">
+        <aside class="sidebar">
+            <div class="logo">
+                <img src="logo.png" alt="EduQuiz Logo" style="width: 30px; height: 30px;">
+                <span>EduQuiz</span>
+            </div>
+            <nav class="menu">
+                <ul>
+                    <li><a href="#"><i class="icono">🏠</i> Inicio</a></li>
+                    <li><a href="#"><i class="icono">❓</i> Cuestionarios</a></li>
+                    <li><a href="#"><i class="icono">🛍️</i> Tienda</a></li>
+                    <li><a href="#"><i class="icono">🎮</i> Partidas</a></li>
+                    <li class="activo"><a href="#"><i class="icono">⚙️</i> Configuración</a></li>
+                    <li><a href="#"><i class="icono">➡️</i> Cerrar Sesión</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="contenido">
+            <header class="header">
+                <div class="titulo">Configuración</div>
+                <div class="perfil-info">
+                    <span id="cant_monedas">10000</span>
+                    <i class="icono">🪙</i> 
+                    <img src="avatar.png" alt="Avatar" class="avatar" style="width: 30px; height: 30px; border-radius: 50%;">
+                    <span>Mi Perfil</span>
+                </div>
+            </header>
+
+            <div class="perfil-configuracion">
+                <nav class="tabs">
+                    <button class="tab-button activo" data-tab="perfil">Editar perfil</button>
+                    <button class="tab-button" data-tab="contrasena">Cambiar contraseña</button>
+                    <button class="tab-button" data-tab="privacidad">Privacidad</button>
+                </nav>
+
+                <div id="perfil" class="tab-content activo">
+                    <form id="form-perfil">
+                        <div class="campo">
+                            <label for="nombre">Nombres y Apellidos</label>
+                            <input type="text" id="nombre" name="nombre" value="Joe Villarreal Mejia">
+                        </div>
+
+                        <div class="campo">
+                            <label for="username">Nombre de Usuario</label>
+                            <div class="input-con-icono">
+                                <input type="text" id="username" name="username" value="joe_developer_chatgpt" readonly>
+                                <span class="editar-icono" onclick="habilitarEdicion('username')">✏️</span>
+                            </div>
+                        </div>
+
+                        <div class="campo">
+                            <label for="correo">Email</label>
+                            <div class="input-con-icono">
+                                <input type="email" id="correo" name="correo" value="DNI@usat.pe" readonly>
+                                <span class="editar-icono" onclick="habilitarEdicion('correo')">✏️</span>
+                            </div>
+                        </div>
+
+                        <div class="campo">
+                            <label>Tipo de cuenta</label>
+                            <input type="text" id="tipo_usuario" name="tipo_usuario" value="Estudiante" readonly class="input-deshabilitado">
+                            </div>
+
+                        <div class="acciones">
+                            <button type="button" id="cancelar" class="btn-secundario">Cancelar</button>
+                            <button type="submit" id="guardar" class="btn-principal">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="contrasena" class="tab-content">
+                    </div>
+                <div id="privacidad" class="tab-content">
+                    </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="../static/js/crudusuario.js"></script>
+</body>
+</html>
