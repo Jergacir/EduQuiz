@@ -5,13 +5,13 @@ CREATE TABLE `USUARIO` (
   `contrasena` VARCHAR(100) NOT NULL,
   `correo` VARCHAR(100) NOT NULL UNIQUE,
   `dni` CHAR(8) NOT NULL UNIQUE,
-  `tipo_usuario` CHAR(1) NOT NULL CHECK (`tipo_usuario` IN ('A', 'P')),
+  `tipo_usuario` CHAR(1) NOT NULL CHECK (`tipo_usuario` IN ('A', 'P', 'G')), -- A(Alumno), P(Profesor) y G(Gestor)
   `cant_monedas` INT(11) NOT NULL,
   PRIMARY KEY (`usuario_id`)
 );
 
 INSERT INTO `USUARIO` (`username`, `nombre`, `contrasena`, `correo`, `dni`, `tipo_usuario`, `cant_monedas`) VALUES
-('yamir_zamora', 'Yamir Zamora', 'pass123', 'zamora@gmail.com', '12345678', 'A', 0),
+('yamir_zamora', 'Yamir Zamora', 'pass123', 'zamora@gmail.com', '12345678', 'G', 0),
 ('sebastian_henckell', 'Sebastián Henckell', 'pass456', 'sebastian@gmail.com', '87654321', 'P', 0),
-('jeremy_garcia', 'Jeremy García', 'pass789', 'jeremy@gmail.com', '11223344', 'P', 0);
+('jeremy_garcia', 'Jeremy García', 'pass789', 'jeremy@gmail.com', '11223344', 'A', 0);
 
