@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import pymysql.cursors
 from functools import wraps
-from flask_bcrypt import Bcrypt # <-- Importar Bcrypt
+from flask_bcrypt import Bcrypt 
+import sys 
 
 # pip install Flask-Bcrypt
 # Si no quieres usar la extensión de Flask, puedes usar solo la librería bcrypt:
@@ -10,17 +11,17 @@ from flask_bcrypt import Bcrypt # <-- Importar Bcrypt
 app = Flask(__name__)
 app.secret_key = 'supersecreto123' # Importante para la autenticación
 #IMPORTANTE: cambiar el puerto porfavor
-bcrypt = Bcrypt(app) # <-- Inicializar Bcrypt con tu aplicación Flask
+bcrypt = Bcrypt(app) # Inicializar Bcrypt con tu aplicación Flask
 
 # port zamora: 3306
 def obtenerConexion():
     try:
         connection = pymysql.connect(host='localhost',
-                                    port=3306, 
-                                    user='root',
-                                    password='',
-                                    database='bd_eduquiz',
-                                    cursorclass=pymysql.cursors.DictCursor)
+                                     port=3306, 
+                                     user='root',
+                                     password='',
+                                     database='bd_eduquiz',
+                                     cursorclass=pymysql.cursors.DictCursor)
         return connection
     except Exception as e:
         print("Error al obtener la conexión: %s" % (repr(e)))
@@ -39,6 +40,31 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# =========================================================
+# >>> CÓDIGO FALTANTE 1: DECORADOR PARA RESTRINGIR ACCESO <<<
+# =========================================================
+def gestor_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 1. Verificar si está logueado
+        if 'user_id' not in session:
+            flash("Debes iniciar sesión para acceder a esta página.", 'warning')
+            return redirect(url_for('frm_login'))
+
+        # 2. Obtener los datos del usuario (que ya contiene tipo_usuario gracias al context_processor)
+        # Usamos la misma función que inyecta los datos a las plantillas
+        user_data = inject_user_data().get('logged_in_user')
+
+        # 3. Verificar el tipo de usuario
+        if not user_data or user_data.get('tipo_usuario') != 'G':
+            flash("No tienes permiso para acceder a esta sección de administración.", 'error')
+            return redirect(url_for('frm_home')) # Redirige al home si no es gestor
+        
+        return f(*args, **kwargs)
+    return decorated_function
+# =========================================================
+
+
 # CONTIENE LOS DATOS DEL USUARIO AUTENTICADO
 @app.context_processor
 def inject_user_data():
@@ -56,13 +82,16 @@ def inject_user_data():
         try:
             with conexion:
                 with conexion.cursor() as cursor:
-                    # Traemos los datos que necesitamos en el frontend
-                    sql = "SELECT nombre, cant_monedas FROM usuario WHERE usuario_id=%s"
+                    # =========================================================
+                    # >>> CÓDIGO FALTANTE 2: AGREGAR tipo_usuario a la consulta SQL <<<
+                    # =========================================================
+                    sql = "SELECT nombre, cant_monedas, tipo_usuario FROM usuario WHERE usuario_id=%s"
                     cursor.execute(sql, (user_id,))
                     user_data = cursor.fetchone()
                     
             if user_data:
                 # Retornamos el diccionario que se inyectará en las plantillas
+                # Ahora incluye 'tipo_usuario'
                 return dict(logged_in_user=user_data)
             else:
                 # Limpiamos la sesión si el ID no es válido
@@ -98,6 +127,12 @@ def frm_registro():
 @login_required
 def frm_home():
     return render_template('home.html')
+
+# ESTA RUTA YA ESTABA DEFINIDA CORRECTAMENTE, APLICAMOS EL DECORADOR FALTANTE
+@app.route("/crud-usuarios")
+@gestor_required  # ¡Ahora se usa el decorador gestor_required!
+def crud_usuarios():
+    return render_template('crudUsuario.html')
 
 @app.route("/logout")
 def logout():
@@ -135,19 +170,27 @@ def procesarregistro():
         flash("Las contraseñas no coinciden.", 'error')
         return redirect(url_for('frm_registro'))
 
-    # Ajustar dominio de correo según tipo
-    if tipo == "Docente" and not email.endswith('@usat.edu.pe'):
-        email = f"{email}@usat.edu.pe"
-    elif tipo == "Alumno" and not email.endswith('@usat.pe'):
-        email = f"{dni}@usat.pe"
-        
-    # --- INICIO CAMBIO BCrypt ---
-    # 1. Cifrar la contraseña ANTES de guardarla
+    # Ajustar dominio de correo y definir tipo_usuario para la DB
+    tipo_usuario = None
+    if tipo == "Docente":
+        if not email.endswith('@usat.edu.pe'):
+             email = f"{email}@usat.edu.pe"
+        tipo_usuario = 'P'
+    elif tipo == "Alumno":
+        if not email.endswith('@usat.pe'):
+             email = f"{dni}@usat.pe"
+        tipo_usuario = 'A'
+    else:
+        flash("Tipo de usuario inválido.", 'error')
+        return redirect(url_for('frm_registro'))
+
+    # Cifrar la contraseña
     hashed_password_bytes = bcrypt.generate_password_hash(contrasena_plana) 
-    
-    # 2. Decodificar a string para guardarlo en la base de datos (VARCHAR)
     contrasena_cifrada = hashed_password_bytes.decode('utf-8') 
-    # --- FIN CAMBIO BCrypt ---
+
+    # Generar username y nombre a partir del correo
+    username = email.split('@')[0]
+    nombre = username.replace('_', ' ').title()
 
     # Intentar conexión
     conexion = obtenerConexion()
@@ -158,9 +201,8 @@ def procesarregistro():
     try:
         with conexion: 
             with conexion.cursor() as cursor:
-                # Validar si ya existe usuario con mismo correo, username o dni
+                # Validar si ya existe usuario con mismo correo o dni
                 sql_check = "SELECT usuario_id FROM usuario WHERE correo=%s OR dni=%s"
-                username = email.split('@')[0]
                 cursor.execute(sql_check, (email, dni))
                 existe = cursor.fetchone()
                 if existe:
@@ -171,10 +213,8 @@ def procesarregistro():
                 sql = """INSERT INTO usuario
                              (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas)
                              VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-                nombre = username.replace('_', ' ').title()
-                tipo_usuario = 'A' if tipo == 'Alumno' else 'P'
                 
-                # 3. Usar la contraseña CIFRADA en la inserción
+                # Usar la contraseña CIFRADA en la inserción
                 cursor.execute(sql, (username, nombre, contrasena_cifrada, email, dni, tipo_usuario, 0))
                 conexion.commit()
 
@@ -267,14 +307,16 @@ def procesarlogin():
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                # 1. CAMBIO CLAVE: Solo buscamos por correo y traemos la contraseña cifrada
-                sql = "SELECT `usuario_id`, `contrasena` AS hashed_password FROM `usuario` WHERE `correo`=%s"
+                # 1. CAMBIO CLAVE: Solo buscamos por correo y traemos la contraseña cifrada y el tipo_usuario
+                # Es crucial traer el tipo_usuario aquí si no queremos depender del context_processor
+                # Pero para simplicidad, con el user_id ya basta, pues el context_processor lo traerá.
+                sql = "SELECT `usuario_id`, `contrasena` FROM `usuario` WHERE `correo`=%s"
                 cursor.execute(sql, (correo,))
-                result = cursor.fetchone() # Trae el usuario si existe
+                result = cursor.fetchone() 
             
             # Verificación
             if result:
-                hashed_password = result['hashed_password']
+                hashed_password = result['contrasena']
                 
                 # 2. Usar check_password_hash para comparar la plana (usuario) con la cifrada (DB)
                 if bcrypt.check_password_hash(hashed_password, contrasena_plana):

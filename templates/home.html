@@ -3,16 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido </title>
+    <title>Bienvenido - EduQuiz</title> 
     
     <link rel="stylesheet" href="../static/css/home.css">
+
+    <!-- 
+    IMPORTANTE: Estas clases se han añadido aquí temporalmente (alert, btn-gestor).
+    Para un mejor control de estilos, se recomienda moverlas a tu archivo home.css.
+    -->
+    <style>
+        /* Estilos básicos para el botón de Gestor y mensajes Flash */
+        .btn-gestor {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #10b981; /* Verde esmeralda para acción de administrador */
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+            transition: background-color 0.3s, transform 0.1s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .btn-gestor:hover {
+            background-color: #059669;
+            transform: translateY(-2px);
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            text-align: left;
+            font-weight: 500;
+        }
+        .alert.success { background-color: #d1fae5; color: #065f46; border: 1px solid #34d399; }
+        .alert.error { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
+        .alert.warning { background-color: #fffbeb; color: #92400e; border: 1px solid #fcd34d; }
+        .user_info {
+            display: flex; /* Para poner Monedas y Cerrar Sesión en línea */
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>Bienvenido a EduQuiz {{ logged_in_user.nombre }}</h1>
+        <!-- MOSTRAR MENSAJES FLASH (Solo Error y Warning) -->
+        <!-- Eliminamos los mensajes de éxito (success) en el Home para mayor limpieza visual -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flashes">
+                    {% for category, message in messages %}
+                        {% if category != 'success' %}
+                            <div class="alert {{ category }}">{{ message }}</div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <h1>Bienvenido a EduQuiz, {{ logged_in_user.nombre }}!</h1>
         <p>Crea, enseña, aprende y alcanza tus metas académicas, todo en un solo lugar. Donde tu conocimiento es el único límite</p>
+        
+        <!-- LÓGICA CLAVE: MOSTRAR BOTÓN SOLO SI ES GESTOR ('G') -->
+        {% if logged_in_user.tipo_usuario == 'G' %}
+        <div class="gestor-area">
+            <p>¡Hola Gestor! Tienes acceso a la administración del sistema.</p>
+            <a href="{{ url_for('crud_usuarios') }}" class="btn-gestor">
+                Administrar Usuarios (CRUD)
+            </a>
+        </div>
+        {% endif %}
+        
+        <!-- INFO DE USUARIO Y LOGOUT -->
         <div class="user_info">
-            <p>Monedas Ganadas: {{ logged_in_user.cant_monedas }} 💰</p>
+            <p>
+                Rol: <strong>{{ logged_in_user.tipo_usuario }}</strong> | 
+                Monedas Ganadas: {{ logged_in_user.cant_monedas }} 💰
+            </p>
             <a href="{{ url_for('logout') }}" class="btn-logout">Cerrar Sesión</a>
         </div>
     </div>
