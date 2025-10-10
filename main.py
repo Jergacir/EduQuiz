@@ -4,10 +4,6 @@ from functools import wraps
 from flask_bcrypt import Bcrypt 
 import sys 
 
-# pip install Flask-Bcrypt
-# Si no quieres usar la extensión de Flask, puedes usar solo la librería bcrypt:
-
-
 app = Flask(__name__)
 app.secret_key = 'supersecreto123' # Importante para la autenticación
 #IMPORTANTE: cambiar el puerto porfavor
@@ -17,7 +13,7 @@ bcrypt = Bcrypt(app) # Inicializar Bcrypt con tu aplicación Flask
 def obtenerConexion():
     try:
         connection = pymysql.connect(host='localhost',
-                                     port=3306, 
+                                     port=3339, 
                                      user='root',
                                      password='',
                                      database='bd_eduquiz',
@@ -148,6 +144,408 @@ def frm_registro():
 @login_required
 def frm_home():
     return render_template('home.html')
+
+# --- RUTA DE LA TIENDA ---
+@app.route("/tienda")
+@login_required
+def frm_tienda():
+    # Inicializamos las listas en caso de que haya un error
+    lista_skins = []
+    lista_accesorios = []
+    
+    # 1. Obtenemos la conexión a la BD
+    conexion = obtenerConexion()
+    if conexion:
+        try:
+            with conexion.cursor() as cursor:
+                # 2. Consultamos todos los skins
+                sql_skins = "SELECT skin_id, nombre, url_imagen, precio FROM skins ORDER BY precio ASC"
+                cursor.execute(sql_skins)
+                lista_skins = cursor.fetchall()
+                
+                # 3. Consultamos todos los accesorios
+                sql_accesorios = "SELECT accesorio_id, nombre, url_imagen, precio FROM accesorios ORDER BY precio ASC"
+                cursor.execute(sql_accesorios)
+                lista_accesorios = cursor.fetchall()
+        except Exception as e:
+            print(f"Error al consultar la tienda: {e}")
+        finally:
+            # La conexión se cierra automáticamente gracias al 'with'
+            pass
+            
+    # 4. Pasamos las listas a la plantilla HTML
+    return render_template('tienda.html', skins=lista_skins, accesorios=lista_accesorios)
+
+# --- RUTAS API PARA CRUD DE TIENDA (Skins y Accesorios) ---
+
+def obtener_items_crud(tabla, id_columna):
+    """Función genérica para obtener todos los items de una tabla."""
+    conexion = obtenerConexion()
+    if not conexion:
+        return []
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                sql = f"SELECT {id_columna} AS id, nombre, precio FROM {tabla} ORDER BY {id_columna} ASC"
+                cursor.execute(sql)
+                items = cursor.fetchall() 
+                return items
+    except Exception as e:
+        print(f"Error al obtener items de la tabla {tabla}: {e}", file=sys.stderr)
+        return []
+
+@app.route('/api/tienda/accesorios', methods=['GET'])
+@login_required 
+@gestor_required # Solo permite a Gestores ver la lista CRUD
+def listar_accesorios_api():
+    """Ruta API para devolver la lista completa de accesorios para el CRUD."""
+    accesorios = obtener_items_crud('accesorios', 'accesorio_id')
+    return jsonify(accesorios)
+
+@app.route('/api/tienda/skins', methods=['GET'])
+@login_required
+@gestor_required # Solo permite a Gestores ver la lista CRUD
+def listar_skins_api():
+    """Ruta API para devolver la lista completa de skins para el CRUD."""
+    skins = obtener_items_crud('skins', 'skin_id')
+    return jsonify(skins)
+
+#Estos son genéricos, sirven para estandarizar tanto skins como accesorios
+def insertar_item(tabla, nombre, url_imagen, precio, id_columna):
+    """
+    Inserta un nuevo item (accesorio o skin) en la base de datos.
+    Retorna True si la inserción fue exitosa, False en caso contrario.
+    """
+    conexion = obtenerConexion()
+    if not conexion:
+        return False, "Error de conexión a la base de datos."
+
+    try:
+        with conexion.cursor() as cursor:
+            # La tabla y la columna ID se pasan como argumentos para hacer la función genérica
+            sql = f"INSERT INTO `{tabla}` (`nombre`, `url_imagen`, `precio`) VALUES (%s, %s, %s)"
+            cursor.execute(sql, (nombre, url_imagen, precio))
+            conexion.commit()
+            
+            # Opcional: obtener el ID del item recién insertado
+            nuevo_id = cursor.lastrowid
+            
+            return True, nuevo_id
+
+    except Exception as e:
+        print(f"Error al insertar en {tabla}: {e}", file=sys.stderr)
+        return False, f"Error al insertar el ítem: {e}"
+    
+
+def actualizar_item(tabla, id_item, nombre, url_imagen, precio, columna_id):
+    """
+    Actualiza un item (accesorio o skin) existente en la base de datos.
+    Requiere el ID del item para la cláusula WHERE.
+    Retorna True si la actualización fue exitosa, False en caso contrario.
+    """
+    conexion = obtenerConexion()
+    if not conexion:
+        return False, "Error de conexión a la base de datos."
+
+    try:
+        with conexion.cursor() as cursor:
+            # Construimos la consulta SQL usando el nombre de la tabla y la columna ID
+            sql = f"""
+                UPDATE `{tabla}` 
+                SET 
+                    `nombre` = %s, 
+                    `url_imagen` = %s, 
+                    `precio` = %s 
+                WHERE `{columna_id}` = %s
+            """
+            cursor.execute(sql, (nombre, url_imagen, precio, id_item))
+            conexion.commit()
+            
+            if cursor.rowcount == 0:
+                return False, "No se encontró el ítem para actualizar o los datos eran idénticos."
+
+            return True, "Ítem actualizado exitosamente."
+
+    except Exception as e:
+        print(f"Error al actualizar en {tabla}: {e}", file=sys.stderr)
+        return False, f"Error al actualizar el ítem: {e}"
+
+
+def eliminar_item(tabla, id_item, columna_id):
+    """
+    Elimina un item (accesorio o skin) de la base de datos por su ID.
+    Retorna True si la eliminación fue exitosa, False en caso contrario.
+    """
+    conexion = obtenerConexion()
+    if not conexion:
+        return False, "Error de conexión a la base de datos."
+
+    try:
+        with conexion.cursor() as cursor:
+            # Construimos la consulta SQL usando el nombre de la tabla y la columna ID
+            sql = f"DELETE FROM `{tabla}` WHERE `{columna_id}` = %s"
+            cursor.execute(sql, (id_item,))
+            conexion.commit()
+            
+            if cursor.rowcount == 0:
+                return False, "No se encontró el ítem para eliminar."
+                
+            return True, "Ítem eliminado exitosamente."
+
+    except Exception as e:
+        print(f"Error al eliminar en {tabla}: {e}", file=sys.stderr)
+        return False, f"Error al eliminar el ítem: {e}"
+
+
+def obtener_item_por_id(tabla, id_item, columna_id):
+    """
+    Obtiene los detalles completos de un item por su ID.
+    Retorna un diccionario con los datos o None si no se encuentra.
+    """
+    conexion = obtenerConexion()
+    if not conexion:
+        return None
+
+    try:
+        with conexion.cursor() as cursor:
+            # Usamos %s para el nombre de la columna para la consulta, pero %s para el ID en el execute.
+            # Nota: El nombre de la tabla y la columna ID DEBEN ser insertados directamente (f-string) 
+            # ya que no pueden ser placeholders (%s) en MySQL.
+            sql = f"SELECT {columna_id} AS id, nombre, url_imagen, precio FROM `{tabla}` WHERE `{columna_id}` = %s"
+            cursor.execute(sql, (id_item,))
+            resultado = cursor.fetchone()
+            return resultado
+
+    except Exception as e:
+        print(f"Error al obtener ítem por ID de {tabla}: {e}", file=sys.stderr)
+        return None
+
+# ... Esto es para el CRUD de accesorio
+
+@app.route('/api/tienda/accesorios/crear', methods=['POST'])
+@login_required
+@gestor_required # Solo un gestor puede crear ítems
+def crear_accesorio_api():
+    """
+    Ruta API para crear un nuevo accesorio.
+    Recibe los datos del formulario (JSON o form-data) y los inserta en la BD.
+    """
+    # Preferimos leer de request.form porque el JS del frontend lo envía así.
+    nombre = request.form.get('nombre')
+    url_imagen = request.form.get('url_imagen')
+    precio_str = request.form.get('precio')
+
+    # 1. Validaciones
+    if not nombre or not url_imagen or not precio_str:
+        return jsonify({'success': False, 'message': 'Faltan campos obligatorios.'}), 400
+    
+    try:
+        precio = int(precio_str)
+        if precio < 0:
+             return jsonify({'success': False, 'message': 'El precio debe ser un número positivo.'}), 400
+    except ValueError:
+        return jsonify({'success': False, 'message': 'El precio debe ser un número entero válido.'}), 400
+
+    # 2. Inserción en BD
+    # Usamos la nueva función genérica: tabla 'accesorios', columna ID 'accesorio_id'
+    exito, resultado_o_error = insertar_item('accesorios', nombre, url_imagen, precio, 'accesorio_id')
+
+    # 3. Respuesta
+    if exito:
+        return jsonify({
+            'success': True, 
+            'message': 'Accesorio creado exitosamente.', 
+            'accesorio_id': resultado_o_error
+        }), 201
+    else:
+        return jsonify({'success': False, 'message': resultado_o_error}), 500
+
+@app.route('/api/tienda/accesorios/editar/<int:accesorio_id>', methods=['POST'])
+@login_required
+@gestor_required
+def editar_accesorio_api(accesorio_id):
+    """
+    Ruta API para actualizar un accesorio existente.
+    Recibe los datos del formulario (JSON o form-data) y el ID en la URL.
+    """
+    # Preferimos leer de request.form
+    nombre = request.form.get('nombre')
+    url_imagen = request.form.get('url_imagen')
+    precio_str = request.form.get('precio')
+
+    # 1. Validaciones
+    if not nombre or not url_imagen or not precio_str:
+        return jsonify({'success': False, 'message': 'Faltan campos obligatorios.'}), 400
+    
+    try:
+        precio = int(precio_str)
+        if precio < 0:
+             return jsonify({'success': False, 'message': 'El precio debe ser un número positivo.'}), 400
+    except ValueError:
+        return jsonify({'success': False, 'message': 'El precio debe ser un número entero válido.'}), 400
+
+    # 2. Actualización en BD
+    exito, mensaje = actualizar_item('accesorios', accesorio_id, nombre, url_imagen, precio, 'accesorio_id')
+
+    # 3. Respuesta
+    if exito:
+        return jsonify({
+            'success': True, 
+            'message': mensaje, 
+            'accesorio_id': accesorio_id
+        }), 200
+    else:
+        # 404 si no lo encuentra o 500 si es otro error de BD
+        status_code = 404 if 'No se encontró el ítem' in mensaje else 500
+        return jsonify({'success': False, 'message': mensaje}), status_code
+
+@app.route('/api/tienda/accesorios/eliminar/<int:accesorio_id>', methods=['DELETE'])
+@login_required
+@gestor_required
+def eliminar_accesorio_api(accesorio_id):
+    """
+    Ruta API para eliminar un accesorio por su ID.
+    """
+    # 1. Eliminación en BD
+    exito, mensaje = eliminar_item('accesorios', accesorio_id, 'accesorio_id')
+
+    # 2. Respuesta
+    if exito:
+        return jsonify({'success': True, 'message': mensaje}), 200
+    else:
+        # 404 si no lo encuentra o 500 si es otro error de BD
+        status_code = 404 if 'No se encontró el ítem' in mensaje else 500
+        return jsonify({'success': False, 'message': mensaje}), status_code
+
+@app.route('/api/tienda/accesorios/<int:accesorio_id>', methods=['GET'])
+@login_required
+@gestor_required
+def obtener_accesorio_api(accesorio_id):
+    """
+    Ruta API para obtener los detalles de un accesorio por su ID.
+    """
+    item = obtener_item_por_id('accesorios', accesorio_id, 'accesorio_id')
+
+    if item:
+        # Convertir el resultado a un diccionario serializable si es necesario
+        return jsonify(item), 200
+    else:
+        return jsonify({'success': False, 'message': 'Accesorio no encontrado.'}), 404
+
+
+# ... Esto es para el CRUD de skins
+
+@app.route('/api/tienda/skin/crear', methods=['POST'])
+@login_required
+@gestor_required # Solo un gestor puede crear ítems
+def crear_skin_api():
+    """
+    Ruta API para crear un nuevo accesorio.
+    Recibe los datos del formulario (JSON o form-data) y los inserta en la BD.
+    """
+    # Preferimos leer de request.form porque el JS del frontend lo envía así.
+    nombre = request.form.get('nombre')
+    url_imagen = request.form.get('url_imagen')
+    precio_str = request.form.get('precio')
+
+    # 1. Validaciones
+    if not nombre or not url_imagen or not precio_str:
+        return jsonify({'success': False, 'message': 'Faltan campos obligatorios.'}), 400
+    
+    try:
+        precio = int(precio_str)
+        if precio < 0:
+             return jsonify({'success': False, 'message': 'El precio debe ser un número positivo.'}), 400
+    except ValueError:
+        return jsonify({'success': False, 'message': 'El precio debe ser un número entero válido.'}), 400
+
+    # 2. Inserción en BD
+    # Usamos la nueva función genérica: tabla 'accesorios', columna ID 'accesorio_id'
+    exito, resultado_o_error = insertar_item('skins', nombre, url_imagen, precio, 'skin_id')
+
+    # 3. Respuesta
+    if exito:
+        return jsonify({
+            'success': True, 
+            'message': 'Accesorio creado exitosamente.', 
+            'skin_id': resultado_o_error
+        }), 201
+    else:
+        return jsonify({'success': False, 'message': resultado_o_error}), 500
+
+@app.route('/api/tienda/skin/editar/<int:skin_id>', methods=['POST'])
+@login_required
+@gestor_required
+def editar_skin_api(skin_id):
+    """
+    Ruta API para actualizar un accesorio existente.
+    Recibe los datos del formulario (JSON o form-data) y el ID en la URL.
+    """
+    # Preferimos leer de request.form
+    nombre = request.form.get('nombre')
+    url_imagen = request.form.get('url_imagen')
+    precio_str = request.form.get('precio')
+
+    # 1. Validaciones
+    if not nombre or not url_imagen or not precio_str:
+        return jsonify({'success': False, 'message': 'Faltan campos obligatorios.'}), 400
+    
+    try:
+        precio = int(precio_str)
+        if precio < 0:
+             return jsonify({'success': False, 'message': 'El precio debe ser un número positivo.'}), 400
+    except ValueError:
+        return jsonify({'success': False, 'message': 'El precio debe ser un número entero válido.'}), 400
+
+    # 2. Actualización en BD
+    exito, mensaje = actualizar_item('skins', skin_id, nombre, url_imagen, precio, 'skin_id')
+
+    # 3. Respuesta
+    if exito:
+        return jsonify({
+            'success': True, 
+            'message': mensaje, 
+            'skin_id': skin_id
+        }), 200
+    else:
+        # 404 si no lo encuentra o 500 si es otro error de BD
+        status_code = 404 if 'No se encontró el ítem' in mensaje else 500
+        return jsonify({'success': False, 'message': mensaje}), status_code
+
+@app.route('/api/tienda/skin/eliminar/<int:skin_id>', methods=['DELETE'])
+@login_required
+@gestor_required
+def eliminar_skin_api(skin_id):
+    """
+    Ruta API para eliminar un accesorio por su ID.
+    """
+    # 1. Eliminación en BD
+    exito, mensaje = eliminar_item('skins', skin_id, 'skin_id')
+
+    # 2. Respuesta
+    if exito:
+        return jsonify({'success': True, 'message': mensaje}), 200
+    else:
+        # 404 si no lo encuentra o 500 si es otro error de BD
+        status_code = 404 if 'No se encontró el ítem' in mensaje else 500
+        return jsonify({'success': False, 'message': mensaje}), status_code
+
+@app.route('/api/tienda/skin/<int:skin_id>', methods=['GET'])
+@login_required
+@gestor_required
+def obtener_skin_api(skin_id):
+    """
+    Ruta API para obtener los detalles de un accesorio por su ID.
+    """
+    item = obtener_item_por_id('skins', skin_id, 'skin_id')
+
+    if item:
+        # Convertir el resultado a un diccionario serializable si es necesario
+        return jsonify(item), 200
+    else:
+        return jsonify({'success': False, 'message': 'Accesorio no encontrado.'}), 404
+# -----------------------------------
 
 # RUTA HTML PARA EL CRUD DE USUARIOS
 @app.route("/crud-usuarios")

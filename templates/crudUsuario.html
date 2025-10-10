@@ -10,16 +10,16 @@
     <div class="contenedor-principal">
         <aside class="sidebar">
             <div class="logo">
-                <img src="logo.png" alt="EduQuiz Logo" style="width: 30px; height: 30px;">
+                <img src="../static/img/logo.png" alt="EduQuiz Logo" style="width: 30px; height: 30px;">
                 <span>EduQuiz</span>
             </div>
             <nav class="menu">
                 <ul>
                     <li><a href="#"><i class="icono">🏠</i> Inicio</a></li>
                     <li><a href="#"><i class="icono">❓</i> Cuestionarios</a></li>
-                    <li><a href="#"><i class="icono">🛍️</i> Tienda</a></li>
+                    <li><a href="{{ url_for('frm_tienda') }}"><i class="icono">🛍️</i> Tienda</a></li>
                     <li><a href="#"><i class="icono">🎮</i> Partidas</a></li>
-                    <li class="activo"><a href="#"><i class="icono">⚙️</i> Configuración</a></li>
+                    <li class="activo"><a href="{{ url_for('crud_usuarios') }}"><i class="icono">⚙️</i> Configuración</a></li>
                     <li><a href="#"><i class="icono">➡️</i> Cerrar Sesión</a></li>
                 </ul>
             </nav>

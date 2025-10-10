@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda - EduQuiz</title>
+    <link rel="stylesheet" href="../static/css/crudusuario.css">
+    <link rel="stylesheet" href="../static/css/tienda.css">
+</head>
+
+<body>
+    <div class="contenedor-principal">
+        <aside class="sidebar">
+            <div class="logo">
+                <img src="../static/img/logo.png" alt="EduQuiz Logo" style="width: 30px; height: 30px;">
+                <span>EduQuiz</span>
+            </div>
+            <nav class="menu">
+                <ul>
+                    <li><a href="inicio.html"><i class="icono">🏠</i> Inicio</a></li>
+                    <li><a href="cuestionarios.html"><i class="icono">❓</i> Cuestionarios</a></li>
+                    <li class="activo"><a href="{{ url_for('frm_tienda') }}"><i class="icono">🛍️</i> Tienda</a></li>
+                    <li><a href="partidas.html"><i class="icono">🎮</i> Partidas</a></li>
+                    <li><a href="{{ url_for('crud_usuarios') }}"><i class="icono">⚙️</i> Configuración</a></li>
+                    <li><a href="#"><i class="icono">➡️</i> Cerrar Sesión</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="contenido">
+            <header class="header">
+                <div class="titulo">Tienda</div>
+                <div class="perfil-info">
+                    <span id="cant_monedas">10000</span>
+                    <i class="icono">🪙</i>
+                    <img src="avatar.png" alt="Avatar" class="avatar"
+                        style="width: 30px; height: 30px; border-radius: 50%;">
+                    <span>Mi Perfil</span>
+                </div>
+            </header>
+
+            <div class="tienda-contenido">
+
+                <div class="crud-botones">
+                    <button id="btn-crud-accesorios">CRUD de Accesorios</button>
+                    <button id="btn-crud-skins">CRUD de Skins</button>
+                </div>
+                <h2>Accesorios</h2>
+                <div class="items-grid">
+                    {% for accesorio in accesorios %}
+                    <div class="item-card">
+                        <div class="item-imagen" style="background-color: #d1e7dd;">
+                            <img src="{{ accesorio.url_imagen }}" alt="{{ accesorio.nombre }}">
+                        </div>
+                        <p class="item-nombre">{{ accesorio.nombre }}</p>
+                        <button class="btn-comprar">
+                            <i class="icono">🪙</i> {{ accesorio.precio }}
+                        </button>
+                    </div>
+                    {% else %}
+                    <p>No hay accesorios disponibles en la tienda en este momento.</p>
+                    {% endfor %}
+                </div>
+
+                <h2>Skins</h2>
+                <div class="items-grid">
+                    {% for skin in skins %}
+                    <div class="item-card">
+                        <div class="item-imagen" style="background-color: #cce5ff;">
+                            <img src="{{ skin.url_imagen }}" alt="{{ skin.nombre }}">
+                        </div>
+                        <p class="item-nombre">{{ skin.nombre }}</p>
+                        <button class="btn-comprar">
+                            <i class="icono">🪙</i> {{ skin.precio }}
+                        </button>
+                    </div>
+                    {% else %}
+                    <p>No hay skins disponibles en la tienda en este momento.</p>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <div id="modal-accesorio" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar-modal">&times;</span>
+            <div class="crud-vista-lista" id="acc-lista-vista">
+                <h3>Gestión de Accesorios (CRUD)</h3>
+                <button id="btn-acc-abrir-crear" class="btn-agregar">➕ Agregar Nuevo Accesorio</button>
+
+                <div class="tabla-contenedor">
+                    <table id="tabla-accesorios">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Precio</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="crud-form-vista oculto" id="acc-form-vista">
+                <button id="btn-acc-volver-lista" class="btn-volver">← Volver a la Lista</button>
+                <h3 id="acc-form-titulo">Agregar Nuevo Accesorio</h3>
+                <form id="form-accesorio">
+                    <input type="hidden" id="acc-id" name="accesorio_id" value="">
+
+                    <label for="acc-nombre">Nombre:</label>
+                    <input type="text" id="acc-nombre" name="nombre" required>
+
+                    <label for="acc-url">URL Imagen:</label>
+                    <input type="text" id="acc-url" name="url_imagen" required>
+
+                    <label for="acc-precio">Precio:</label>
+                    <input type="number" id="acc-precio" name="precio" min="0" required>
+
+                    <button type="submit" id="btn-acc-submit">Crear Accesorio</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-skin" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar-modal">&times;</span>
+            <div class="crud-vista-lista" id="skin-lista-vista">
+                <h3>Gestión de Skins (CRUD)</h3>
+                <button id="btn-skin-abrir-crear" class="btn-agregar">➕ Agregar Nueva Skin</button>
+
+                <div class="tabla-contenedor">
+                    <table id="tabla-skins">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Precio</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="crud-form-vista oculto" id="skin-form-vista">
+                <button id="btn-skin-volver-lista" class="btn-volver">← Volver a la Lista</button>
+                <h3 id="skin-form-titulo">Agregar Nueva Skin</h3>
+                <form id="form-skin">
+                    <input type="hidden" id="skin-id" name="skin_id" value="">
+
+                    <label for="skin-nombre">Nombre:</label>
+                    <input type="text" id="skin-nombre" name="nombre" required>
+
+                    <label for="skin-url">URL Imagen:</label>
+                    <input type="text" id="skin-url" name="url_imagen" required>
+
+                    <label for="skin-precio">Precio:</label>
+                    <input type="number" id="skin-precio" name="precio" min="0" required>
+
+                    <button type="submit" id="btn-skin-submit">Crear Skin</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/tienda.js"></script>
+</body>
+
+</html>

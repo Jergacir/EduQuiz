@@ -1,4 +1,4 @@
-CREATE TABLE `USUARIO` (
+CREATE TABLE `usuario` (
   `usuario_id` INT(11) NOT NULL AUTO_INCREMENT,
   `username` VARCHAR(100) NOT NULL UNIQUE,
   `nombre` VARCHAR(100) NOT NULL,
@@ -10,8 +10,52 @@ CREATE TABLE `USUARIO` (
   PRIMARY KEY (`usuario_id`)
 );
 
-INSERT INTO `USUARIO` (`username`, `nombre`, `contrasena`, `correo`, `dni`, `tipo_usuario`, `cant_monedas`) VALUES
-('yamir_zamora', 'Yamir Zamora', 'pass123', 'zamora@gmail.com', '12345678', 'G', 0),
-('sebastian_henckell', 'Sebastián Henckell', 'pass456', 'sebastian@gmail.com', '87654321', 'P', 0),
-('jeremy_garcia', 'Jeremy García', 'pass789', 'jeremy@gmail.com', '11223344', 'A', 0);
+¡Excelente idea! Hacer la tienda dinámica es el siguiente paso lógico.
 
+Aquí tienes el script SQL para crear las dos tablas que pediste, skins y accesorios, en tu base de datos de XAMPP (MySQL). El script también incluye algunos datos de ejemplo para que puedas empezar a probar de inmediato.
+
+📦 Script SQL para la Tienda
+Este código creará las tablas y las llenará con los ítems que tenías en tu diseño.
+
+SQL
+
+-- ##############################################
+-- TABLA PARA LAS APARIENCIAS (SKINS)
+-- Almacena los avatares o temas que el usuario puede comprar.
+-- ##############################################
+
+CREATE TABLE `skins` (
+  `skin_id` INT NOT NULL AUTO_INCREMENT,
+  `nombre` VARCHAR(100) NOT NULL,
+  `url_imagen` VARCHAR(255) NOT NULL,
+  `precio` INT UNSIGNED NOT NULL,
+  PRIMARY KEY (`skin_id`)
+);
+
+
+-- ##############################################
+-- TABLA PARA LOS ACCESORIOS DE LAS SKINS
+-- 
+-- ##############################################
+
+CREATE TABLE `accesorios` (
+  `accesorio_id` INT NOT NULL AUTO_INCREMENT,
+  `nombre` VARCHAR(100) NOT NULL,
+  `url_imagen` VARCHAR(255) NOT NULL,
+  `precio` INT UNSIGNED NOT NULL,
+  PRIMARY KEY (`accesorio_id`)
+);
+
+
+--Insert opcionales
+-- Insertando datos en la tabla 'skins'
+INSERT INTO `skins` (`nombre`, `url_imagen`, `precio`) VALUES
+('Avatar Dinosaurio', 'https://i.imgur.com/e2O5RUy.png', 100),
+('Avatar Astronauta', 'https://i.imgur.com/7g21MMa.png', 150),
+('Avatar Ninja', 'https://i.imgur.com/URL_AVATAR_NINJA.png', 250); -- Ejemplo adicional
+
+-- Insertando datos en la tabla 'accesorios'
+INSERT INTO `accesorios` (`nombre`, `url_imagen`, `precio`) VALUES
+('Gorro kawai', 'https://i.imgur.com/lJ4xFwR.png', 50),
+('Lentes Hot', 'https://i.imgur.com/SQLJ21a.png', 200),
+('Zapatos cute', 'https://i.imgur.com/URL_POTENCIADOR_5050.png', 120); -- Ejemplo adicional
