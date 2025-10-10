@@ -99,13 +99,18 @@
                             <label for="gestion-correo">Email</label>
                             <input type="email" id="gestion-correo" required>
                         </div>
+                        
                         <div class="campo">
-                            <label for="gestion-tipo_usuario">Tipo de Usuario (E/A)</label>
+                            <label for="gestion-dni">DNI</label>
+                            <input type="text" id="gestion-dni" required maxlength="8" pattern="[0-9]{8}">
+                        </div>
+                        <div class="campo">
+                            <label for="gestion-tipo_usuario">Tipo de Usuario (A, P, G, E)</label>
                             <input type="text" id="gestion-tipo_usuario" maxlength="1" required>
                         </div>
                         <div class="campo">
                             <label for="gestion-contrasena">Contraseña</label>
-                            <input type="password" id="gestion-contrasena" placeholder="Dejar vacío para no cambiar (Editar)">
+                            <input type="password" id="gestion-contrasena" placeholder="Obligatoria para nuevo usuario">
                         </div>
 
                         <div class="acciones">
@@ -130,7 +135,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                </tbody>
+                            </tbody>
                         </table>
                     </div>
                 </div>

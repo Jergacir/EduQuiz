@@ -234,7 +234,7 @@ async function eliminarUsuario(id) {
 }
 /**
  * Maneja el envío del formulario de creación/edición de usuarios (CRUD).
- * CORREGIDO para hacer la llamada POST real al backend.
+ * CORREGIDO para incluir la lectura del DNI y su envío al backend.
  */
 async function manejarGuardarGestion(event) {
     event.preventDefault();
@@ -245,10 +245,12 @@ async function manejarGuardarGestion(event) {
     const correo = document.getElementById('gestion-correo').value;
     const tipo_usuario = document.getElementById('gestion-tipo_usuario').value.toUpperCase();
     const contrasena = document.getElementById('gestion-contrasena').value;
+    // 🔑 NUEVA LÍNEA CLAVE: Leer el DNI del formulario
+    const dni = document.getElementById('gestion-dni').value; 
     
-    // VALIDACIÓN BÁSICA DE CAMPOS OBLIGATORIOS
-    if (!nombre || !username || !correo || !tipo_usuario) {
-        alert("Todos los campos de usuario son obligatorios.");
+    // VALIDACIÓN BÁSICA DE CAMPOS OBLIGATORIOS (AHORA INCLUYE DNI)
+    if (!nombre || !username || !correo || !tipo_usuario || !dni) {
+        alert("Todos los campos (incluyendo DNI) son obligatorios.");
         return;
     }
 
@@ -262,6 +264,7 @@ async function manejarGuardarGestion(event) {
         username,
         correo,
         tipo_usuario,
+        dni, // 🔑 NUEVA LÍNEA CLAVE: Añadir el DNI al objeto de datos
     };
     
     // Solo incluimos la contraseña si es Creación o si fue modificada en Edición
@@ -277,11 +280,8 @@ async function manejarGuardarGestion(event) {
         // LÓGICA DE ACTUALIZACIÓN (PENDIENTE DE IMPLEMENTACIÓN en el backend, se mantiene simulación temporal)
         console.log(`Simulación: Petición PUT a /api/usuarios/${id}`, userData);
         
-        // **IMPORTANTE:** Aquí deberías implementar la llamada PUT/PATCH si quieres editar.
-        // Por ahora, para no complicar, solo se implementa la creación.
-        alert("La edición (PUT) aún está en modo simulación.");
-        
         // Simulación: No hacer nada si es edición (para enfocarnos en la creación)
+        alert("La edición (PUT) aún está en modo simulación.");
         document.getElementById('form-gestion-usuario').reset();
         document.getElementById('form-gestion-usuario').style.display = 'none';
         usuarioEditandoId = null;
@@ -301,13 +301,15 @@ async function manejarGuardarGestion(event) {
 
         const data = await response.json();
 
-        if (response.status === 409) { // Conflicto: Usuario ya existe
-            alert(`Error: ${data.error}`);
+        if (response.status === 409) { // Conflicto: Usuario ya existe (DNI, correo o username)
+            alert(`Error de conflicto: ${data.error}`);
             return;
         }
-
+        
+        // Manejar otros errores 4xx/5xx del backend (además del 409)
         if (!response.ok) {
-            throw new Error(data.error || `Error al guardar: ${response.statusText}`);
+            // Este es el error 500 que veías, capturando el mensaje real
+            throw new Error(data.error || `Error HTTP ${response.status}: ${response.statusText}`);
         }
 
         // 3. ÉXITO: Recargar la tabla
@@ -317,11 +319,12 @@ async function manejarGuardarGestion(event) {
         document.getElementById('form-gestion-usuario').reset();
         document.getElementById('form-gestion-usuario').style.display = 'none';
         usuarioEditandoId = null;
-        await obtenerYRenderizarUsuarios(); // <--- ESTO RECARGA EL LISTADO
+        await obtenerYRenderizarUsuarios(); // ESTO RECARGA EL LISTADO
         
     } catch (error) {
-        console.error("Fallo en la gestión del usuario:", error);
-        alert(`Error: ${error.message}`);
+        // Mejorar la presentación del error en la consola
+        console.error("Fallo en la gestión del usuario:", error.message);
+        alert(`Error al guardar: ${error.message}`);
     }
 }
 

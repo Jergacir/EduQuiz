@@ -801,39 +801,44 @@ def eliminar_usuario_api(usuario_id):
         print(f"Error al eliminar usuario: {e}", file=sys.stderr)
         return jsonify({'error': 'Error interno del servidor al eliminar datos.'}), 500
 
+
 # RUTA API PARA CREAR UN NUEVO USUARIO DESDE LA ADMINISTRACIÓN (Gestor)
 # ==============================================================================
 @app.route("/api/usuarios", methods=['POST'])
 def crear_usuario_api():
     """
-    Ruta API para crear un nuevo usuario (A, P, G) desde el panel de gestión.
-    Requiere que el usuario logueado sea un Gestor ('G') y valida los datos.
+    Ruta API para crear un nuevo usuario (A, P, G, E) desde el panel de gestión.
+    Se corrige para incluir la validación e inserción del campo DNI.
     """
     # 1. VERIFICACIÓN DE PERMISOS (¡CLAVE!)
     if 'user_id' not in session:
         return jsonify({'error': 'No autenticado.'}), 401
     
-    # ⚠️ ASUME que aquí se ejecuta la lógica para verificar si session['user_id'] es 'G' 
-    # (similar a como lo haces en listar_usuarios_api). Si no es 'G', devuelve 403.
     # --- LÓGICA DE VERIFICACIÓN DE ROL FALTANTE AQUÍ ---
-    # Si la verificación falla:
-    # return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403 
+    # *EJEMPLO* de cómo se haría la verificación de rol:
+    # if obtener_rol_usuario(session['user_id']) != 'G': 
+    #     return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403 
     
     data = request.get_json()
 
-    # 2. VALIDACIÓN DE CAMPOS OBLIGATORIOS BÁSICOS
-    required_fields = ['username', 'nombre', 'contrasena', 'correo', 'tipo_usuario']
+    # 2. VALIDACIÓN DE CAMPOS OBLIGATORIOS (AHORA INCLUYE 'dni')
+    required_fields = ['username', 'nombre', 'contrasena', 'correo', 'tipo_usuario', 'dni']
     if not data or any(key not in data or not data[key] for key in required_fields):
-        return jsonify({"success": False, "error": "Faltan campos obligatorios: nombre, username, contrasena, correo, tipo_usuario."}), 400
+        # El DNI se requiere, ya que el formulario de gestión lo requiere o tu DB lo requiere.
+        return jsonify({"success": False, "error": "Faltan campos obligatorios: nombre, username, contrasena, correo, tipo_usuario, DNI."}), 400
 
     username = data['username']
     nombre = data['nombre']
     contrasena_plana = data['contrasena']
     correo = data['correo']
     tipo_usuario = data['tipo_usuario'].upper()
+    dni = data['dni'] # <--- AHORA LEEMOS EL DNI DEL JSON
 
-    # 3. VALIDACIÓN ESPECÍFICA: Tipo de usuario
-    if tipo_usuario not in ['A', 'P', 'G', 'E']: # Asumiendo tus roles válidos
+    # 3. VALIDACIÓN ADICIONAL DEL DNI Y TIPO DE USUARIO
+    if len(dni) != 8 or not dni.isdigit():
+         return jsonify({"success": False, "error": "DNI inválido. Debe contener 8 dígitos."}), 400
+         
+    if tipo_usuario not in ['A', 'P', 'G', 'E']:
          return jsonify({"success": False, "error": "Tipo de usuario inválido (solo A, P, G, E permitidos)."}), 400
 
 
@@ -852,25 +857,27 @@ def crear_usuario_api():
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                # 6. VALIDACIÓN DE UNICIDAD (Correo y/o Username)
-                sql_check = "SELECT usuario_id FROM usuario WHERE correo=%s OR username=%s"
-                cursor.execute(sql_check, (correo, username))
+                # 6. VALIDACIÓN DE UNICIDAD (Correo, DNI y/o Username)
+                # Tu registro normal valida por Correo Y DNI. Mantenemos esa lógica.
+                sql_check = "SELECT usuario_id FROM usuario WHERE correo=%s OR dni=%s OR username=%s"
+                cursor.execute(sql_check, (correo, dni, username))
                 if cursor.fetchone():
-                    return jsonify({"success": False, "error": "El correo o username ya está registrado."}), 409
+                    return jsonify({"success": False, "error": "El DNI, correo o username ya está registrado."}), 409
 
-                # 7. Insertar nuevo usuario
+                # 7. Insertar nuevo usuario (AHORA INCLUYE DNI)
                 sql = """INSERT INTO usuario
-                             (username, nombre, contrasena, correo, tipo_usuario, cant_monedas)
-                             VALUES (%s, %s, %s, %s, %s, %s)"""
+                             (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas)
+                             VALUES (%s, %s, %s, %s, %s, %s, %s)"""
                 
-                # Usamos 0 monedas por defecto
-                cursor.execute(sql, (username, nombre, contrasena_cifrada, correo, tipo_usuario, 0))
+                # LA TUPLA DE VALORES DEBE COINCIDIR CON LA CONSULTA
+                cursor.execute(sql, (username, nombre, contrasena_cifrada, correo, dni, tipo_usuario, 0))
                 conexion.commit()
 
         return jsonify({"success": True, "message": f"Usuario '{username}' creado exitosamente."}), 201
 
     except Exception as e:
-        print(f"Error al crear usuario (API): {e}")
+        # Imprime el error real en tu terminal de Flask para la depuración
+        print(f"Error al crear usuario (API): {e}") 
         return jsonify({"success": False, "error": "Ocurrió un error en el sistema."}), 500
 
 # Ruta para procesar el Login (CON VERIFICACIÓN BCrypt)
