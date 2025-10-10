@@ -13,7 +13,7 @@ bcrypt = Bcrypt(app) # Inicializar Bcrypt con tu aplicación Flask
 def obtenerConexion():
     try:
         connection = pymysql.connect(host='localhost',
-                                     port=3306, 
+                                     port=3339, 
                                      user='root',
                                      password='',
                                      database='bd_eduquiz',
