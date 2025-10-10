@@ -232,11 +232,11 @@ async function eliminarUsuario(id) {
         alert(`Error al eliminar el usuario: ${error.message}`);
     }
 }
-
 /**
  * Maneja el envío del formulario de creación/edición de usuarios (CRUD).
+ * CORREGIDO para hacer la llamada POST real al backend.
  */
-function manejarGuardarGestion(event) {
+async function manejarGuardarGestion(event) {
     event.preventDefault();
 
     const id = document.getElementById('gestion-usuario_id').value;
@@ -248,54 +248,81 @@ function manejarGuardarGestion(event) {
     
     // VALIDACIÓN BÁSICA DE CAMPOS OBLIGATORIOS
     if (!nombre || !username || !correo || !tipo_usuario) {
-        console.error("Todos los campos de usuario son obligatorios.");
+        alert("Todos los campos de usuario son obligatorios.");
         return;
     }
 
-    // El objeto de datos que se enviaría al backend
+    if (!id && !contrasena) {
+        alert("La contraseña es obligatoria para un nuevo usuario.");
+        return;
+    }
+
     const userData = {
         nombre,
         username,
         correo,
         tipo_usuario,
-        contrasena: contrasena || undefined // Solo incluir contraseña si se proporciona
     };
-
-    if (id) {
-        // LÓGICA DE ACTUALIZACIÓN (PUT o PATCH)
-        console.log(`Simulación: Petición PUT a /api/usuarios/${id}`, userData);
-        
-        // Simulación: Actualizar la lista local después de una respuesta exitosa
-        const usuarioIndex = listaUsuarios.findIndex(u => u.usuario_id == id);
-        if (usuarioIndex !== -1) {
-            // Actualizar datos locales (solo para simulación)
-            listaUsuarios[usuarioIndex] = { ...listaUsuarios[usuarioIndex], ...userData };
-            console.log(`Simulación: Usuario ${username} actualizado localmente.`);
-        }
-    } else {
-        // LÓGICA DE CREACIÓN (POST)
-        if (!contrasena) {
-            console.error("La contraseña es obligatoria para un nuevo usuario.");
-            return;
-        }
-        console.log("Simulación: Petición POST a /api/usuarios", userData);
-        
-        // Simulación: Agregar a la lista local después de una respuesta exitosa
-        const nuevoId = listaUsuarios.length > 0 ? Math.max(...listaUsuarios.map(u => u.usuario_id)) + 1 : 1;
-        const nuevoUsuario = {
-             usuario_id: nuevoId,
-             cant_monedas: 0,
-             ...userData
-         };
-         listaUsuarios.push(nuevoUsuario);
-         console.log(`Simulación: Usuario ${username} creado con ID ${nuevoId}.`);
+    
+    // Solo incluimos la contraseña si es Creación o si fue modificada en Edición
+    if (contrasena) {
+        userData.contrasena = contrasena;
     }
 
-    // Limpiar y ocultar formulario, y actualizar la tabla
-    document.getElementById('form-gestion-usuario').reset();
-    document.getElementById('form-gestion-usuario').style.display = 'none';
-    usuarioEditandoId = null;
-    obtenerYRenderizarUsuarios(); // Recargar la lista del backend (o en este caso, renderizar la lista simulada actualizada)
+    // Lógica para determinar el endpoint y el método
+    let url = `/api/usuarios`;
+    let method = 'POST';
+
+    if (id) {
+        // LÓGICA DE ACTUALIZACIÓN (PENDIENTE DE IMPLEMENTACIÓN en el backend, se mantiene simulación temporal)
+        console.log(`Simulación: Petición PUT a /api/usuarios/${id}`, userData);
+        
+        // **IMPORTANTE:** Aquí deberías implementar la llamada PUT/PATCH si quieres editar.
+        // Por ahora, para no complicar, solo se implementa la creación.
+        alert("La edición (PUT) aún está en modo simulación.");
+        
+        // Simulación: No hacer nada si es edición (para enfocarnos en la creación)
+        document.getElementById('form-gestion-usuario').reset();
+        document.getElementById('form-gestion-usuario').style.display = 'none';
+        usuarioEditandoId = null;
+        obtenerYRenderizarUsuarios(); // Recargar la lista
+        return; 
+    }
+    
+    // *** LÓGICA DE CREACIÓN (POST) ***
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json', // ¡Es vital enviar JSON!
+            },
+            body: JSON.stringify(userData),
+        });
+
+        const data = await response.json();
+
+        if (response.status === 409) { // Conflicto: Usuario ya existe
+            alert(`Error: ${data.error}`);
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(data.error || `Error al guardar: ${response.statusText}`);
+        }
+
+        // 3. ÉXITO: Recargar la tabla
+        alert(`¡${data.message}`); 
+        
+        // Limpiar y ocultar formulario, y ACTUALIZAR LA TABLA con los nuevos datos
+        document.getElementById('form-gestion-usuario').reset();
+        document.getElementById('form-gestion-usuario').style.display = 'none';
+        usuarioEditandoId = null;
+        await obtenerYRenderizarUsuarios(); // <--- ESTO RECARGA EL LISTADO
+        
+    } catch (error) {
+        console.error("Fallo en la gestión del usuario:", error);
+        alert(`Error: ${error.message}`);
+    }
 }
 
 // ... (El resto de la inicialización permanece igual) ...
@@ -347,3 +374,5 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Nota: La tabla no se renderiza hasta que se hace clic en la pestaña "Administración"
 });
+
+

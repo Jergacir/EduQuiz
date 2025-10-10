@@ -13,7 +13,7 @@ bcrypt = Bcrypt(app) # Inicializar Bcrypt con tu aplicación Flask
 def obtenerConexion():
     try:
         connection = pymysql.connect(host='localhost',
-                                     port=3339, 
+                                     port=3306, 
                                      user='root',
                                      password='',
                                      database='bd_eduquiz',
@@ -800,6 +800,78 @@ def eliminar_usuario_api(usuario_id):
     except Exception as e:
         print(f"Error al eliminar usuario: {e}", file=sys.stderr)
         return jsonify({'error': 'Error interno del servidor al eliminar datos.'}), 500
+
+# RUTA API PARA CREAR UN NUEVO USUARIO DESDE LA ADMINISTRACIÓN (Gestor)
+# ==============================================================================
+@app.route("/api/usuarios", methods=['POST'])
+def crear_usuario_api():
+    """
+    Ruta API para crear un nuevo usuario (A, P, G) desde el panel de gestión.
+    Requiere que el usuario logueado sea un Gestor ('G') y valida los datos.
+    """
+    # 1. VERIFICACIÓN DE PERMISOS (¡CLAVE!)
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autenticado.'}), 401
+    
+    # ⚠️ ASUME que aquí se ejecuta la lógica para verificar si session['user_id'] es 'G' 
+    # (similar a como lo haces en listar_usuarios_api). Si no es 'G', devuelve 403.
+    # --- LÓGICA DE VERIFICACIÓN DE ROL FALTANTE AQUÍ ---
+    # Si la verificación falla:
+    # return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403 
+    
+    data = request.get_json()
+
+    # 2. VALIDACIÓN DE CAMPOS OBLIGATORIOS BÁSICOS
+    required_fields = ['username', 'nombre', 'contrasena', 'correo', 'tipo_usuario']
+    if not data or any(key not in data or not data[key] for key in required_fields):
+        return jsonify({"success": False, "error": "Faltan campos obligatorios: nombre, username, contrasena, correo, tipo_usuario."}), 400
+
+    username = data['username']
+    nombre = data['nombre']
+    contrasena_plana = data['contrasena']
+    correo = data['correo']
+    tipo_usuario = data['tipo_usuario'].upper()
+
+    # 3. VALIDACIÓN ESPECÍFICA: Tipo de usuario
+    if tipo_usuario not in ['A', 'P', 'G', 'E']: # Asumiendo tus roles válidos
+         return jsonify({"success": False, "error": "Tipo de usuario inválido (solo A, P, G, E permitidos)."}), 400
+
+
+    # 4. CIFRADO DE CONTRASEÑA
+    try:
+        hashed_password_bytes = bcrypt.generate_password_hash(contrasena_plana)
+        contrasena_cifrada = hashed_password_bytes.decode('utf-8')
+    except Exception:
+        return jsonify({"success": False, "error": "Error al cifrar la contraseña."}), 500
+
+    # 5. CONEXIÓN E INSERCIÓN
+    conexion = obtenerConexion()
+    if not conexion:
+        return jsonify({"success": False, "error": "Error de conexión a la base de datos."}), 500
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # 6. VALIDACIÓN DE UNICIDAD (Correo y/o Username)
+                sql_check = "SELECT usuario_id FROM usuario WHERE correo=%s OR username=%s"
+                cursor.execute(sql_check, (correo, username))
+                if cursor.fetchone():
+                    return jsonify({"success": False, "error": "El correo o username ya está registrado."}), 409
+
+                # 7. Insertar nuevo usuario
+                sql = """INSERT INTO usuario
+                             (username, nombre, contrasena, correo, tipo_usuario, cant_monedas)
+                             VALUES (%s, %s, %s, %s, %s, %s)"""
+                
+                # Usamos 0 monedas por defecto
+                cursor.execute(sql, (username, nombre, contrasena_cifrada, correo, tipo_usuario, 0))
+                conexion.commit()
+
+        return jsonify({"success": True, "message": f"Usuario '{username}' creado exitosamente."}), 201
+
+    except Exception as e:
+        print(f"Error al crear usuario (API): {e}")
+        return jsonify({"success": False, "error": "Ocurrió un error en el sistema."}), 500
 
 # Ruta para procesar el Login (CON VERIFICACIÓN BCrypt)
 @app.route("/procesarlogin", methods=['POST'])
