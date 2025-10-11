@@ -1,44 +1,304 @@
+/* ======================================= */
+/* 1. LAYOUT PRINCIPAL (Dashboard Grid) */
+/* ======================================= */
+
 body {
-    font-family: 'Poppins', sans-serif;
+    /* ❌ Desactivamos el centrado de la página y el fondo grande */
+    font-family: 'Arial', sans-serif; /* Usamos una fuente estándar y clara */
     margin: 0;
     padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: flex; /* Usamos flex para el layout sidebar + main-container */
     min-height: 100vh;
-    text-align: center;
-    background-color: #f0f2f5;
+    background-color: #f0f2f5; /* Color de fondo general (gris muy claro) */
     color: #333;
 }
 
-/* Para agregar la imagen de fondo, descomenta y modifica lo siguiente: */
- body {
-    background-image: url(../img/bienvenido.png);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-    color: #fff; 
- } 
-
-.container {
-    padding: 2rem;
-    max-width: 600px;
-    background-color: rgba(255, 255, 255, 0.9);
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+/* El main-container ocupará el resto del espacio junto al sidebar */
+.main-container {
+    flex-grow: 1; 
+    display: flex;
+    flex-direction: column; /* Para que header y main content estén apilados */
 }
 
-h1 {
-    font-size: 3rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
+/* ======================================= */
+/* 2. BARRA LATERAL (Sidebar) */
+/* ======================================= */
+
+.sidebar {
+    width: 250px; /* Ancho fijo de la barra lateral */
+    background-color: #ffffff; /* Fondo blanco */
+    border-right: 1px solid #e0e0e0;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    /* Para que la barra lateral ocupe toda la altura */
+    position: sticky; 
+    top: 0;
+    height: 100vh;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1a1a1a;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+}
+
+.logo img {
+    width: 30px;
+    margin-right: 10px;
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    margin: 4px 0;
+    text-decoration: none;
+    color: #555;
+    border-radius: 8px;
+    transition: background-color 0.2s, color 0.2s;
+    font-size: 1.05rem;
+}
+
+.nav-item i {
+    margin-right: 15px;
+    font-size: 1.2rem;
+    /* Nota: Los íconos (icon-inicio, etc.) necesitan una librería de íconos o deben ser SVGs/imágenes */
+}
+
+.nav-item:hover {
+    background-color: #f0f2f5;
     color: #1a1a1a;
 }
 
-p {
+.nav-item.active {
+    background-color: #d1fae5; /* Fondo suave para el ítem activo */
+    color: #059669; /* Verde más oscuro para el texto activo */
+    font-weight: bold;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 15px 0;
+}
+
+
+/* ======================================= */
+/* 3. BARRA SUPERIOR (Header) */
+/* ======================================= */
+
+.top-header {
+    background-color: #ffffff;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+    background-color: #f0f2f5;
+    border-radius: 20px;
+    padding: 5px 15px;
+    width: 400px;
+}
+
+.search-bar input {
+    border: none;
+    background: none;
+    outline: none;
+    flex-grow: 1;
+    padding: 8px 0;
     font-size: 1rem;
-    line-height: 1.5;
-    margin-bottom: 2rem;
+}
+
+.search-bar i {
+    color: #999;
+    margin-right: 10px;
+}
+
+.user-profile-widget {
+    display: flex;
+    align-items: center;
+}
+
+.coins {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fbb03b; /* Color similar al icono de moneda */
+    margin-right: 25px;
+}
+
+.profile-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #333;
+}
+
+.avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 10px;
+    border: 2px solid #059669;
+}
+
+.username {
+    font-weight: 600;
+}
+
+
+/* ======================================= */
+/* 4. ÁREA DE CONTENIDO (Main Content) */
+/* ======================================= */
+
+.content-area {
+    padding: 30px;
+    flex-grow: 1;
+}
+
+.content-area h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.quiz-section {
+    margin-bottom: 40px;
+}
+
+.quiz-section h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* ======================================= */
+/* 5. TARJETAS (Quiz Cards) */
+/* ======================================= */
+
+.quiz-grid {
+    display: grid;
+    /* Muestra 4 columnas de tarjetas de ancho similar */
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+    gap: 25px;
+}
+
+.quiz-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    padding-bottom: 15px; /* Espacio para el botón */
+}
+
+.quiz-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.quiz-image {
+    background-color: #e0e0e0; /* Color gris para el placeholder de imagen */
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #888;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.quiz-questions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.quiz-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 10px 15px 5px;
+    margin: 0;
+    color: #1a1a1a;
+}
+
+.quiz-description {
+    font-size: 0.9rem;
+    color: #777;
+    padding: 0 15px;
+    margin-bottom: 10px;
+    line-height: 1.3;
+}
+
+.btn-get {
+    display: block;
+    width: calc(100% - 30px); /* Ancho completo menos el padding */
+    padding: 10px;
+    margin: 5px 15px 0;
+    background-color: #059669; /* Verde similar al wireframe */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.btn-get:hover {
+    background-color: #047857;
+}
+
+/* ======================================= */
+/* 6. ÁREA DEL GESTOR (Reuso de clases) */
+/* ======================================= */
+
+.welcome-area {
+    /* Ajustamos el padding para que se vea bien en el área de contenido */
+    padding: 20px; 
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 30px;
+    background-color: #fff; /* Fondo blanco para el bloque de bienvenida/gestor */
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.welcome-area h2 {
+    font-size: 1.3rem;
+    margin-top: 0;
+    color: #059669;
+}
+
+.welcome-area p {
+    font-size: 1rem;
     color: #555;
+    margin-bottom: 10px;
 }

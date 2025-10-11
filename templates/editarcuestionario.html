@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Cuestionario - EduQuiz</title>
+
+    <link rel="stylesheet" href="../static/css/home.css">
+    <link rel="stylesheet" href="../static/css/crearQuizz.css">
+
+</head>
+
+<body data-usuario-id="{{ logged_in_user.usuario_id }}" data-cuestionario-id="{{ cuestionario_id }}">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="/static/img/logo.png" alt="EduQuiz Logo">
+            EduQuiz
+        </div>
+        <nav class="nav-menu">
+            <a href="{{ url_for('frm_home') }}" class="nav-item">
+                <i class="icon-inicio"></i> Inicio
+            </a>
+            <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item active">
+                <i class="icon-cuestionarios"></i> Cuestionarios
+            </a>
+            <a href="" class="nav-item">
+                <i class="icon-tienda"></i> Tienda
+            </a>
+            <a href="" class="nav-item">
+                <i class="icon-partida"></i> Unirme a una partida
+            </a>
+            <hr>
+            <a href="" class="nav-item">
+                <i class="icon-configuracion"></i> Configuración
+            </a>
+            <a href="" class="nav-item">
+                <i class="icon-cerrar-sesion"></i> Cerrar Sesión
+            </a>
+        </nav>
+    </aside>
+
+    <div class="main-container">
+
+        <header class="top-header">
+            <div class="search-bar">
+                <h2>Panel de creación-edición</h2>
+                <i class="icon-search"></i>
+            </div>
+
+            <div class="user-profile-widget">
+                <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
+                <a href="" class="profile-link">
+                    <img src="/static/img/avatar.png" alt="Avatar" class="avatar">
+                    <span class="username">Mi Perfil</span>
+                </a>
+            </div>
+        </header>
+
+        <main class="content-area edit-panel-area">
+
+            <div class="edit-header">
+                <div class="quiz-title-input">
+                    <input type="text" value="Nombre_Cuestionario" class="title-input">
+                    <a href="#" class="btn-action active"><i class="icon-edit"></i> Editar</a>
+                    <a href="#" class="btn-action"><i class="icon-details"></i> Detalles</a>
+                    <a href="#" class="btn-action"><i class="icon-themes"></i> Temas</a>
+                </div>
+                <div class="actions-right">
+                    <button class="btn-secondary"><i class="icon-exit"></i> Salir</button>
+                    <button class="btn-primary"><i class="icon-save"></i> Guardar cambios</button>
+                </div>
+            </div>
+
+            <div class="edit-content-grid">
+
+                <div class="question-list-sidebar"></div>
+
+                <div class="question-editor">
+
+                    <div class="question-media-area">
+                        <input type="text" value="¿La tierra es redonda?" class="question-text-input">
+
+                        <div class="media-upload-box">
+                            <i class="icon-upload"></i>
+                            <p>Arrastra o suelta o haz clic para subir</p>
+                            <p class="subtitle">Sube una imagen para tu pregunta</p>
+
+
+                            <input id="mediaInput" type="file" accept="image/*" class="hidden">
+
+                            <button class="btn-upload">Subir</button>
+
+                            <!-- Imagen cargada -->
+                            <div class="media-preview hidden">
+                                <img id="previewImage" src="" alt="Vista previa">
+                                <span id="removeImage" class="remove-btn">✕</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="answers-grid">
+                        <div class="answer-box correct">
+                            <input type="text" placeholder="Escribe aquí la respuesta">
+                        </div>
+                        <div class="answer-box">
+                            <input type="text" placeholder="Escribe aquí la respuesta">
+                        </div>
+                        <div class="answer-box">
+                            <input type="text" placeholder="Escribe aquí la respuesta">
+                        </div>
+                        <div class="answer-box">
+                            <input type="text" placeholder="Escribe aquí la respuesta">
+                        </div>
+                    </div>
+
+                    <div class="add-answer-container">
+                        <button class="btn-add-answer"><i class="icon-plus"></i> Añadir Respuesta</button>
+                    </div>
+                </div>
+
+                <div class="question-options-sidebar">
+                    <h3>Límite de Tiempo</h3>
+                    <select class="option-select">
+                        <option value="30s">30 segundos</option>
+                        <option value="10s">10 segundos</option>
+                        <option value="60s">60 segundos</option>
+                    </select>
+
+                    <h3>Puntos</h3>
+                    <select class="option-select">
+                        <option value="standard">Puntaje</option>
+                        <option value="double">Puntaje Doble</option>
+                    </select>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de confirmación de salida -->
+    <div id="exitModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>¿Salir del editor?</h2>
+            <p>Si sales, perderás los cambios no guardados.</p>
+            <div class="modal-buttons">
+                <button id="cancelExit" class="btn-cancel">Cancelar</button>
+                <button id="confirmExit" class="btn-confirm">Continuar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalles -->
+    <div id="detailsModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Detalles del cuestionario</h2>
+
+            <label for="privacy">Privacidad:</label>
+            <select id="privacy" class="input-select">
+                <option value="public">Público</option>
+                <option value="private">Privado</option>
+            </select>
+
+            <label for="theme">Modo de Juego:</label>
+            <select id="theme" class="input-select">
+                <option value="default">Clásico</option>
+                <option value="multiple">Múltiple</option>
+
+            </select>
+
+            <div class="modal-buttons">
+                <button id="cancelDetails" class="btn-cancel">Cerrar</button>
+                <button id="saveDetails" class="btn-confirm">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Temas -->
+    <div id="themesModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Personalizar Tema</h2>
+
+            <label for="colorScheme">Esquema de color:</label>
+            <select id="colorScheme" class="input-select">
+                <option value="default">Predeterminado</option>
+                <option value="light">Claro</option>
+                <option value="dark">Oscuro</option>
+                <option value="blue">Azul</option>
+                <option value="green">Verde</option>
+                <option value="pink">Rosado</option>
+            </select>
+
+
+            <div class="modal-buttons">
+                <button id="cancelThemes" class="btn-cancel">Cerrar</button>
+                <button id="saveThemes" class="btn-confirm">Guardar tema</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Imagen del Cuestionario -->
+    <div id="editImageModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Subir Imagen del Cuestionario</h2>
+
+            <div class="media-upload-box-modal">
+                <i class="icon-upload"></i>
+                <p>Arrastra o haz clic para subir la imagen</p>
+
+                <input id="imageInputModal" type="file" accept="image/*" class="hidden">
+
+                <button id="btnUploadModal" class="btn-upload">Subir</button>
+
+                <div id="previewContainerModal" class="media-preview hidden">
+                    <img id="previewImageModal" src="" alt="Vista previa">
+                    <span id="removeImageModal" class="remove-btn">✕</span>
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button id="cancelEditImage" class="btn-cancel">Cancelar</button>
+                <button id="saveEditImage" class="btn-confirm">Guardar Imagen</button>
+            </div>
+        </div>
+    </div>
+    <script src="../static/js/editarcuestionario.js"></script>
+</body>
+
+</html>

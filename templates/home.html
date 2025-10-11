@@ -3,20 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido - EduQuiz</title> 
+    <title>Inicio - EduQuiz</title> 
     
     <link rel="stylesheet" href="../static/css/home.css">
 
-    <!-- 
-    IMPORTANTE: Estas clases se han añadido aquí temporalmente (alert, btn-gestor).
-    Para un mejor control de estilos, se recomienda moverlas a tu archivo home.css.
-    -->
     <style>
-        /* Estilos básicos para el botón de Gestor y mensajes Flash */
+        /* Estilos para el botón de Gestor */
         .btn-gestor {
             display: inline-block;
             padding: 12px 30px;
-            background-color: #10b981; /* Verde esmeralda para acción de administrador */
+            background-color: #10b981; /* Verde esmeralda */
             color: white;
             text-decoration: none;
             border-radius: 8px;
@@ -31,6 +27,8 @@
             background-color: #059669;
             transform: translateY(-2px);
         }
+        
+        /* Estilos para mensajes Flash (si se usaran en el futuro) */
         .alert {
             padding: 15px;
             margin-bottom: 20px;
@@ -41,43 +39,116 @@
         .alert.success { background-color: #d1fae5; color: #065f46; border: 1px solid #34d399; }
         .alert.error { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
         .alert.warning { background-color: #fffbeb; color: #92400e; border: 1px solid #fcd34d; }
-        .user_info {
-            display: flex; /* Para poner Monedas y Cerrar Sesión en línea */
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 0;
-            border-top: 1px solid #eee;
-            margin-top: 20px;
+        
+        /* Estilos para la bienvenida/área de gestor */
+        .welcome-area {
+            padding: 20px 0;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 30px;
+        }
+        .welcome-area h1 {
+            margin-top: 0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- MOSTRAR MENSAJES FLASH -->
-        <!-- Se ha eliminado el bloque de mensajes de Flash. La página Home estará limpia. -->
-        <!-- Si un mensaje de error se arrastra aquí, no se mostrará. -->
-
-        <h1>Bienvenido a EduQuiz, {{ logged_in_user.nombre }}!</h1>
-        <p>Crea, enseña, aprende y alcanza tus metas académicas, todo en un solo lugar. Donde tu conocimiento es el único límite</p>
-        
-        <!-- LÓGICA CLAVE: MOSTRAR BOTÓN SOLO SI ES GESTOR ('G') -->
-        {% if logged_in_user.tipo_usuario == 'G' %}
-        <div class="gestor-area">
-            <p>¡Hola Gestor! Tienes acceso a la administración del sistema.</p>
-            <a href="{{ url_for('crud_usuarios') }}" class="btn-gestor">
-                Administrar Usuarios (CRUD)
+    
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="/static/img/logo.png" alt="EduQuiz Logo"> 
+            EduQuiz
+        </div>
+        <nav class="nav-menu">
+            <a href="{{ url_for('frm_home') }}" class="nav-item active">
+                <i class="icon-inicio"></i> Inicio
             </a>
-        </div>
-        {% endif %}
-        
-        <!-- INFO DE USUARIO Y LOGOUT -->
-        <div class="user_info">
-            <p>
-                Rol: <strong>{{ logged_in_user.tipo_usuario }}</strong> | 
-                Monedas Ganadas: {{ logged_in_user.cant_monedas }} 💰
-            </p>
-            <a href="{{ url_for('logout') }}" class="btn-logout">Cerrar Sesión</a>
-        </div>
+            <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item">
+                <i class="icon-cuestionarios"></i> Cuestionarios
+            </a>
+            <a href="" class="nav-item">
+                <i class="icon-tienda"></i> Tienda
+            </a>
+            <a href="" class="nav-item">
+                <i class="icon-partida"></i> Unirme a una partida
+            </a>
+            <hr>
+            <a href="" class="nav-item">
+                <i class="icon-configuracion"></i> Configuración
+            </a>
+            <a href="" class="nav-item">
+                <i class="icon-cerrar-sesion"></i> Cerrar Sesión
+            </a>
+            </nav>
+    </aside>
+
+    <div class="main-container">
+
+        <header class="top-header">
+            <div class="search-bar">
+                <input type="text" placeholder="Buscar cuestionarios">
+                <i class="icon-search"></i>
+            </div>
+            
+            <div class="user-profile-widget">
+                <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
+                <a href="" class="profile-link">
+                    <img src="/static/img/avatar.png" alt="Avatar" class="avatar">
+                    <span class="username">Mi Perfil</span>
+                </a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            
+            <h1>Inicio</h1>
+
+            <div class="welcome-area">
+                {% if logged_in_user.tipo_usuario == 'G' %}
+                <div class="gestor-area">
+                    <h2>¡Hola Gestor, {{ logged_in_user.nombre }}!</h2>
+                    <p>Tienes acceso a la administración del sistema. **Rol: {{ logged_in_user.tipo_usuario }}** | Monedas Ganadas: {{ logged_in_user.cant_monedas }} 💰</p>
+                    <a href="{{ url_for('crud_usuarios') }}" class="btn-gestor">
+                        Administrar Usuarios (CRUD)
+                    </a>
+                </div>
+                {% else %}
+                <h2>Bienvenido a EduQuiz, {{ logged_in_user.nombre }}!</h2>
+                <p>Crea, enseña, aprende y alcanza tus metas académicas, todo en un solo lugar. Donde tu conocimiento es el único límite.</p>
+                <p>Monedas Ganadas: {{ logged_in_user.cant_monedas }} 💰</p>
+                {% endif %}
+            </div>
+            
+            <section class="quiz-section">
+                <h2>Populares</h2>
+                <div class="quiz-grid">
+                    {% for i in range(4) %}
+                    <div class="quiz-card">
+                        <div class="quiz-image">[Image]</div>
+                        <span class="quiz-questions">10 preguntas</span>
+                        <h3 class="quiz-title">Título del cuestionario</h3>
+                        <p class="quiz-description">Descripción</p>
+                        <button class="btn-get">Obtener</button>
+                    </div>
+                    {% endfor %}
+                    </div>
+            </section>
+            
+            <section class="quiz-section">
+                <h2>Creados por la comunidad</h2>
+                <div class="quiz-grid">
+                    {% for i in range(4) %}
+                    <div class="quiz-card">
+                        <div class="quiz-image">[Image]</div>
+                        <span class="quiz-questions">10 preguntas</span>
+                        <h3 class="quiz-title">Título del cuestionario</h3>
+                        <p class="quiz-description">Descripción</p>
+                        <button class="btn-get">Obtener</button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+        </main>
     </div>
 </body>
 </html>

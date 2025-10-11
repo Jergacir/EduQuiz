@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         try {
                             // Lógica de ELIMINAR (DELETE) para accesorios
                             const response = await fetch(`/api/tienda/accesorios/eliminar/${id}`, {
-                                method: 'DELETE'
+                                method: 'POST'
                             });
 
                             const data = await response.json();
