@@ -195,23 +195,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 }else{
                     try {
                         //Petición GET al backend para obtener el accesorio completo (incluyendo url_imagen)
-                        const response = await fetch(`/api/tienda/accesorios/${id}`);
+                        const response = await fetch(`/api/tienda/skin/${id}`);
                         const data = await response.json();
 
                         if (response.ok) {
                             // data ya contiene {id, nombre, precio, url_imagen}
                             mostrarVista(tipo, 'form', data);
                         } else {
-                            alert(`❌ Error al cargar accesorio: ${data.message}`);
+                            alert(`❌ Error al cargar  skin: ${data.message}`);
                         }
                     } catch (error) {
-                        console.error('Error al obtener accesorio:', error);
-                        alert('Hubo un error de conexión al cargar los datos del accesorio.');
+                        console.error('Error al obtener skin:', error);
+                        alert('Hubo un error de conexión al cargar los datos del skin.');
                     }
                 }
-                const datosSimulados = { id, nombre, precio, url_imagen: '' };
 
-                mostrarVista(tipo, 'form', datosSimulados);
             });
         });
 
@@ -283,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // 💡 Lógica de Actualizar (Editar)
         if (id) {
             url = `/api/tienda/accesorios/editar/${id}`;
-            method = 'POST'; 
+            method = 'POST';
             accion = 'Actualizar';
         }
 
@@ -323,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // 💡 Lógica de Actualizar (Editar)
         if (id) {
             url = `/api/tienda/skin/editar/${id}`;
-            method = 'POST'; 
+            method = 'POST';
             accion = 'Actualizar';
         }
 
