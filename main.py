@@ -1150,10 +1150,17 @@ def frm_verificar():
 
 @app.route('/procesar_verificacion', methods=['POST'])
 def procesar_verificacion():
-    email = request.form.get('email')
-    codigo = request.form.get('codigo')
+    data = request.get_json(silent=True)
+    if data:
+        email = data.get('email')
+        codigo = data.get('codigo')
+    else:
+        email = request.form.get('email')
+        codigo = request.form.get('codigo')
 
     if not email or not codigo:
+        if data:
+            return jsonify({'success': False, 'message': 'Faltan datos para verificar la cuenta.'}), 400
         flash('Faltan datos para verificar la cuenta.', 'error')
         return redirect(url_for('frm_registro'))
 
@@ -1174,8 +1181,12 @@ def procesar_verificacion():
                     cursor.execute("SELECT usuario_id, verificado FROM usuario WHERE correo=%s", (email,))
                     user_row = cursor.fetchone()
                     if user_row and user_row.get('verificado') == 1:
+                        if data:
+                            return jsonify({'success': False, 'message': 'Cuenta ya verificada. Puedes iniciar sesión.'}), 200
                         flash('Cuenta ya verificada. Puedes iniciar sesión.', 'info')
                         return redirect(url_for('frm_login'))
+                    if data:
+                        return jsonify({'success': False, 'message': 'Correo no encontrado en el registro temporal. Vuelve a registrarte.'}), 404
                     flash('Correo no encontrado en el registro temporal. Vuelve a registrarte.', 'error')
                     return redirect(url_for('frm_registro'))
 
@@ -1197,7 +1208,7 @@ def procesar_verificacion():
                             ln1 = data.get('first_last_name') or ''
                             ln2 = data.get('second_last_name') or ''
                             # Normalizar espacios
-                            combined = ' '.join([ln1, ln2, fn]).strip()
+                            combined = ' '.join([fn, ln1, ln2]).strip()
                             if combined:
                                 nombre_final = combined.title()
                     except Exception as e:
@@ -1214,20 +1225,31 @@ def procesar_verificacion():
                     # Borrar registro temporal
                     cursor.execute("DELETE FROM registro_temp WHERE temp_id=%s", (temp['temp_id'],))
                     conexion.commit()
+                    if data:
+                        return jsonify({'success': True, 'message': 'Registro completado correctamente. Ya puedes iniciar sesión.'}), 200
                     flash('Registro completado correctamente. Ya puedes iniciar sesión.', 'success')
                     return redirect(url_for('frm_login'))
                 else:
+                    if data:
+                        return jsonify({'success': False, 'message': 'Código incorrecto. Intenta de nuevo.'}), 400
                     flash('Código incorrecto. Intenta de nuevo.', 'error')
                     return render_template('verificar.html', email=email, email_masked=mask_email(email))
 
     except Exception as e:
         print(f"Error al verificar cuenta: {e}")
+        if data:
+            return jsonify({'success': False, 'message': 'Error interno del servidor.'}), 500
         return redirect(url_for('frm_error'))
 
 
 @app.route('/reenviar_codigo', methods=['POST'])
 def reenviar_codigo():
-    email = request.form.get('email')
+    data = request.get_json(silent=True)
+    if data:
+        email = data.get('email')
+    else:
+        email = request.form.get('email')
+
     if not email:
         return jsonify({'success': False, 'message': 'Falta el email'}), 400
 
@@ -1250,7 +1272,7 @@ def reenviar_codigo():
                     except Exception as e:
                         print(f"Error reenviando email a temp: {e}")
                         return jsonify({'success': False, 'message': 'No se pudo enviar el correo.'}), 500
-                    return jsonify({'success': True, 'message': 'Código reenviado.'}), 200
+                    return jsonify({'success': True, 'message': 'Código reenviado.', 'email_masked': mask_email(email)}), 200
 
                 # Si no hay registro temporal, intentar con la tabla definitiva
                 cursor.execute("SELECT usuario_id, username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verificado FROM usuario WHERE correo=%s", (email,))
@@ -1285,7 +1307,7 @@ def reenviar_codigo():
                 except Exception as e:
                     print(f"Error reenviando email a temp (desde usuario): {e}")
                     return jsonify({'success': False, 'message': 'No se pudo enviar el correo.'}), 500
-                return jsonify({'success': True, 'message': 'Código reenviado.'}), 200
+                return jsonify({'success': True, 'message': 'Código reenviado.', 'email_masked': mask_email(email)}), 200
 
     except Exception as e:
         print(f"Error en reenviar_codigo: {e}")

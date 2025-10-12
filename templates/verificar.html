@@ -1,54 +1,116 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificar Cuenta - EduQuiz</title>
-    <link rel="stylesheet" href="../static/css/registro.css">
+    <link rel="stylesheet" href="../static/css/verificar.css">
+    <link rel="stylesheet" href="../static/css/carrusel.css">
 </head>
+
 <body>
     <div class="contenedor">
         <div class="panel-izquierdo">
             <div class="logo">
                 <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo de EduQuiz">
             </div>
+            <div class="barra-progreso">
+                <div class="paso inactivo">
+                    <div class="paso-numero">1</div>
+                    <div class="paso-descripcion">Primer paso<br>Crea una cuenta</div>
+                </div>
+                <div class="linea-progreso"></div>
+                <div class="paso ">
+                    <div class="paso-numero">2</div>
+                    <div class="paso-descripcion">Segundo paso<br>Verificar email</div>
+                </div>
+            </div>
             <div class="formulario-contenedor">
                 <h1>¡Verifica tu email!</h1>
                 <p>Hemos enviado un código de verificación al correo <strong>{{ email_masked }}</strong></p>
 
-                <form action="{{ url_for('procesar_verificacion') }}" method="post">
+                <form action="{{ url_for('procesar_verificacion') }}" method="post" id="form-verificar">
                     <input type="hidden" name="email" value="{{ email }}">
+                    <!-- Hidden codigo field que se enviará al backend -->
+                    <input type="hidden" name="codigo" id="codigo-hidden" value="">
+
                     <div class="grupo-formulario codigo-campos">
                         <label for="codigo">Ingresa el código</label>
-                        <input type="text" id="codigo" name="codigo" placeholder="Código de 6 dígitos" maxlength="6" required>
+                        <div class="codigo-inputs" aria-label="Código de verificación">
+                            <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="codigo-box"
+                                autocomplete="one-time-code" />
+                            <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="codigo-box"
+                                autocomplete="one-time-code" />
+                            <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="codigo-box"
+                                autocomplete="one-time-code" />
+                            <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="codigo-box"
+                                autocomplete="one-time-code" />
+                            <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="codigo-box"
+                                autocomplete="one-time-code" />
+                            <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="codigo-box"
+                                autocomplete="one-time-code" />
+                        </div>
                     </div>
-                    <div style="margin-top:20px; display:flex; gap:10px;">
+
+                    <div class="reenviar-line" style="margin-top:14px;font-size:14px;color:#6b7280">
+                        ¿No te llegó ningún código? <button type="button" id="btn-reenviar"
+                            class="reenviar-link">Reenviar código</button>
+                    </div>
+
+                    <div style="margin-top:28px;">
                         <button type="submit" class="btn-primario">CREAR CUENTA</button>
-                        <button type="button" id="btn-reenviar" class="btn-secundario">Reenviar código</button>
                     </div>
                 </form>
 
             </div>
         </div>
+        <!-- Panel derecho -->
         <div class="panel-derecho">
+
+            <div class="carousel">
+                <img src="{{ url_for('static', filename='/img/registro.png') }}" class="carousel-image active"
+                    alt="Imagen 1">
+                <img src="{{ url_for('static', filename='/img/inicio_sesion.png') }}" class="carousel-image"
+                    alt="Imagen 2">
+                <img src="{{ url_for('static', filename='/img/registro.png') }}" class="carousel-image" alt="Imagen 3">
+            </div>
+
             <div class="panel-derecho-contenido">
                 <h2>Tu camino al éxito académico</h2>
                 <p>Domina cada materia y alcanza el máximo potencial en tu carrera.</p>
+                <div class="puntos-carrusel">
+                    <div class="punto-carrusel activo"></div>
+                    <div class="punto-carrusel"></div>
+                    <div class="punto-carrusel"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-    document.getElementById('btn-reenviar').addEventListener('click', async function(){
-        const email = '{{ email }}';
-        const resp = await fetch("{{ url_for('reenviar_codigo') }}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ email })
-        });
-        const data = await resp.json();
-        alert(data.message || (data.error || 'Operación finalizada'));
-    });
-    </script>
+    <!-- Modal de éxito (registro verificado) -->
+    <div id="modal-exito" class="modal" aria-hidden="true">
+        <div class="modal-card">
+            <h3>¡Registro completado!</h3>
+            <p class="modal-sub">Ahora puedes iniciar sesión para acceder a EduQuiz y comenzar a aprender.</p>
+            <div style="margin-top:18px;">
+                <button id="modal-iniciar" class="btn-primario">INICIAR SESIÓN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de error -->
+    <div id="modal-error" class="modal" aria-hidden="true">
+        <div class="modal-card modal-error-card">
+            <h3 id="modal-error-title">Ocurrió un error</h3>
+            <p id="modal-error-msg" class="modal-sub">No se pudo verificar tu cuenta. Intenta nuevamente.</p>
+            <div style="margin-top:18px;">
+                <button id="modal-error-cerrar" class="btn-primario">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/verificar.js"></script>
 </body>
+
 </html>
