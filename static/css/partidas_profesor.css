@@ -1,0 +1,156 @@
+/* ======================================================= */
+/* ESTILOS ESPECÍFICOS PARA LA VISTA DE PARTIDAS (PROFESOR) */
+/* ======================================================= */
+
+.main-container {
+    background-color: #f8f8f8; /* Fondo general de la zona principal, un gris muy claro */
+}
+
+.content-area.partidas-profesor-area {
+    background-color: white; /* Aseguramos que el área principal de contenido sea blanca */
+    padding: 30px 40px; /* Ajusta el padding para que coincida con el wireframe */
+    min-height: calc(100vh - 80px); /* Altura mínima para que siempre ocupe la pantalla */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); /* Sombra sutil si es necesario, o eliminar */
+}
+
+.partidas-header-actions {
+    display: flex;
+    flex-direction: column; /* Apila los elementos */
+    margin-bottom: 30px;
+}
+
+.section-description {
+    color: #666;
+    font-size: 0.95rem;
+    margin-bottom: 20px; /* Espacio debajo de la descripción */
+}
+
+.search-and-create {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px; /* Espacio entre la barra de búsqueda y el botón */
+}
+
+.search-input-container {
+    flex-grow: 1; /* Permite que el input de búsqueda ocupe el espacio disponible */
+    position: relative;
+    display: flex;
+    align-items: center;
+    background-color: #f0f0f0; /* Fondo gris claro del input */
+    border-radius: 8px;
+    padding: 8px 15px;
+}
+
+.search-input-container i {
+    color: #888;
+    margin-right: 10px;
+}
+
+.search-partida-input {
+    border: none;
+    background: transparent;
+    outline: none;
+    flex-grow: 1;
+    font-size: 1rem;
+    color: #333;
+    padding: 5px 0; /* Padding interno para el texto */
+}
+
+.search-partida-input::placeholder {
+    color: #aaa;
+}
+
+.btn-nueva-partida {
+    background-color: #2D3047; /* Color oscuro como en el wireframe */
+    color: white;
+    padding: 12px 25px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+    white-space: nowrap; /* Evita que el texto se rompa */
+}
+
+.btn-nueva-partida:hover {
+    background-color: #1a1c2a;
+}
+.btn-nueva-partida i {
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+.recent-partidas-title {
+    font-size: 1.5rem;
+    color: #40446C;
+    margin-top: 40px; /* Espacio superior */
+    margin-bottom: 20px; /* Espacio inferior */
+    font-weight: 600;
+}
+
+/* --- ESTILOS DE LA TABLA --- */
+
+.table-responsive {
+    overflow-x: auto; /* Para tablas que pueden ser muy anchas en pantallas pequeñas */
+    border-radius: 10px; /* Bordes redondeados para el contenedor de la tabla */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Sombra sutil para la tabla */
+    background-color: white; /* Asegurar fondo blanco para la tabla */
+}
+
+.partidas-table {
+    width: 100%;
+    border-collapse: separate; /* Permite border-spacing y border-radius */
+    border-spacing: 0; /* Elimina espacio entre celdas */
+    min-width: 700px; /* Para asegurar que no se vea muy pequeña en ciertos anchos */
+}
+
+.partidas-table thead th {
+    background-color: #f7f7f7; /* Fondo gris claro del encabezado de la tabla */
+    color: #40446C; /* Color de texto más oscuro */
+    padding: 15px 20px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-bottom: 2px solid #eee; /* Separador del encabezado */
+}
+
+/* Bordes redondeados en el encabezado */
+.partidas-table thead tr th:first-child { border-top-left-radius: 10px; }
+.partidas-table thead tr th:last-child { border-top-right-radius: 10px; }
+
+
+.partidas-table tbody tr {
+    background-color: #ffffff; /* Fondo blanco para las filas de datos */
+    border-bottom: 1px solid #eee; /* Línea separadora entre filas */
+    transition: background-color 0.1s ease;
+}
+
+.partidas-table tbody tr:hover {
+    background-color: #f9f9f9; /* Efecto hover suave */
+}
+
+.partidas-table tbody td {
+    padding: 15px 20px;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+/* Estilo para el botón "Ver Resultados" */
+.btn-ver-resultados {
+    background-color: #2D3047; /* Color oscuro principal */
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-ver-resultados:hover {
+    background-color: #1a1c2a;
+}

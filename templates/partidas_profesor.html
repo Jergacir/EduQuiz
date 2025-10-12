@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partidas - EduQuiz</title>
+
+    <link rel="stylesheet" href="../static/css/home.css">
+    <link rel="stylesheet" href="../static/css/crearQuizz.css"> 
+    <link rel="stylesheet" href="../static/css/partidas_profesor.css"> 
+</head>
+
+<body data-usuario-id="{{ logged_in_user.usuario_id }}">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="/static/img/logo.png" alt="EduQuiz Logo">
+            EduQuiz
+        </div>
+        <nav class="nav-menu">
+            <a href="{{ url_for('frm_home') }}" class="nav-item">
+                <i class="icon-inicio"></i> Inicio
+            </a>
+            <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item">
+                <i class="icon-cuestionarios"></i> Cuestionarios
+            </a>
+            <a href="{{ url_for('frm_tienda') }}" class="nav-item">
+                <i class="icon-tienda"></i> Tienda
+            </a>
+            <a href="{{ url_for('frm_partidas_profesor') }}" class="nav-item active">
+                <i class="icon-partida"></i> Partidas
+            </a>
+            <hr>
+            <a href="" class="nav-item">
+                <i class="icon-configuracion"></i> Configuración
+            </a>
+            <a href="" class="nav-item">
+                <i class="icon-cerrar-sesion"></i> Cerrar Sesión
+            </a>
+        </nav>
+    </aside>
+
+    <div class="main-container">
+
+        <header class="top-header">
+            <div class="search-bar-top"> <h2>Partidas</h2>
+            </div>
+            <div class="user-profile-widget">
+                <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
+                <a href="" class="profile-link">
+                    <img src="/static/img/avatar.png" alt="Avatar" class="avatar">
+                    <span class="username">Mi Perfil</span>
+                </a>
+            </div>
+        </header>
+
+        <main class="content-area partidas-profesor-area">
+            <div class="partidas-header-actions">
+                <p class="section-description">Ver y administrar tus partidas</p>
+                <div class="search-and-create">
+                    <div class="search-input-container">
+                        <i class="icon-search"></i>
+                        <input type="text" placeholder="Buscar partida" class="search-partida-input">
+                    </div>
+                    <a href="{{ url_for('frm_crear_partida') }}" class="btn-nueva-partida">
+                        <i class="icon-plus"></i> Nueva partida
+                    </a>
+                </div>
+            </div>
+
+            <h3 class="recent-partidas-title">Partidas recientes</h3>
+
+            <div class="table-responsive">
+                <table class="partidas-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre del cuestionario</th>
+                            <th>Fecha</th>
+                            <th>Modalidad</th>
+                            <th>Jugadores</th>
+                            <th>Preguntas</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="partidas-list">
+                        <tr>
+                            <td>Cuestionario de Matemáticas 1</td>
+                            <td>2023-09-15</td>
+                            <td>Individual</td>
+                            <td>25</td>
+                            <td>10</td>
+                            <td><button class="btn-ver-resultados">Ver Resultados</button></td>
+                        </tr>
+                        <tr>
+                            <td>Cuestionario de Ciencias 2</td>
+                            <td>2023-09-14</td>
+                            <td>Grupal</td>
+                            <td>30</td>
+                            <td>15</td>
+                            <td><button class="btn-ver-resultados">Ver Resultados</button></td>
+                        </tr>
+                        <tr>
+                            <td>Cuestionario de Historia 3</td>
+                            <td>2023-09-13</td>
+                            <td>Individual</td>
+                            <td>20</td>
+                            <td>20</td>
+                            <td><button class="btn-ver-resultados">Ver Resultados</button></td>
+                        </tr>
+                        <tr>
+                            <td>Cuestionario de Inglés 4</td>
+                            <td>2023-09-12</td>
+                            <td>Grupal</td>
+                            <td>15</td>
+                            <td>25</td>
+                            <td><button class="btn-ver-resultados">Ver Resultados</button></td>
+                        </tr>
+                        <tr>
+                            <td>Cuestionario de Geografía 5</td>
+                            <td>2023-09-11</td>
+                            <td>Individual</td>
+                            <td>10</td>
+                            <td>30</td>
+                            <td><button class="btn-ver-resultados">Ver Resultados</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="../static/js/partidas_profesor.js"></script> 
+</body>
+
+</html>

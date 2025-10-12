@@ -321,6 +321,28 @@ def frm_tienda():
     # 4. Pasamos las listas a la plantilla HTML
     return render_template('tienda.html', skins=lista_skins, accesorios=lista_accesorios)
 
+# --- RUTA DE PARTIDAS (PARA EL PROFESOR) ---
+@app.route('/partidas_profesor')
+@login_required 
+@profesor_required # Esta vista solo debe ser para profesores
+def frm_partidas_profesor():
+    # Aquí puedes cargar las partidas recientes del profesor
+    # Por ahora, solo renderiza la plantilla.
+    # Ejemplo:
+    # partidas = obtener_partidas_del_profesor(session['user_id']) 
+    return render_template('partidas_profesor.html') # Asumiendo que partidas.html es ahora la vista del profesor
+
+# --- RUTA PARA CREAR NUEVA PARTIDA (PARA EL PROFESOR) ---
+@app.route('/crear_partida')
+@login_required 
+@profesor_required # Solo accesible para profesores
+def frm_crear_partida():
+    # Esta ruta debería mostrar un formulario o una interfaz para
+    # seleccionar un cuestionario y configurar la nueva partida.
+    # Por ahora, puedes redirigir o mostrar un placeholder.
+    flash("Aquí se creará una nueva partida (Vista en desarrollo)", 'info')
+    return render_template('crear_partida.html') # O redirigir a una página de creación
+
 
 # --- NUEVAS RUTAS DE PARTIDAS ---
 
