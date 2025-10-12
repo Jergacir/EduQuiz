@@ -28,6 +28,15 @@
             <div class="formulario-contenedor">
                 <h1>¡Regístrate en EduQuiz!</h1>
                 <form action="{{ url_for('procesarregistro') }}" method="post">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flash-messages">
+                            {% for category, message in messages %}
+                                <div class="flash {{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% endwith %}
                     
                     <!-- Tipo de usuario -->
                     <div class="grupo-formulario">

@@ -7,7 +7,23 @@ CREATE TABLE `usuario` (
   `dni` CHAR(8) NOT NULL UNIQUE,
   `tipo_usuario` CHAR(1) NOT NULL CHECK (`tipo_usuario` IN ('A', 'P', 'G')), -- A(Alumno), P(Profesor) y G(Gestor)
   `cant_monedas` INT(11) NOT NULL,
+  `verificado` TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`usuario_id`)
+);
+
+-- Tabla temporal para almacenar registros antes de verificar el email
+CREATE TABLE IF NOT EXISTS `registro_temp` (
+  `temp_id` INT NOT NULL AUTO_INCREMENT,
+  `username` VARCHAR(100) NOT NULL,
+  `nombre` VARCHAR(100) NOT NULL,
+  `contrasena` VARCHAR(200) NOT NULL,
+  `correo` VARCHAR(100) NOT NULL,
+  `dni` CHAR(8) NOT NULL,
+  `tipo_usuario` CHAR(1) NOT NULL,
+  `cant_monedas` INT NOT NULL DEFAULT 0,
+  `verification_code` VARCHAR(10) NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`temp_id`)
 );
 
 ¡Excelente idea! Hacer la tienda dinámica es el siguiente paso lógico.

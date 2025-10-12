@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Cuenta - EduQuiz</title>
+    <link rel="stylesheet" href="../static/css/registro.css">
+</head>
+<body>
+    <div class="contenedor">
+        <div class="panel-izquierdo">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo de EduQuiz">
+            </div>
+            <div class="formulario-contenedor">
+                <h1>¡Verifica tu email!</h1>
+                <p>Hemos enviado un código de verificación al correo <strong>{{ email_masked }}</strong></p>
+
+                <form action="{{ url_for('procesar_verificacion') }}" method="post">
+                    <input type="hidden" name="email" value="{{ email }}">
+                    <div class="grupo-formulario codigo-campos">
+                        <label for="codigo">Ingresa el código</label>
+                        <input type="text" id="codigo" name="codigo" placeholder="Código de 6 dígitos" maxlength="6" required>
+                    </div>
+                    <div style="margin-top:20px; display:flex; gap:10px;">
+                        <button type="submit" class="btn-primario">CREAR CUENTA</button>
+                        <button type="button" id="btn-reenviar" class="btn-secundario">Reenviar código</button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <div class="panel-derecho">
+            <div class="panel-derecho-contenido">
+                <h2>Tu camino al éxito académico</h2>
+                <p>Domina cada materia y alcanza el máximo potencial en tu carrera.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.getElementById('btn-reenviar').addEventListener('click', async function(){
+        const email = '{{ email }}';
+        const resp = await fetch("{{ url_for('reenviar_codigo') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ email })
+        });
+        const data = await resp.json();
+        alert(data.message || (data.error || 'Operación finalizada'));
+    });
+    </script>
+</body>
+</html>

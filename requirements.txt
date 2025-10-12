@@ -1,0 +1,5 @@
+Flask
+pymysql
+flask-bcrypt
+python-dotenv
+requests
