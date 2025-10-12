@@ -321,6 +321,25 @@ def frm_tienda():
     # 4. Pasamos las listas a la plantilla HTML
     return render_template('tienda.html', skins=lista_skins, accesorios=lista_accesorios)
 
+
+# --- NUEVAS RUTAS DE PARTIDAS ---
+
+# 1. Ruta para mostrar el formulario de unirse a partida
+@app.route('/partidas')
+@login_required 
+def frm_partidas():
+    # 'logged_in_user' ya es accesible en el template gracias al @app.context_processor
+    return render_template('partidas.html')
+
+# 2. Ruta de PLACEHOLDER para jugar (necesaria para el redirect de la API)
+@app.route('/jugar/<string:codigo_partida>')
+@login_required 
+def frm_jugar(codigo_partida):
+    # Por ahora, solo redirige a un home o una página de espera.
+    # Esta ruta será la vista principal del juego en vivo.
+    flash(f"Te has unido a la partida con código: {codigo_partida}. (Vista de juego por implementar)", 'success')
+    return redirect(url_for('frm_home')) 
+
 # --- RUTAS API PARA CRUD DE TIENDA (Skins y Accesorios) ---
 
 def obtener_items_crud(tabla, id_columna):
@@ -496,6 +515,60 @@ def obtener_item_por_id(tabla, id_item, columna_id):
     except Exception as e:
         print(f"Error al obtener ítem por ID de {tabla}: {e}", file=sys.stderr)
         return None
+    
+# --- LÓGICA DE PARTIDAS: Validar y unir usuario a partida ---
+def validar_y_unir(codigo_partida, usuario_id):
+    """
+    Intenta buscar la partida, valida su estado ('espera'), verifica el cupo 
+    y asocia el usuario a ella.
+    
+    Retorna True si la unión es exitosa o el usuario ya estaba unido, False en caso contrario.
+    """
+    conexion = obtenerConexion()
+    if not conexion:
+        print("Error: No se pudo conectar a la BD.")
+        return False
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # 1. Buscar la partida y validar estado/cupo (asumiendo tabla 'partida')
+                sql_partida = "SELECT partida_id, estado, max_jugadores FROM partida WHERE codigo_partida = %s"
+                cursor.execute(sql_partida, (codigo_partida,))
+                partida = cursor.fetchone()
+
+                if not partida or partida.get('estado') != 'espera':
+                    print(f"Error: Partida '{codigo_partida}' no encontrada o no está en estado de espera.")
+                    return False
+                
+                partida_id = partida['partida_id']
+                max_jugadores = partida['max_jugadores']
+
+                # 2. Contar jugadores actuales y verificar si el usuario ya está (asumiendo tabla 'participante_partida')
+                sql_contar = "SELECT COUNT(*) AS total_jugadores, SUM(CASE WHEN usuario_id = %s THEN 1 ELSE 0 END) AS usuario_existe FROM participante_partida WHERE partida_id = %s"
+                cursor.execute(sql_contar, (usuario_id, partida_id))
+                resultado_conteo = cursor.fetchone()
+
+                # Si ya está dentro, se considera éxito (no necesitamos volver a insertarlo)
+                if resultado_conteo['usuario_existe'] > 0:
+                    print(f"Advertencia: Usuario {usuario_id} ya está en la partida {codigo_partida}.")
+                    return True 
+                
+                # Verificar cupo
+                if resultado_conteo['total_jugadores'] >= max_jugadores:
+                    print(f"Error: La partida '{codigo_partida}' está llena. (Max: {max_jugadores})")
+                    return False
+
+                # 3. Asociar el usuario a la partida
+                sql_unir = "INSERT INTO participante_partida (partida_id, usuario_id) VALUES (%s, %s)"
+                cursor.execute(sql_unir, (partida_id, usuario_id))
+                conexion.commit()
+                print(f"Éxito: Usuario {usuario_id} unido a partida {codigo_partida}.")
+                return True
+
+    except Exception as e:
+        print(f"Error en validar_y_unir: {e}", file=sys.stderr)
+        return False
 
 # ... Esto es para el CRUD de accesorio
 
@@ -725,6 +798,35 @@ def obtener_skin_api(skin_id):
         return jsonify(item), 200
     else:
         return jsonify({'success': False, 'message': 'Accesorio no encontrado.'}), 404
+# -----------------------------------
+
+# --- NUEVA RUTA API PARA UNIRSE A LA PARTIDA (POST) ---
+@app.route('/api/partida/unirse', methods=['POST'])
+@login_required # Solo usuarios logueados pueden intentar unirse
+def api_unirse_partida():
+    data = request.get_json()
+    codigo_partida = data.get('codigo')
+    usuario_id = data.get('usuario_id') # Viene del data-usuario-id en la vista
+
+    if not codigo_partida or not usuario_id:
+        return jsonify({"success": False, "message": "Faltan el código de partida o el ID de usuario."}), 400
+    
+    # Asegúrate de que usuario_id sea un entero si tu BD lo espera como INT
+    try:
+        usuario_id = int(usuario_id)
+    except ValueError:
+        return jsonify({"success": False, "message": "ID de usuario inválido."}), 400
+        
+    if validar_y_unir(codigo_partida, usuario_id):
+        # La función url_for se encargará de crear la URL dinámica /jugar/CODIGO
+        return jsonify({
+            "success": True, 
+            "message": "¡Te has unido a la partida!", 
+            "redirect_url": url_for('frm_jugar', codigo_partida=codigo_partida)
+        }), 200
+    else:
+        # Este mensaje ya incluye el caso de "partida llena" o "código inválido"
+        return jsonify({"success": False, "message": "Código de partida inválido o partida llena."}), 400
 # -----------------------------------
 
 # RUTA HTML PARA EL CRUD DE USUARIOS

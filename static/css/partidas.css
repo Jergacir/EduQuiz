@@ -1,0 +1,92 @@
+/* ======================================================= */
+/* ESTILOS ESPECÍFICOS PARA LA VISTA DE PARTIDAS */
+/* ======================================================= */
+
+/* 1. CORRECCIÓN DE FONDO GRIS: Forzamos el área de contenido a blanco */
+.partida-area {
+    background-color: white; 
+    
+    /* Para apilar y centrar la tarjeta */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 50px;
+    height: calc(100vh - 80px); 
+}
+
+.search-bar-partida {
+    background-color: white;
+}
+
+.join-card {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+    
+    /* 2. NUEVO: Configuramos el contenedor para apilar Input y Botón */
+    display: flex;
+    flex-direction: column; /* Apila los elementos verticalmente */
+    align-items: stretch; /* Estira los elementos internos a todo el ancho */
+}
+
+.join-card h1 {
+    font-size: 2rem;
+    color: #40446C;
+    margin-bottom: 10px;
+}
+
+.join-card p {
+    color: #666;
+    margin-bottom: 30px;
+}
+
+/* 3. Ajustamos el margin para el INPUT, ahora que está solo */
+#gameCodeInput {
+    /* Ocupará el 100% del ancho del join-card por 'align-items: stretch' */
+    margin-bottom: 15px; /* Espacio entre el input y el botón */
+    
+    padding: 15px 20px;
+    font-size: 1.8rem;
+    letter-spacing: 5px; 
+    text-align: center;
+    border: 3px solid #FDCE4C; 
+    border-radius: 10px;
+    outline: none;
+    transition: border-color 0.3s;
+    text-transform: uppercase;
+}
+
+#gameCodeInput:focus {
+    border-color: #EBAE4D;
+}
+
+/* 4. Hacemos que el botón ocupe el ancho completo */
+.full-width-btn {
+    width: 100%; /* El botón ocupa todo el ancho */
+    margin-bottom: 20px; /* Espacio antes del mensaje */
+}
+
+/* Reutilizando tu clase btn-primary (Guardar) para el botón Unirme */
+.btn-primary {
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    white-space: nowrap; 
+}
+
+.message-text {
+    font-weight: 600;
+    min-height: 20px; 
+    margin-top: -5px; /* Ajuste visual */
+}
+
+.message-text.error {
+    color: #ff4b4b;
+}
+
+.message-text.success {
+    color: #059669; 
+}

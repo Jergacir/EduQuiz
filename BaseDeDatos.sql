@@ -146,3 +146,29 @@ CREATE TABLE `respuesta` (
   FOREIGN KEY (`pregunta_id`) REFERENCES `pregunta`(`pregunta_id`) 
     ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+-- 5. TABLA PARTIDA (Juego Activo)
+CREATE TABLE `partida` (
+  `partida_id` INT NOT NULL AUTO_INCREMENT,
+  `codigo_partida` VARCHAR(6) NOT NULL UNIQUE, -- El código que el usuario ingresa
+  `cuestionario_id` INT NOT NULL,            -- FK al cuestionario que se está jugando
+  `usuario_creador_id` INT NOT NULL,         -- FK al profesor que creó la partida
+  `estado` VARCHAR(20) NOT NULL DEFAULT 'creada', -- 'creada', 'en_juego', 'finalizada'
+  `fecha_creacion` DATETIME NOT NULL,
+  PRIMARY KEY (`partida_id`),
+  FOREIGN KEY (`cuestionario_id`) REFERENCES `cuestionario`(`cuestionario_id`),
+  FOREIGN KEY (`usuario_creador_id`) REFERENCES `usuario`(`usuario_id`)
+);
+
+-- 6. TABLA PARTICIPANTE_PARTIDA (Relación Usuario-Partida)
+CREATE TABLE `participante_partida` (
+  `participante_id` INT NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT NOT NULL,
+  `partida_id` INT NOT NULL,
+  `puntuacion` INT NOT NULL DEFAULT 0,
+  `fecha_union` DATETIME NOT NULL,
+  PRIMARY KEY (`participante_id`),
+  UNIQUE KEY `idx_usuario_partida` (`usuario_id`, `partida_id`), -- Un usuario solo puede estar una vez en una partida
+  FOREIGN KEY (`usuario_id`) REFERENCES `usuario`(`usuario_id`),
+  FOREIGN KEY (`partida_id`) REFERENCES `partida`(`partida_id`)
+);
