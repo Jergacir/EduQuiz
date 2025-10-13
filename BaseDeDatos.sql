@@ -7,7 +7,7 @@ CREATE TABLE `usuario` (
   `dni` CHAR(8) NOT NULL UNIQUE,
   `tipo_usuario` CHAR(1) NOT NULL CHECK (`tipo_usuario` IN ('A', 'P', 'G')), -- A(Alumno), P(Profesor) y G(Gestor)
   `cant_monedas` INT(11) NOT NULL,
-  `verificado` TINYINT(1) NOT NULL DEFAULT 0,
+  `verificado` INT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`usuario_id`)
 );
 

@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     toast.textContent = data.message || 'Código reenviado. Revisa tu correo.';
                     Object.assign(toast.style, {
                         position: 'fixed',
-                        right: '20px',
+                        left: '20px',
                         top: '20px',
                         background: '#111',
                         color: '#fff',
