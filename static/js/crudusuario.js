@@ -1,43 +1,75 @@
-// Objeto simulado de datos del usuario logueado (EXISTENTE)
-const datosUsuarioLogueado = {
-    usuario_id: 1, // ID del usuario actual
-    username: "joe_developer_chatgpt",
-    nombre: "Joe Villarreal Mejia",
-    contrasena: "hash_seguro", 
-    correo: "DNI@usat.pe",
-    tipo_usuario: "A", // Le daremos tipo 'A' (Admin) para tener acceso a la administración.
-    cant_monedas: 10000
-};
+// Variable que contendrá los datos del usuario logueado (obtenidos del backend)
+let datosUsuarioLogueado = {}; 
 
-// Variable que AHORA contendrá los datos REALES (obtenidos del backend)
+// Variable que contendrá los datos REALES (obtenidos del backend) para la administración
 let listaUsuarios = []; 
 
 let usuarioEditandoId = null; // Para rastrear qué usuario estamos editando
 
-// ... (cargarDatosPerfil, habilitarEdicion, manejarGuardarPerfil permanecen iguales) ...
+/**
+ * [NUEVA FUNCIÓN] Obtiene los datos del perfil del usuario logueado de la API.
+ */
+async function obtenerDatosPerfil() {
+    try {
+        const response = await fetch('/api/perfil'); // Llama a la ruta para el perfil actual
+        
+        if (response.status === 401) {
+            console.error("Error 401: Sesión expirada o no iniciada.");
+            return null;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Error al obtener el perfil: ${response.statusText}`);
+        }
+        
+        datosUsuarioLogueado = await response.json(); 
+        return datosUsuarioLogueado;
+
+    } catch (error) {
+        console.error("Fallo al cargar los datos del perfil desde la API:", error);
+        return null;
+    }
+}
+
 
 /**
- * Función para cargar los datos del objeto simulado en la interfaz de perfil (EXISTENTE).
+ * Función para cargar los datos del objeto REAL en la interfaz de perfil.
  */
-function cargarDatosPerfil() {
-    document.getElementById('nombre').value = datosUsuarioLogueado.nombre;
-    document.getElementById('username').value = datosUsuarioLogueado.username;
-    document.getElementById('correo').value = datosUsuarioLogueado.correo;
-    document.getElementById('cant_monedas').textContent = datosUsuarioLogueado.cant_monedas;
+async function cargarDatosPerfil() {
+    // Si los datos no se han cargado aún, intentamos obtenerlos
+    if (Object.keys(datosUsuarioLogueado).length === 0) {
+        await obtenerDatosPerfil();
+    }
+    
+    // Verificamos si la carga fue exitosa
+    if (datosUsuarioLogueado && datosUsuarioLogueado.usuario_id) {
+        document.getElementById('nombre').value = datosUsuarioLogueado.nombre || '';
+        document.getElementById('username').value = datosUsuarioLogueado.username || '';
+        document.getElementById('correo').value = datosUsuarioLogueado.correo || '';
+        document.getElementById('cant_monedas').textContent = datosUsuarioLogueado.cant_monedas || 0;
 
-    // Mapeo del tipo de usuario
-    const tipoMap = { 'E': 'Estudiante', 'P': 'Profesor', 'A': 'Alumno' };
-    const tipo = tipoMap[datosUsuarioLogueado.tipo_usuario] || 'Desconocido';
-    document.getElementById('tipo_usuario').value = tipo;
+        // Mapeo del tipo de usuario
+        const tipoMap = { 'A': 'Alumno', 'P': 'Profesor', 'G': 'Gestor' }; 
+        const tipo = tipoMap[datosUsuarioLogueado.tipo_usuario] || 'Desconocido';
+        // Asumiendo que 'tipo_usuario' en el perfil SIEMPRE debe ser readonly/deshabilitado.
+        const tipoUsuarioInput = document.getElementById('tipo_usuario');
+        tipoUsuarioInput.value = tipo;
+        tipoUsuarioInput.setAttribute('readonly', true); // Aseguramos que sea readonly
+        tipoUsuarioInput.classList.add('input-no-editable'); // Añadimos clase para opacidad
+    } else {
+        console.error("No se pudieron cargar los datos del usuario logueado.");
+        // Opcional: Mostrar mensaje al usuario
+    }
 }
 
 /**
- * Habilita la edición de un campo de entrada (EXISTENTE).
+ * Habilita la edición de un campo de entrada.
  */
 function habilitarEdicion(id) {
     const input = document.getElementById(id);
     if (input) {
         input.removeAttribute('readonly');
+        input.classList.remove('input-no-editable'); // Quitar opacidad al habilitar
         input.focus();
     }
 }
@@ -56,39 +88,79 @@ function cambiarPestana(event) {
     event.currentTarget.classList.add('activo');
     document.getElementById(targetTab).classList.add('activo');
 
+    // Ocultar formulario de gestión al cambiar de pestaña
+    document.getElementById('form-gestion-usuario').style.display = 'none';
+    usuarioEditandoId = null;
+
     // Cargar la tabla de usuarios cuando se selecciona la pestaña de administración
     if (targetTab === 'administracion') {
         obtenerYRenderizarUsuarios(); // <--- LLAMADA CLAVE A LA API
     }
+    
+    // Recargar perfil si volvemos a la pestaña de perfil
+    if (targetTab === 'perfil') {
+        cargarDatosPerfil();
+    }
 }
 
 /**
- * Maneja el envío del formulario de perfil (EXISTENTE).
+ * Maneja el envío del formulario de perfil (Actualización vía API).
+ * NOTA: Aquí asumimos que los campos de contraseña están en la pestaña "contrasena" y no en "perfil".
  */
-function manejarGuardarPerfil(event) {
+async function manejarGuardarPerfil(event) {
     event.preventDefault();
-    // ... (Lógica de guardado de perfil propia) ...
     const nuevoNombre = document.getElementById('nombre').value;
     const nuevoUsername = document.getElementById('username').value;
     const nuevoCorreo = document.getElementById('correo').value;
+    
+    // Se elimina la lógica de contraseñas de esta función, asumiendo que solo está en la pestaña "contrasena"
+    const contrasenaActual = ''; 
+    const nuevaContrasena = ''; 
 
     if (!nuevoNombre || !nuevoUsername || !nuevoCorreo) {
-        // Reemplazar alert()
         console.error("Todos los campos obligatorios deben estar llenos.");
         return;
     }
 
-    datosUsuarioLogueado.nombre = nuevoNombre;
-    datosUsuarioLogueado.username = nuevoUsername;
-    datosUsuarioLogueado.correo = nuevoCorreo;
-    
-    // NOTA: Para guardar el perfil, se necesitaría otra ruta POST/PUT en main.py
+    const perfilData = {
+        nombre: nuevoNombre,
+        username: nuevoUsername,
+        correo: nuevoCorreo,
+    };
 
-    document.getElementById('username').setAttribute('readonly', 'true');
-    document.getElementById('correo').setAttribute('readonly', 'true');
+    try {
+        const response = await fetch('/api/perfil', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(perfilData)
+        });
 
-    // Reemplazar alert()
-    console.log("¡Perfil actualizado con éxito!");
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || `Error al actualizar perfil: ${response.statusText}`);
+        }
+
+        // Actualizar el objeto local
+        datosUsuarioLogueado.nombre = nuevoNombre;
+        datosUsuarioLogueado.username = nuevoUsername;
+        datosUsuarioLogueado.correo = nuevoCorreo;
+
+        // Deshabilitar edición y aplicar opacidad
+        const usernameInput = document.getElementById('username');
+        const correoInput = document.getElementById('correo');
+
+        usernameInput.setAttribute('readonly', 'true');
+        correoInput.setAttribute('readonly', 'true');
+        
+        usernameInput.classList.add('input-no-editable');
+        correoInput.classList.add('input-no-editable');
+
+        console.log(data.message || "¡Perfil actualizado con éxito!");
+
+    } catch (error) {
+        console.error("Fallo al actualizar el perfil:", error.message);
+    }
 }
 
 /* --- FUNCIONES DE ADMINISTRACIÓN --- */
@@ -98,7 +170,7 @@ function manejarGuardarPerfil(event) {
  */
 async function obtenerYRenderizarUsuarios() {
     try {
-        const response = await fetch('/api/usuarios'); // Llama a la nueva ruta en main.py
+        const response = await fetch('/api/usuarios'); // Llama a la ruta de la API
         
         if (response.status === 401) {
              console.error("Error 401: Sesión expirada o no iniciada.");
@@ -107,8 +179,7 @@ async function obtenerYRenderizarUsuarios() {
 
         if (response.status === 403) {
             console.error("Error 403: No tiene permisos para acceder a la administración.");
-            // Opcional: limpiar la tabla para no mostrar datos
-            document.querySelector('#tabla-usuarios tbody').innerHTML = '<tr><td colspan="6">No tienes permisos para ver la administración de usuarios.</td></tr>';
+            document.querySelector('#tabla-usuarios tbody').innerHTML = '<tr><td colspan="9">No tienes permisos para ver la administración de usuarios.</td></tr>';
             return;
         }
         
@@ -116,10 +187,8 @@ async function obtenerYRenderizarUsuarios() {
             throw new Error(`Error al obtener usuarios: ${response.statusText}`);
         }
         
-        // Asignamos la data obtenida del servidor a la variable global
         listaUsuarios = await response.json(); 
-        
-        renderizarTablaUsuarios(); // Una vez obtenidos los datos, se pinta la tabla
+        renderizarTablaUsuarios();
 
     } catch (error) {
         console.error("Fallo al cargar la lista de usuarios desde la API:", error);
@@ -127,22 +196,30 @@ async function obtenerYRenderizarUsuarios() {
 }
 
 /**
- * Renderiza la tabla de usuarios con la lista actual (ahora listaUsuarios viene del backend).
- */
-function renderizarTablaUsuarios() {
+ * Renderiza la tabla de usuarios con la lista actual.
+ */function renderizarTablaUsuarios() {
     const tbody = document.querySelector('#tabla-usuarios tbody');
-    tbody.innerHTML = ''; // Limpiar la tabla
+    tbody.innerHTML = ''; 
 
     listaUsuarios.forEach(usuario => {
         const fila = tbody.insertRow();
-        const tipoMap = { 'E': 'Estudiante', 'P': 'Profesor', 'A': 'Admin', 'G': 'Gestor' };
-
+        const tipoMap = { 'A': 'Alumno', 'P': 'Profesor', 'G': 'Gestor' };
+        
+        const esVigente = usuario.vigencia === 1 || usuario.vigencia === true; 
+        const estadoVigencia = esVigente ? 'VIGENTE' : 'NO VIGENTE';
+        
         fila.insertCell().textContent = usuario.usuario_id;
         fila.insertCell().textContent = usuario.username;
         fila.insertCell().textContent = usuario.nombre;
         fila.insertCell().textContent = usuario.correo;
         fila.insertCell().textContent = tipoMap[usuario.tipo_usuario] || usuario.tipo_usuario;
-        fila.insertCell().textContent = usuario.cant_monedas || 0; // Mostrar 0 si no hay monedas
+        fila.insertCell().textContent = usuario.cant_monedas || 0; 
+        fila.insertCell().textContent = usuario.dni || '';
+        
+        // Columna Vigencia
+        const vigenciaCell = fila.insertCell();
+        vigenciaCell.innerHTML = `<span style="color: ${esVigente ? 'green' : 'red'}; font-weight: bold;">${estadoVigencia}</span>`;
+
 
         // Celda de acciones
         const accionesCell = fila.insertCell();
@@ -153,16 +230,32 @@ function renderizarTablaUsuarios() {
         btnEditar.classList.add('btn-editar');
         btnEditar.onclick = () => cargarParaEdicion(usuario.usuario_id);
         
-        // --- INICIO: Código del botón Eliminar que preguntaste ---
-        const btnEliminar = document.createElement('button');
-        btnEliminar.textContent = 'Eliminar';
-        btnEliminar.classList.add('btn-eliminar');
-        // ¡Esta línea es la clave! Conecta el clic con la función asíncrona que elimina.
-        btnEliminar.onclick = () => eliminarUsuario(usuario.usuario_id); 
+        // --- Lógica condicional para Dar de Baja o Dar de Alta ---
+        if (esVigente) {
+            const btnDarDeBaja = document.createElement('button');
+            btnDarDeBaja.textContent = 'Dar de Baja';
+            btnDarDeBaja.classList.add('btn-dar-baja'); 
+            btnDarDeBaja.onclick = () => {
+                const usernameAInactivar = listaUsuarios.find(u => u.usuario_id === usuario.usuario_id)?.username || usuario.usuario_id;
+                if (window.confirm(`¿Estás seguro de que quieres dar de baja (inactivar) al usuario "${usernameAInactivar}" (ID: ${usuario.usuario_id})?`)) {
+                    eliminarUsuario(usuario.usuario_id);  // DELETE /api/usuarios/<id> (vigente=0)
+                }
+            };
+            accionesCell.appendChild(btnDarDeBaja);
+        } else {
+            const btnDarDeAlta = document.createElement('button');
+            btnDarDeAlta.textContent = 'Dar de Alta';
+            btnDarDeAlta.classList.add('btn-dar-alta'); 
+            btnDarDeAlta.onclick = () => {
+                const usernameAActivar = listaUsuarios.find(u => u.usuario_id === usuario.usuario_id)?.username || usuario.usuario_id;
+                if (window.confirm(`¿Estás seguro de que quieres dar de alta (activar) al usuario "${usernameAActivar}" (ID: ${usuario.usuario_id})?`)) {
+                    activarUsuario(usuario.usuario_id); // PUT /api/usuarios/<id>/activar (vigente=1)
+                }
+            };
+            accionesCell.appendChild(btnDarDeAlta);
+        }
 
         accionesCell.appendChild(btnEditar);
-        accionesCell.appendChild(btnEliminar);
-        // --- FIN: Código del botón Eliminar ---
     });
 }
 
@@ -175,66 +268,105 @@ function cargarParaEdicion(id) {
     if (!usuario) return;
 
     usuarioEditandoId = id;
-    document.getElementById('form-titulo').textContent = 'Editar';
-    document.getElementById('form-gestion-usuario').style.display = 'block';
-
-    document.getElementById('gestion-usuario_id').value = usuario.usuario_id;
-    document.getElementById('gestion-nombre').value = usuario.nombre;
-    document.getElementById('gestion-username').value = usuario.username;
-    document.getElementById('gestion-correo').value = usuario.correo;
-    document.getElementById('gestion-tipo_usuario').value = usuario.tipo_usuario;
-    document.getElementById('gestion-contrasena').value = ''; // La contraseña se maneja por separado
+    const formGestion = document.getElementById('form-gestion-usuario');
     
-    // Enfocar el formulario
-    document.getElementById('form-gestion-usuario').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('form-titulo').textContent = 'Editar';
+    formGestion.style.display = 'block';
+
+    document.getElementById('gestion-usuario_id').value = usuario.usuario_id || '';
+    document.getElementById('gestion-nombre').value = usuario.nombre || '';
+    document.getElementById('gestion-username').value = usuario.username || '';
+    document.getElementById('gestion-correo').value = usuario.correo || '';
+    document.getElementById('gestion-dni').value = usuario.dni || ''; 
+    document.getElementById('gestion-tipo_usuario').value = usuario.tipo_usuario || '';
+    
+    // 🔑 CLAVE: CARGAR ESTADO DE VIGENCIA EN EL SELECT
+    const vigenciaValue = usuario.vigencia === 1 || usuario.vigencia === true ? 'true' : 'false';
+    document.getElementById('gestion-vigencia').value = vigenciaValue;
+    
+    
+    // 🛠️ CLAVE: Establecer `readonly` Y CLASE PARA OPACIDAD
+    
+    // Campos que NO se pueden modificar (ID, Correo, DNI, Tipo de Usuario)
+    const camposNoEditables = [
+        document.getElementById('gestion-usuario_id'),
+        document.getElementById('gestion-correo'),
+        document.getElementById('gestion-dni'),
+        document.getElementById('gestion-tipo_usuario')
+    ];
+
+    camposNoEditables.forEach(input => {
+        if (input) {
+            input.setAttribute('readonly', true);
+            // 💡 Añadir clase CSS para el estilo opaco
+            input.classList.add('input-no-editable'); 
+        }
+    });
+    
+    // 🔑 El campo de CONTRASEÑA NO existe en el HTML, por lo que no es necesario ocultarlo.
+    
+    // Campos que SÍ se pueden modificar (Nombre, Username, Vigencia)
+    document.getElementById('gestion-nombre').removeAttribute('readonly'); 
+    document.getElementById('gestion-username').removeAttribute('readonly'); 
+    document.getElementById('gestion-nombre').classList.remove('input-no-editable'); 
+    document.getElementById('gestion-username').classList.remove('input-no-editable'); 
+
+
+    formGestion.scrollIntoView({ behavior: 'smooth' });
 }
 
 /**
- * Elimina un usuario de la lista haciendo una llamada DELETE a la API del backend.
- * @param {number} id - El ID del usuario a eliminar.
+ * Función que llama a la API para INACTIVAR (Dar de Baja) a un usuario.
  */
-async function eliminarUsuario(id) {
-    // 1. CONFIRMACIÓN
-    const usernameAEliminar = listaUsuarios.find(u => u.usuario_id === id)?.username || id;
-    if (!confirm(`¿Estás seguro de que quieres eliminar al usuario "${usernameAEliminar}" (ID: ${id})? Esta acción es irreversible.`)) {
-        return; // El usuario canceló la eliminación
-    }
-
+async function eliminarUsuario(usuarioId) {
     try {
-        // 2. LLAMADA A LA API DELETE
-        const response = await fetch(`/api/usuarios/${id}`, {
+        const response = await fetch(`/api/usuarios/${usuarioId}`, {
             method: 'DELETE',
-            // No se necesita body en una petición DELETE simple
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
 
         const data = await response.json();
 
-        if (response.status === 403 && data.error.includes("propia cuenta")) {
-            // Manejar la restricción de auto-eliminación que pusimos en main.py
-            alert(data.error); 
-            return;
-        }
-
         if (!response.ok) {
-            // Si la respuesta no es 2xx, manejar el error devuelto por el backend
-            throw new Error(data.error || `Error al eliminar: ${response.status} ${response.statusText}`);
+            throw new Error(data.error || 'Fallo al dar de baja al usuario.'); 
         }
 
-        // 3. ÉXITO: Recargar la tabla para reflejar los cambios
-        console.log(`Usuario con ID ${id} eliminado exitosamente.`);
-        alert(`¡Usuario ${usernameAEliminar} eliminado con éxito!`);
-        
-        // La clave para actualizar es volver a obtener los datos del servidor
+        console.log(data.message);
         await obtenerYRenderizarUsuarios(); 
-
     } catch (error) {
-        console.error("Fallo en la eliminación del usuario:", error);
-        alert(`Error al eliminar el usuario: ${error.message}`);
+        console.error('Error al dar de baja (inactivar) al usuario:', error.message);
     }
 }
+
 /**
- * Maneja el envío del formulario de creación/edición de usuarios (CRUD).
- * CORREGIDO para incluir la lectura del DNI y su envío al backend.
+ * Función que llama a la API para ACTIVAR (Dar de Alta) a un usuario.
+ */
+async function activarUsuario(usuarioId) {
+    try {
+        const response = await fetch(`/api/usuarios/${usuarioId}/activar`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Fallo en la activación del usuario.');
+        }
+
+        console.log(data.message);
+        await obtenerYRenderizarUsuarios(); 
+    } catch (error) {
+        console.error('Error al dar de alta (activar) al usuario:', error.message);
+    }
+}
+
+/**
+ * Maneja el envío del formulario de gestión de usuarios (SOLO EDICIÓN).
  */
 async function manejarGuardarGestion(event) {
     event.preventDefault();
@@ -242,99 +374,60 @@ async function manejarGuardarGestion(event) {
     const id = document.getElementById('gestion-usuario_id').value;
     const nombre = document.getElementById('gestion-nombre').value;
     const username = document.getElementById('gestion-username').value;
-    const correo = document.getElementById('gestion-correo').value;
-    const tipo_usuario = document.getElementById('gestion-tipo_usuario').value.toUpperCase();
-    const contrasena = document.getElementById('gestion-contrasena').value;
-    // 🔑 NUEVA LÍNEA CLAVE: Leer el DNI del formulario
-    const dni = document.getElementById('gestion-dni').value; 
     
-    // VALIDACIÓN BÁSICA DE CAMPOS OBLIGATORIOS (AHORA INCLUYE DNI)
-    if (!nombre || !username || !correo || !tipo_usuario || !dni) {
-        alert("Todos los campos (incluyendo DNI) son obligatorios.");
+    const vigenciaString = document.getElementById('gestion-vigencia').value;
+    const vigencia = vigenciaString === 'true'; 
+    
+    // VALIDACIÓN CLAVE
+    if (!id || !nombre || !username) {
+        console.error("Para editar, ID, Nombre y Username deben estar llenos."); 
         return;
     }
 
-    if (!id && !contrasena) {
-        alert("La contraseña es obligatoria para un nuevo usuario.");
-        return;
-    }
-
+    // 🛠️ CLAVE: SOLO ENVIAMOS LOS CAMPOS PERMITIDOS POR EL BACKEND
     const userData = {
         nombre,
         username,
-        correo,
-        tipo_usuario,
-        dni, // 🔑 NUEVA LÍNEA CLAVE: Añadir el DNI al objeto de datos
+        vigencia 
     };
     
-    // Solo incluimos la contraseña si es Creación o si fue modificada en Edición
-    if (contrasena) {
-        userData.contrasena = contrasena;
-    }
-
-    // Lógica para determinar el endpoint y el método
-    let url = `/api/usuarios`;
-    let method = 'POST';
-
-    if (id) {
-        // LÓGICA DE ACTUALIZACIÓN (PENDIENTE DE IMPLEMENTACIÓN en el backend, se mantiene simulación temporal)
-        console.log(`Simulación: Petición PUT a /api/usuarios/${id}`, userData);
-        
-        // Simulación: No hacer nada si es edición (para enfocarnos en la creación)
-        alert("La edición (PUT) aún está en modo simulación.");
-        document.getElementById('form-gestion-usuario').reset();
-        document.getElementById('form-gestion-usuario').style.display = 'none';
-        usuarioEditandoId = null;
-        obtenerYRenderizarUsuarios(); // Recargar la lista
-        return; 
-    }
+    let url = `/api/usuarios/${id}`;
     
-    // *** LÓGICA DE CREACIÓN (POST) ***
     try {
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json', // ¡Es vital enviar JSON!
-            },
-            body: JSON.stringify(userData),
+        console.log(`Petición PUT a ${url} con datos:`, userData);
+        
+        const response = await fetch(url, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(userData) 
         });
 
         const data = await response.json();
 
-        if (response.status === 409) { // Conflicto: Usuario ya existe (DNI, correo o username)
-            alert(`Error de conflicto: ${data.error}`);
-            return;
-        }
-        
-        // Manejar otros errores 4xx/5xx del backend (además del 409)
         if (!response.ok) {
-            // Este es el error 500 que veías, capturando el mensaje real
-            throw new Error(data.error || `Error HTTP ${response.status}: ${response.statusText}`);
+             throw new Error(data.error || `Error al actualizar: ${response.status} ${response.statusText}`);
         }
-
-        // 3. ÉXITO: Recargar la tabla
-        alert(`¡${data.message}`); 
         
-        // Limpiar y ocultar formulario, y ACTUALIZAR LA TABLA con los nuevos datos
+        console.log(data.message || `¡Usuario ${username} actualizado con éxito!`); 
+        
+        // Simular éxito y recargar
         document.getElementById('form-gestion-usuario').reset();
         document.getElementById('form-gestion-usuario').style.display = 'none';
         usuarioEditandoId = null;
-        await obtenerYRenderizarUsuarios(); // ESTO RECARGA EL LISTADO
+        await obtenerYRenderizarUsuarios(); 
         
     } catch (error) {
-        // Mejorar la presentación del error en la consola
         console.error("Fallo en la gestión del usuario:", error.message);
-        alert(`Error al guardar: ${error.message}`);
+        console.error(`Error al guardar: ${error.message}`); 
     }
 }
 
-// ... (El resto de la inicialización permanece igual) ...
-
 /**
- * Inicializa los listeners de eventos al cargar el DOM (ACTUALIZADO).
+ * Inicializa los listeners de eventos al cargar el DOM.
  */
-document.addEventListener('DOMContentLoaded', () => {
-    cargarDatosPerfil();
+document.addEventListener('DOMContentLoaded', async () => {
+    // 🔑 CAMBIO: Inicialmente intenta obtener y cargar el perfil de la API
+    await cargarDatosPerfil(); 
     
     // 1. Listeners para Pestañas
     document.querySelectorAll('.tab-button').forEach(button => {
@@ -344,38 +437,49 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Listeners para Perfil Propio
     document.getElementById('form-perfil').addEventListener('submit', manejarGuardarPerfil);
     document.getElementById('cancelar').addEventListener('click', () => {
+        // Recargar el perfil desde el objeto actual (o la API si es necesario)
         cargarDatosPerfil();
-        document.getElementById('username').setAttribute('readonly', 'true');
-        document.getElementById('correo').setAttribute('readonly', 'true');
+        
+        // Re-deshabilitar y aplicar opacidad a los campos que solo se editan con el icono.
+        const usernameInput = document.getElementById('username');
+        const correoInput = document.getElementById('correo');
+
+        usernameInput.setAttribute('readonly', 'true');
+        correoInput.setAttribute('readonly', 'true');
+
+        usernameInput.classList.add('input-no-editable');
+        correoInput.classList.add('input-no-editable');
+        
         console.log("Cambios de perfil cancelados.");
+        // Opcional: Limpiar campos de contraseña si existen en el HTML
+        if (document.getElementById('contrasena_actual')) document.getElementById('contrasena_actual').value = '';
+        if (document.getElementById('nueva_contrasena')) document.getElementById('nueva_contrasena').value = '';
     });
 
     // 3. Listeners para Administración
     const formGestion = document.getElementById('form-gestion-usuario');
-    const btnNuevo = document.getElementById('btn-nuevo-usuario');
     const btnCancelarGestion = document.getElementById('btn-cancelar-gestion');
-
-    // Muestra el formulario vacío para crear un nuevo usuario
-    btnNuevo.addEventListener('click', () => {
-        usuarioEditandoId = null;
-        formGestion.reset();
-        document.getElementById('form-titulo').textContent = 'Crear';
-        formGestion.style.display = 'block';
-        document.getElementById('gestion-contrasena').placeholder = "Contraseña obligatoria";
-        formGestion.scrollIntoView({ behavior: 'smooth' });
-    });
 
     // Oculta el formulario de gestión
     btnCancelarGestion.addEventListener('click', () => {
         formGestion.reset();
         formGestion.style.display = 'none';
         usuarioEditandoId = null;
+        
+        // 💡 Quitar clases de opacidad si se van a reusar los campos (aunque en este caso no afecta)
+        document.getElementById('gestion-usuario_id').classList.remove('input-no-editable');
+        document.getElementById('gestion-correo').classList.remove('input-no-editable');
+        document.getElementById('gestion-dni').classList.remove('input-no-editable');
+        document.getElementById('gestion-tipo_usuario').classList.remove('input-no-editable');
+        
+        // Quitar readonly para reusar el formulario (si aplica)
+        document.getElementById('gestion-usuario_id').removeAttribute('readonly'); 
+        document.getElementById('gestion-correo').removeAttribute('readonly');
+        document.getElementById('gestion-dni').removeAttribute('readonly');
+        document.getElementById('gestion-tipo_usuario').removeAttribute('readonly'); 
     });
 
-    // Maneja la creación/edición al guardar
+    // Maneja la creación/edición al guardar (Ahora solo edición)
     formGestion.addEventListener('submit', manejarGuardarGestion);
     
-    // Nota: La tabla no se renderiza hasta que se hace clic en la pestaña "Administración"
 });
-
-

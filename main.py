@@ -152,8 +152,7 @@ def send_verification_email(to_email: str, code: str):
 # --- FUNCIÓN PARA OBTENER TODOS LOS USUARIOS DE LA BD (NUEVA IMPLEMENTACIÓN) ---
 def obtener_todos_los_usuarios():
     """
-    Consulta la base de datos y devuelve una lista de todos los usuarios
-    con los campos necesarios para el CRUD (excluyendo la contraseña).
+    Obtiene todos los usuarios de la base de datos, incluyendo el nuevo campo 'vigencia'.
     """
     conexion = obtenerConexion()
     if not conexion:
@@ -162,14 +161,33 @@ def obtener_todos_los_usuarios():
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                # Selecciona solo los campos necesarios y seguros para mostrar en el CRUD
-                sql = "SELECT usuario_id, username, nombre, correo, tipo_usuario, cant_monedas FROM usuario"
+                # 🔑 CLAVE: Asegurarse de que 'vigencia' esté incluido en el SELECT.
+                sql = """
+                    SELECT usuario_id, username, nombre, correo, tipo_usuario, cant_monedas, dni, vigencia 
+                    FROM usuario
+                    ORDER BY usuario_id
+                """
                 cursor.execute(sql)
-                # Debido a DictCursor, esto ya retorna una lista de diccionarios
-                usuarios = cursor.fetchall() 
-                return usuarios
+                usuarios = cursor.fetchall()
+                
+                # Convertir los resultados, asegurando que 'vigencia' se interprete como booleano para JSON
+                lista_usuarios = []
+                for user in usuarios:
+                    user_dict = {
+                        'usuario_id': user.get('usuario_id'),
+                        'username': user.get('username'),
+                        'nombre': user.get('nombre'),
+                        'correo': user.get('correo'),
+                        'tipo_usuario': user.get('tipo_usuario'),
+                        'cant_monedas': user.get('cant_monedas'),
+                        'dni': user.get('dni'),
+                        # Convertir 1/0 de la BD a booleano de Python
+                        'vigencia': bool(user.get('vigencia')), 
+                    }
+                    lista_usuarios.append(user_dict)
+                return lista_usuarios
     except Exception as e:
-        print(f"Error al obtener usuarios de la BD: {e}", file=sys.stderr)
+        print(f"Error en obtener_todos_los_usuarios: {e}", file=sys.stderr)
         return []
 
 # --- DECORADORES DE AUTORIZACIÓN ---
@@ -1032,14 +1050,14 @@ def listar_usuarios_api():
 @app.route("/api/register-gestor", methods=['POST'])
 def register_gestor_api():
     """
-    Registra un usuario de tipo 'G' (Gestor) de forma segura.
-    Esta ruta está diseñada para ser llamada por herramientas como Postman o cURL 
-    en lugar de un formulario web.
+    Registra un usuario de tipo 'G' (Gestor) de forma segura,
+    permitiendo al usuario de la API decidir el valor del campo 'verificado'.
     """
-    # Usar request.get_json() para leer el cuerpo de la petición como JSON
     data = request.get_json()
 
-    if not data or any(key not in data for key in ['username', 'nombre', 'contrasena', 'correo', 'dni']):
+    # Se mantiene la validación de campos obligatorios
+    required_fields = ['username', 'nombre', 'contrasena', 'correo', 'dni']
+    if not data or any(key not in data for key in required_fields):
         return jsonify({"success": False, "message": "Faltan campos obligatorios: username, nombre, contrasena, correo, dni."}), 400
 
     username = data['username']
@@ -1047,6 +1065,13 @@ def register_gestor_api():
     contrasena_plana = data['contrasena']
     correo = data['correo']
     dni = data['dni']
+    
+    # 🔑 Nuevo: Leer el campo 'verificado'. Usar 0 (False) si no está presente o es inválido.
+    verificado_raw = data.get('verificado', 0)
+    
+    # Validar y convertir 'verificado' a 1 o 0
+    # Aceptamos '1', '0', 1, 0. Si no es 1, asumimos 0.
+    verificado = 1 if str(verificado_raw) == '1' else 0 
     
     # Validaciones básicas
     if len(dni) != 8 or not dni.isdigit():
@@ -1072,18 +1097,18 @@ def register_gestor_api():
                 if cursor.fetchone():
                     return jsonify({"success": False, "message": "El DNI o correo ya está registrado."}), 409
 
-                # 3. Insertar nuevo usuario GESTOR ('G')
+                # 3. Insertar nuevo usuario GESTOR ('G') - AHORA CON 'verificado'
                 sql = """INSERT INTO usuario
-                             (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas)
-                             VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+                             (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verificado)
+                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
                 
-                # FORZAMOS 'G'
                 tipo_usuario = 'G'
                 
-                cursor.execute(sql, (username, nombre, contrasena_cifrada, correo, dni, tipo_usuario, 0))
+                # LA TUPLA DE VALORES AHORA INCLUYE 'verificado'
+                cursor.execute(sql, (username, nombre, contrasena_cifrada, correo, dni, tipo_usuario, 0, verificado))
                 conexion.commit()
 
-        return jsonify({"success": True, "message": f"Gestor '{nombre}' ({username}) creado exitosamente."}), 201
+        return jsonify({"success": True, "message": f"Gestor '{nombre}' ({username}) creado exitosamente. Verificado: {verificado}"}), 201
 
     except pymysql.err.IntegrityError:
         return jsonify({"success": False, "message": "Error de integridad: El usuario ya existe o hay un problema con los datos."}), 409
@@ -1091,13 +1116,17 @@ def register_gestor_api():
         print(f"Error en el registro de gestor (API): {e}")
         return jsonify({"success": False, "message": "Ocurrió un error en el sistema."}), 500
 
-# --- RUTA API PARA ELIMINAR USUARIO (CONSUMIDA POR crudusuario.js) ---
+# --- RUTA API PARA INACTIVAR USUARIO (CONSUMIDA POR crudusuario.js) ---
 @app.route('/api/usuarios/<int:usuario_id>', methods=['DELETE'])
 def eliminar_usuario_api(usuario_id):
     """
-    Ruta API para eliminar un usuario por su ID.
+    Ruta API para inactivar (soft delete) un usuario por su ID.
+    Mantiene el método DELETE para compatibilidad con el frontend, 
+    pero en la base de datos cambia el estado de 'vigente' a 0 (No Vigente).
     Requiere que el usuario logueado sea un Gestor ('G').
     """
+    import sys  # Necesario para el print de error en stderr
+    
     # 1. Verificar autenticación
     if 'user_id' not in session:
         return jsonify({'error': 'No autenticado.'}), 401
@@ -1120,25 +1149,84 @@ def eliminar_usuario_api(usuario_id):
                 if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
                     return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
                 
-                # 3. Restricción de auto-eliminación
+                # 3. Restricción de auto-inactivación
                 if usuario_id == user_id_logueado:
-                    return jsonify({'error': 'No puedes eliminar tu propia cuenta de Gestor a través de esta interfaz.'}), 403
+                    return jsonify({'error': 'No puedes inactivar tu propia cuenta de Gestor a través de esta interfaz.'}), 403
 
-                # 4. Ejecutar la Eliminación
-                sql_delete = "DELETE FROM usuario WHERE usuario_id=%s"
-                filas_afectadas = cursor.execute(sql_delete, (usuario_id,))
+                # 4. Ejecutar la INACTIVACIÓN (Soft Delete)
+                # Cambiamos el estado de 'vigente' a 0 (No Vigente). 
+                # Reemplazamos la consulta DELETE por UPDATE.
+                sql_update_vigencia = "UPDATE usuario SET vigencia = 0 WHERE usuario_id=%s AND vigencia = 1"
+                
+                cursor.execute(sql_update_vigencia, (usuario_id,))
+                filas_afectadas = cursor.rowcount
                 
                 conexion.commit()
 
                 if filas_afectadas == 0:
-                    return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado.'}), 404
+                    # Retorna 404 si el usuario no existe O si ya estaba inactivo (vigente=0)
+                    return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado o ya estaba inactivo.'}), 404
                 
-                return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} eliminado exitosamente.'}), 200
+                return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} inactivado exitosamente (vigente = 0).'}), 200
 
     except Exception as e:
-        print(f"Error al eliminar usuario: {e}", file=sys.stderr)
-        return jsonify({'error': 'Error interno del servidor al eliminar datos.'}), 500
+        print(f"Error al inactivar usuario: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error interno del servidor al inactivar datos.'}), 500
 
+# --- NUEVA RUTA API PARA ACTIVAR USUARIO (DAR DE ALTA) ---
+@app.route('/api/usuarios/<int:usuario_id>/activar', methods=['PUT'])
+def activar_usuario_api(usuario_id):
+    """
+    Ruta API para activar (dar de alta) un usuario por su ID.
+    En la base de datos cambia el estado de 'vigente' a 1 (Vigente).
+    Requiere que el usuario logueado sea un Gestor ('G').
+    """
+    import sys
+    
+    # 1. Verificar autenticación
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autenticado.'}), 401
+    
+    user_id_logueado = session['user_id']
+    
+    # 2. Verificar Permiso de Gestor ('G')
+    conexion = obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # Consulta para verificar el rol del usuario logueado
+                sql_check_role = "SELECT tipo_usuario FROM usuario WHERE usuario_id=%s"
+                cursor.execute(sql_check_role, (user_id_logueado,))
+                user_role_data = cursor.fetchone()
+
+                if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
+                    return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
+                
+                # 3. Restricción de auto-activación
+                if usuario_id == user_id_logueado:
+                    return jsonify({'error': 'No puedes activar/desactivar tu propia cuenta de Gestor a través de esta interfaz.'}), 403
+
+                # 4. Ejecutar la ACTIVACIÓN (Dar de alta)
+                # Cambiamos el estado de 'vigente' a 1 (Vigente). 
+                sql_update_vigencia = "UPDATE usuario SET vigencia = 1 WHERE usuario_id=%s AND vigencia = 0"
+                
+                cursor.execute(sql_update_vigencia, (usuario_id,))
+                filas_afectadas = cursor.rowcount
+                
+                conexion.commit()
+
+                if filas_afectadas == 0:
+                    # Retorna 404 si el usuario no existe O si ya estaba activo (vigente=1)
+                    return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado o ya estaba activo.'}), 404
+                
+                return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} activado exitosamente (vigente = 1).'}), 200
+
+    except Exception as e:
+        print(f"Error al activar usuario: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error interno del servidor al activar datos.'}), 500
 
 # RUTA API PARA CREAR UN NUEVO USUARIO DESDE LA ADMINISTRACIÓN (Gestor)
 # ==============================================================================
@@ -1217,6 +1305,94 @@ def crear_usuario_api():
         # Imprime el error real en tu terminal de Flask para la depuración
         print(f"Error al crear usuario (API): {e}") 
         return jsonify({"success": False, "error": "Ocurrió un error en el sistema."}), 500
+
+# --- RUTA API PARA MODIFICAR USUARIO (EDICIÓN) ---
+# ==============================================================================
+@app.route('/api/usuarios/<int:usuario_id>', methods=['PUT'])
+def modificar_usuario_api(usuario_id):
+    """
+    Ruta API para modificar los datos de un usuario por su ID.
+    Solo permite modificar: nombre, username y vigencia.
+    Requiere que el usuario logueado sea un Gestor ('G').
+    """
+    import sys
+    
+    # 1. Verificar autenticación
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autenticado.'}), 401
+    
+    user_id_logueado = session['user_id']
+    data = request.get_json()
+
+    # 2. Verificar datos mínimos
+    if not data:
+        return jsonify({'error': 'Datos de actualización incompletos.'}), 400
+
+    # Campos requeridos para la actualización
+    nombre = data.get('nombre')
+    username = data.get('username')
+    vigencia = data.get('vigencia') # Recibido como booleano (true/false) o 1/0
+    
+    # Solo requerimos los campos que se van a modificar
+    if nombre is None or username is None or vigencia is None:
+         return jsonify({'error': 'Faltan campos obligatorios para la modificación (nombre, username, vigencia).'}), 400
+
+    # Conversión de vigencia a formato de base de datos (0 o 1)
+    vigencia_db = 1 if vigencia in (True, 1, 'true', '1') else 0
+
+    conexion = obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # 3. Verificar Permiso de Gestor ('G')
+                sql_check_role = "SELECT tipo_usuario FROM usuario WHERE usuario_id=%s"
+                cursor.execute(sql_check_role, (user_id_logueado,))
+                user_role_data = cursor.fetchone()
+
+                if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
+                    return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
+
+                # 4. Restricción de auto-modificación (Opcional, pero buena práctica)
+                # Impedir que un gestor se cambie a sí mismo la vigencia o username
+                if usuario_id == user_id_logueado and vigencia_db == 0:
+                    return jsonify({'error': 'No puedes desactivar tu propia cuenta de Gestor a través de esta interfaz de administración.'}), 403
+                    
+                # 5. Ejecutar la ACTUALIZACIÓN
+                sql_update = """
+                    UPDATE usuario 
+                    SET nombre = %s, username = %s, vigencia = %s
+                    WHERE usuario_id = %s
+                """
+                
+                # Prepara los parámetros para la ejecución
+                params = (nombre, username, vigencia_db, usuario_id)
+                
+                cursor.execute(sql_update, params)
+                filas_afectadas = cursor.rowcount
+                
+                conexion.commit()
+
+                if filas_afectadas == 0:
+                    # Esto podría significar que el ID no existe o no hubo cambios
+                    # Para ser más explícitos, puedes hacer un SELECT previo
+                    return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado o no se realizaron cambios.'}), 404
+                
+                return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} actualizado exitosamente.'}), 200
+
+    except pymysql.err.IntegrityError as e:
+        # 6. Manejar errores de unicidad (ej: username ya existe)
+        error_code = e.args[0]
+        if error_code == 1062: # Código de error para Duplicate entry
+             return jsonify({'error': 'El nombre de usuario o algún otro campo único ya existe.'}), 409
+        print(f"Error de integridad en DB: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error de datos en la base de datos.'}), 400
+
+    except Exception as e:
+        print(f"Error al modificar usuario: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error interno del servidor al actualizar datos.'}), 500
 
 # Ruta para procesar el Login (CON VERIFICACIÓN BCrypt)
 @app.route("/procesarlogin", methods=['POST'])

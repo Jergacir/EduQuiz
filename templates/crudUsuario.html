@@ -81,8 +81,6 @@
                 <div id="administracion" class="tab-content">
                     <h2>Gestión General de Usuarios</h2>
                     <p>Mantenimiento (CRUD) simulado para la tabla USUARIO2.</p>
-                    <button id="btn-nuevo-usuario" class="btn-principal" style="margin-bottom: 20px;">+ Crear Nuevo Usuario</button>
-                    
                     <form id="form-gestion-usuario" class="formulario-gestion" style="display:none;">
                         <h3><span id="form-titulo">Crear</span> Usuario</h3>
                         <input type="hidden" id="gestion-usuario_id">
@@ -105,12 +103,17 @@
                             <input type="text" id="gestion-dni" required maxlength="8" pattern="[0-9]{8}">
                         </div>
                         <div class="campo">
-                            <label for="gestion-tipo_usuario">Tipo de Usuario (A, P, G, E)</label>
+                            <label for="gestion-tipo_usuario">Tipo de Usuario (A, P, G)</label>
                             <input type="text" id="gestion-tipo_usuario" maxlength="1" required>
                         </div>
+                        
+                        <!-- 🔑 NUEVO CAMPO AGREGADO -->
                         <div class="campo">
-                            <label for="gestion-contrasena">Contraseña</label>
-                            <input type="password" id="gestion-contrasena" placeholder="Obligatoria para nuevo usuario">
+                            <label for="gestion-vigencia">Estado de Vigencia</label>
+                            <select id="gestion-vigencia" required>
+                                <option value="true">Vigente</option>
+                                <option value="false">No Vigente</option>
+                            </select>
                         </div>
 
                         <div class="acciones">
@@ -131,6 +134,10 @@
                                     <th>Email</th>
                                     <th>Tipo</th>
                                     <th>Monedas</th>
+                                    <th>DNI</th>
+                                    <!-- 🔑 NUEVA COLUMNA AGREGADA -->
+                                    <th>Vigencia</th>
+                                    <!-- 🔑 FIN NUEVA COLUMNA -->
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
