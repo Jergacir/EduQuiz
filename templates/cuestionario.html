@@ -1,51 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cuestionarios - EduQuiz</title> 
-    
+    <title>Cuestionarios - EduQuiz</title>
+
     <link rel="stylesheet" href="../static/css/home.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 
-    <style>
-        /* ------------------------------------- */
-        /* Estilos generales para esta página */
-        /* ------------------------------------- */
-        .btn-create {
-            background-color: #059669;
-            color: white;
-            padding: 12px 25px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 1.05rem;
-            display: flex;
-            align-items: center;
-            transition: background-color 0.2s;
-        }
-        .btn-create:hover { background-color: #047857; }
-        .btn-create i { font-size: 1.2rem; margin-right: 8px; }
 
-        .header-content { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-
-        .quiz-actions { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 0 15px 15px; }
-        .quiz-card .btn-edit, .quiz-card .btn-visualize { display: block; flex-grow: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold; text-align: center; text-decoration: none; transition: background-color 0.2s; }
-        .quiz-card .btn-edit { background-color: #2563eb; color: white; }
-        .quiz-card .btn-edit:hover { background-color: #1d4ed8; }
-        .quiz-card .btn-visualize { background-color: #374151; color: white; width: 100%; margin: 5px 15px 0; }
-        .quiz-card .btn-visualize:hover { background-color: #1f2937; }
-
-        .action-icon { display: inline-block; color: #9ca3af; font-size: 1.4rem; margin-left: 10px; cursor: pointer; transition: color 0.2s; }
-        .action-icon:hover { color: #1a1a1a; }
-
-        .quiz-card.professor { padding-bottom: 0; }
-    </style>
 </head>
-<body data-usuario-id="{{ logged_in_user.usuario_id }}">
-    
+
+<body data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}">
+
     <aside class="sidebar">
         <div class="logo">
-            <img src="/static/img/logo.png" alt="EduQuiz Logo"> 
+            <img src="/static/img/logo.png" alt="EduQuiz Logo">
             EduQuiz
         </div>
         <nav class="nav-menu">
@@ -78,7 +49,7 @@
                 <input type="text" placeholder="Buscar cuestionarios">
                 <i class="icon-search"></i>
             </div>
-            
+
             <div class="user-profile-widget">
                 <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
                 <a href="" class="profile-link">
@@ -91,41 +62,53 @@
         <main class="content-area">
 
             {% if logged_in_user.tipo_usuario == 'P' %}
-                <div class="header-content">
-                    <h1>Mis Cuestionarios</h1>
-                    <a href="{{ url_for('frm_editarcuestionarios') }}" class="btn-create">
-                        <i class="icon-plus"></i> Crear Cuestionario
-                    </a>
+            <div class="header-content">
+                <h1>Mis Cuestionarios</h1>
+                <a href="{{ url_for('frm_editarcuestionarios') }}" class="btn-create">
+                    <i class="icon-plus"></i> Crear Cuestionario
+                </a>
+            </div>
+
+            <section class="quiz-section">
+                <h2>Privados</h2>
+                <div class="quiz-grid" id="privados-container">
+                    <!-- Se llenará con JS -->
                 </div>
+            </section>
 
-                <section class="quiz-section">
-                    <h2>Privados</h2>
-                    <div class="quiz-grid" id="privados-container">
-                        <!-- Se llenará con JS -->
-                    </div>
-                </section>
+            <section class="quiz-section">
+                <h2>Públicos</h2>
+                <div class="quiz-grid" id="publicos-container">
+                    <!-- Se llenará con JS -->
+                </div>
+            </section>
 
-                <section class="quiz-section">
-                    <h2>Públicos</h2>
-                    <div class="quiz-grid" id="publicos-container">
-                        <!-- Se llenará con JS -->
-                    </div>
-                </section>
-                
             {% else %}
-                <h1>Cuestionarios de la Comunidad</h1>
-                <section class="quiz-section">
-                    <h2>Cuestionarios guardados</h2>
-                    <div class="quiz-grid" id="comunidad-container">
-                        <!-- Se llenará con JS -->
-                    </div>
-                </section>
+            <h1>Cuestionarios de la Comunidad</h1>
+            <section class="quiz-section">
+                <h2>Cuestionarios guardados</h2>
+                <div class="quiz-grid" id="comunidad-container">
+                    <!-- Se llenará con JS -->
+                </div>
+            </section>
             {% endif %}
 
         </main>
     </div>
 
+    <!-- MODAL DE CONFIRMACIÓN -->
+<div id="confirmDeleteModal" class="modal hidden">
+    <div class="modal-content">
+        <h3>¿Eliminar cuestionario?</h3>
+        <p>Esta acción lo eliminará lógicamente del sistema. ¿Deseas continuar?</p>
+        <div class="modal-buttons">
+            <button id="cancelDelete" class="btn-cancel">Cancelar</button>
+            <button id="confirmDelete" class="btn-confirm">Eliminar</button>
+        </div>
+    </div>
+</div>
     <script src="../static/js/menucuestionario.js"> </script>
 
 </body>
+
 </html>

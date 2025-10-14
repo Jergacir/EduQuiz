@@ -8,6 +8,7 @@
 
     <link rel="stylesheet" href="../static/css/home.css">
     <link rel="stylesheet" href="../static/css/crearQuizz.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 
 </head>
 
@@ -221,6 +222,17 @@
             <div class="modal-buttons">
                 <button id="cancelEditImage" class="btn-cancel">Cancelar</button>
                 <button id="saveEditImage" class="btn-confirm">Guardar Imagen</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de confirmación para guardar cambios -->
+    <div id="confirmUpdateModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>¿Guardar los cambios del cuestionario?</h2>
+            <p>Se actualizarán todas las preguntas y configuraciones.</p>
+            <div class="modal-buttons">
+                <button id="cancelUpdateBtn" class="btn-cancel">Cancelar</button>
+                <button id="confirmUpdateBtn" class="btn-confirm">Guardar</button>
             </div>
         </div>
     </div>

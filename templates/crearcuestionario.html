@@ -8,7 +8,7 @@
 
     <link rel="stylesheet" href="../static/css/home.css">
     <link rel="stylesheet" href="../static/css/crearQuizz.css">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 </head>
 
 <body data-usuario-id="{{ logged_in_user.usuario_id }}">
@@ -218,9 +218,26 @@
                 </div>
             </div>
 
+            <!-- NUEVO: input para descripción -->
+            <label for="descripcionCuestionario">Descripción:</label>
+            <textarea id="descripcionCuestionario" class="input-textarea"
+                placeholder="Agrega una descripción para tu cuestionario..."></textarea>
+
             <div class="modal-buttons">
                 <button id="cancelEditImage" class="btn-cancel">Cancelar</button>
-                <button id="saveEditImage" class="btn-confirm">Guardar Imagen</button>
+                <button id="saveEditImage" class="btn-confirm">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación de Guardado -->
+    <div id="saveModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>¿Guardar cuestionario?</h2>
+            <p>Confirma si deseas guardar los cambios de tu cuestionario.</p>
+            <div class="modal-buttons">
+                <button id="cancelSave" class="btn-cancel">Cancelar</button>
+                <button id="confirmSave" class="btn-confirm">Guardar</button>
             </div>
         </div>
     </div>

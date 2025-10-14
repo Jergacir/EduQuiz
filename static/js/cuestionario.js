@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const timeSelect = document.querySelectorAll(".option-select")[0];
     const pointsSelect = document.querySelectorAll(".option-select")[1];
     const btnAddQuestion = document.querySelector(".btn-add-question");
-
+    const descripcionInputModal = document.getElementById('descripcionCuestionario');
     const answersGrid = document.querySelector(".answers-grid");
     const btnAddAnswer = document.querySelector(".btn-add-answer")
 
@@ -56,8 +56,8 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="question-card-preview ${i === preguntaActual ? "active" : ""}" data-index="${i}">
                 <span class="q-number">${i + 1}. Pregunta ${String(i + 1).padStart(2, "0")}</span>
                 <div class="q-actions">
-                    <i class="icon-copy" title="Duplicar" data-action="duplicar" data-index="${i}">Duplicar</i>
-                    <i class="icon-delete" title="Eliminar" data-action="eliminar" data-index="${i}">Eliminar</i>
+                    <i class="fa-solid fa-copy" title="Duplicar" data-action="duplicar" data-index="${i}"></i>
+                    <i class="fa-solid fa-trash" title="Eliminar" data-action="eliminar" data-index="${i}"></i>
                 </div>
                 <div class="q-image-placeholder"></div>
             </div>
@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (activeCard) activeCard.classList.add("active");
 
         questionTextInput.value = p.texto;
-        renderRespuestas(); // 👈 nuevo método dinámico
+        renderRespuestas();
         timeSelect.value = p.tiempo;
         pointsSelect.value = p.puntos;
         mostrarImagenGuardada(p.imagen);
@@ -141,11 +141,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const p = cuestionario.preguntas[preguntaActual];
         p.texto = questionTextInput.value.trim();
 
-        // 🔹 Recolectar las respuestas actuales del DOM dinámicamente
+        // Recolectar las respuestas actuales del DOM dinámicamente
         const currentInputs = document.querySelectorAll(".answers-grid .answer-box input");
         p.respuestas = Array.from(currentInputs).map(inp => inp.value.trim());
 
-        // 🔹 Guardar las opciones actuales
+        // Guardar las opciones actuales
         p.tiempo = timeSelect.value;
         p.puntos = pointsSelect.value;
     }
@@ -276,8 +276,26 @@ document.addEventListener("DOMContentLoaded", () => {
     btnAddAnswer.addEventListener("click", agregarRespuesta);
 
     // Guardar cuestionario
-    btnGuardar.addEventListener("click", async (e) => {
+    // --- Modal de Confirmación de Guardado ---
+    const saveModal = document.getElementById("saveModal");
+    const cancelSave = document.getElementById("cancelSave");
+    const confirmSave = document.getElementById("confirmSave");
+
+    // Abrir modal al presionar "Guardar"
+    btnGuardar.addEventListener("click", (e) => {
         e.preventDefault();
+        if (btnGuardar.disabled) return;
+        saveModal.classList.remove("hidden");
+    });
+
+    // Cancelar guardado
+    cancelSave.addEventListener("click", () => {
+        saveModal.classList.add("hidden");
+    });
+
+    // Confirmar guardado
+    confirmSave.addEventListener("click", async () => {
+        saveModal.classList.add("hidden");
         guardarPreguntaActual();
 
         if (!cuestionario.titulo.trim()) {
@@ -285,15 +303,14 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // --- Armar estructura final ---
         const cuestionarioData = {
             nombre_cuestionario: cuestionario.titulo,
-            descripcion: "Cuestionario creado desde el editor", // puedes añadir un campo de descripción si lo agregas al front
+            descripcion: cuestionario.descripcion,
             publico: detallesConfig.privacidad === "public" ? 1 : 0,
             modo_juego: detallesConfig.tema === "multiple" ? "M" : "C",
-            tiempo_limite_pregunta: 30, // o podrías hacerlo configurable
+            tiempo_limite_pregunta: 30,
             usuario_id: usuarioId,
-            url_img_cuestionario: cuestionario.imagen || "https://url.com/imagen_por_defecto.jpg", // provisional, luego vendrá de Cloudinary
+            url_img_cuestionario: cuestionario.imagen || null,
             preguntas: cuestionario.preguntas.map((p) => ({
                 texto_pregunta: p.texto,
                 media_url: p.imagen || null,
@@ -319,6 +336,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if (response.ok) {
                 alert(`✅ Cuestionario "${cuestionarioData.nombre_cuestionario}" guardado correctamente.`);
                 console.log("Respuesta del servidor:", data);
+                cambiosPendientes = false;
+                window.location.href = "/cuestionario";
             } else {
                 console.error("Error del servidor:", data);
                 alert("❌ Error al guardar el cuestionario.");
@@ -327,8 +346,6 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Error de conexión:", err);
             alert("⚠️ No se pudo conectar con el servidor.");
         }
-        cambiosPendientes = false;
-        window.location.href = "/cuestionario";
     });
 
     // Cargar primera pregunta
@@ -554,6 +571,17 @@ document.addEventListener("DOMContentLoaded", () => {
     btnEditarCuestionario.addEventListener('click', (e) => {
         e.preventDefault();
         editImageModal.classList.remove('hidden');
+
+        // --- Cargar imagen existente ---
+        if (imagenCuestionario === null && cuestionario.url_img_cuestionario) {
+            previewImageModal.src = cuestionario.url_img_cuestionario;
+            previewContainerModal.classList.remove('hidden');
+            mediaBoxModal.querySelectorAll('i, p, .btn-upload').forEach(el => el.classList.add('hidden'));
+            imagenCuestionario = cuestionario.url_img_cuestionario;
+        }
+
+        // --- Cargar descripción existente ---
+        descripcionInputModal.value = cuestionario.descripcion || "Cuestionario creado desde el editor";
     });
 
     // Cerrar modal sin guardar
@@ -616,6 +644,16 @@ document.addEventListener("DOMContentLoaded", () => {
             cuestionario.imagen = imagenCuestionario;
             console.log("Imagen del cuestionario guardada:", imagenCuestionario);
         }
+
+        // Guardar descripción
+        const descripcion = descripcionInputModal.value.trim();
+        if (descripcion) {
+            cuestionario.descripcion = descripcion;
+            console.log("Descripción del cuestionario guardada:", descripcion);
+        } else {
+            cuestionario.descripcion = "Cuestionario creado desde el editor"; // valor por defecto
+        }
+
         editImageModal.classList.add('hidden');
     });
 });

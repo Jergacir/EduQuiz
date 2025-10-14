@@ -599,3 +599,53 @@
     transition: background 0.3s ease;
     overflow: hidden;
 }
+
+/* Estilo general para labels */
+#editImageModal label {
+    display: block;
+    font-weight: 600;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 14px;
+}
+
+/* Textarea para descripción */
+#descripcionCuestionario {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    resize: vertical; /* permite cambiar tamaño verticalmente */
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Focus: resaltar cuando se selecciona */
+#descripcionCuestionario:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 5px rgba(74, 144, 226, 0.5);
+    outline: none;
+}
+
+/* Placeholder más sutil */
+#descripcionCuestionario::placeholder {
+    color: #aaa;
+    font-style: italic;
+}
+
+/* Ajustar botones para que no queden pegados al textarea */
+#editImageModal .modal-buttons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Si quieres un efecto de hover en textarea */
+#descripcionCuestionario:hover {
+    border-color: #888;
+}

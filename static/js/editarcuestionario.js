@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const btnAddAnswer = document.querySelector(".btn-add-answer");
     const timeSelect = document.querySelectorAll(".option-select")[0];
     const pointsSelect = document.querySelectorAll(".option-select")[1];
-
+    const descripcionInputModal = document.getElementById('descripcionCuestionario');
     const mediaBox = document.querySelector(".media-upload-box");
     const mediaInput = document.getElementById("mediaInput");
     const previewContainer = document.querySelector(".media-preview");
@@ -41,8 +41,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             <div class="question-card-preview ${i === preguntaActual ? "active" : ""}" data-index="${i}">
                 <span class="q-number">${i + 1}. Pregunta ${String(i + 1).padStart(2, "0")}</span>
                 <div class="q-actions">
-                    <i class="icon-copy" title="Duplicar" data-action="duplicar" data-index="${i}">Duplicar</i>
-                    <i class="icon-delete" title="Eliminar" data-action="eliminar" data-index="${i}">Eliminar</i>
+                    <i class="fa-solid fa-copy" title="Duplicar" data-action="duplicar" data-index="${i}"></i>
+                    <i class="fa-solid fa-trash" title="Eliminar" data-action="eliminar" data-index="${i}"></i>
                 </div>
                 <div class="q-image-placeholder"></div>
             </div>
@@ -283,9 +283,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
+    // --- Modal de confirmación ---
+    const confirmUpdateModal = document.getElementById("confirmUpdateModal");
+    const cancelUpdateBtn = document.getElementById("cancelUpdateBtn");
+    const confirmUpdateBtn = document.getElementById("confirmUpdateBtn");
+
     // --- Botón Guardar ---
-    btnGuardar.addEventListener("click", async (e) => {
+    btnGuardar.addEventListener("click", (e) => {
         e.preventDefault();
+
+        // Mostrar modal de confirmación
+        confirmUpdateModal.classList.remove("hidden");
+    });
+
+    // --- Cancelar actualización ---
+    cancelUpdateBtn.addEventListener("click", () => {
+        confirmUpdateModal.classList.add("hidden");
+    });
+
+    // --- Confirmar actualización ---
+    confirmUpdateBtn.addEventListener("click", async () => {
+        confirmUpdateModal.classList.add("hidden");
         guardarPreguntaActual();
 
         if (!cuestionario.titulo.trim()) {
@@ -296,7 +314,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // --- Armar estructura final ---
         const cuestionarioData = {
             nombre_cuestionario: cuestionario.titulo,
-            descripcion: "Cuestionario editado desde el editor",
+            descripcion: cuestionario.descripcion,
             publico: detallesConfig.privacidad === "public" ? 1 : 0,
             modo_juego: detallesConfig.tema === "multiple" ? "M" : "C",
             tiempo_limite_pregunta: 30,
@@ -472,15 +490,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         e.preventDefault();
         editImageModal.classList.remove('hidden');
 
-        // Solo establecer la imagen inicial si aún no hay cambios temporales
+        // --- Cargar imagen existente ---
         if (imagenCuestionario === null && cuestionario.url_img_cuestionario) {
             previewImageModal.src = cuestionario.url_img_cuestionario;
             previewContainerModal.classList.remove('hidden');
             mediaBoxModal.querySelectorAll('i, p, .btn-upload').forEach(el => el.classList.add('hidden'));
             imagenCuestionario = cuestionario.url_img_cuestionario;
         }
-    });
 
+        // --- Cargar descripción existente ---
+        descripcionInputModal.value = cuestionario.descripcion || "Cuestionario creado desde el editor";
+    });
     // Cerrar modal sin guardar
     cancelEditImage.addEventListener('click', () => {
         editImageModal.classList.add('hidden');
@@ -541,6 +561,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             cuestionario.imagen = imagenCuestionario;
             console.log("Imagen del cuestionario guardada:", imagenCuestionario);
         }
+
+        // Guardar descripción
+        const descripcion = descripcionInputModal.value.trim();
+        if (descripcion) {
+            cuestionario.descripcion = descripcion;
+            console.log("Descripción del cuestionario guardada:", descripcion);
+        } else {
+            cuestionario.descripcion = "Cuestionario creado desde el editor"; // valor por defecto
+        }
+
         editImageModal.classList.add('hidden');
     });
 });

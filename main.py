@@ -1501,135 +1501,37 @@ def listar_cuestionarios(usuario_id):
             SELECT c.*, 
                    (SELECT COUNT(*) FROM pregunta p WHERE p.cuestionario_id = c.cuestionario_id) AS num_preguntas
             FROM cuestionario c
-            WHERE c.usuario_id = %s
+            WHERE c.usuario_id = %s and estado=1
         """, (usuario_id,))
         data = cursor.fetchall()
     return jsonify(data)
 
-
-@app.route('/api/cuestionarios', methods=['POST'])
-def crear_cuestionario():
+@app.route('/api/cuestionarios_publicos', methods=['GET'])
+def listar_cuestionarios_publicos():
     """
-    Crea un nuevo cuestionario.
+    Devuelve todos los cuestionarios públicos (visibles para alumnos).
     """
-    data = request.get_json()
     conexion = obtenerConexion()
     with conexion.cursor() as cursor:
-        sql = """
-        INSERT INTO cuestionario (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario)
-        VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """
-        cursor.execute(sql, (
-            data['nombre_cuestionario'],
-            data.get('descripcion', ''),
-            data.get('publico', 0),
-            data['modo_juego'],
-            data['tiempo_limite_pregunta'],
-            data['usuario_id'],
-            data.get('url_img_cuestionario', None)
-        ))
-        conexion.commit()
-        nuevo_id = cursor.lastrowid
-    return jsonify({'status': 'ok', 'cuestionario_id': nuevo_id})
-
+        cursor.execute("""
+            SELECT c.*, 
+                   (SELECT COUNT(*) FROM pregunta p WHERE p.cuestionario_id = c.cuestionario_id) AS num_preguntas
+            FROM cuestionario c
+            WHERE c.publico = 1 AND c.estado = 1
+        """)
+        data = cursor.fetchall()
+    return jsonify(data)
 
 @app.route('/api/cuestionarios/<int:cuestionario_id>', methods=['PUT'])
-def actualizar_cuestionario(cuestionario_id):
-    """
-    Actualiza un cuestionario existente.
-    """
-    data = request.get_json()
-    conexion = obtenerConexion()
-    with conexion.cursor() as cursor:
-        sql = """
-        UPDATE cuestionario 
-        SET nombre_cuestionario=%s, descripcion=%s, publico=%s, modo_juego=%s, tiempo_limite_pregunta=%s, url_img_cuestionario=%s
-        WHERE cuestionario_id=%s
-        """
-        cursor.execute(sql, (
-            data['nombre_cuestionario'],
-            data.get('descripcion', ''),
-            data.get('publico', 0),
-            data['modo_juego'],
-            data['tiempo_limite_pregunta'],
-            data.get('url_img_cuestionario', None),
-            cuestionario_id
-        ))
-        conexion.commit()
-    return jsonify({'status': 'ok', 'mensaje': 'Cuestionario actualizado'})
-
-
-@app.route('/api/cuestionarios/<int:cuestionario_id>', methods=['DELETE'])
 def eliminar_cuestionario(cuestionario_id):
     """
     Elimina un cuestionario y en cascada sus preguntas y respuestas.
     """
     conexion = obtenerConexion()
     with conexion.cursor() as cursor:
-        cursor.execute("DELETE FROM cuestionario WHERE cuestionario_id=%s", (cuestionario_id,))
+        cursor.execute("UPDATE cuestionario set estado=0 WHERE cuestionario_id=%s", (cuestionario_id,))
         conexion.commit()
-    return jsonify({'status': 'ok', 'mensaje': 'Cuestionario eliminado'})
-
-# =========================================================
-# --- CRUD DE PREGUNTAS ---
-# =========================================================
-
-@app.route('/api/preguntas/<int:cuestionario_id>', methods=['GET'])
-def listar_preguntas(cuestionario_id):
-    conexion = obtenerConexion()
-    with conexion.cursor() as cursor:
-        cursor.execute("SELECT * FROM pregunta WHERE cuestionario_id=%s", (cuestionario_id,))
-        data = cursor.fetchall()
-    return jsonify(data)
-
-
-@app.route('/api/preguntas', methods=['POST'])
-def crear_pregunta():
-    data = request.get_json()
-    conexion = obtenerConexion()
-    with conexion.cursor() as cursor:
-        sql = """
-        INSERT INTO pregunta (texto_pregunta, media_url, tiempo_limite, cuestionario_id)
-        VALUES (%s, %s, %s, %s)
-        """
-        cursor.execute(sql, (
-            data['texto_pregunta'],
-            data.get('media_url', None),
-            data.get('tiempo_limite', None),
-            data['cuestionario_id']
-        ))
-        conexion.commit()
-        nueva_id = cursor.lastrowid
-    return jsonify({'status': 'ok', 'pregunta_id': nueva_id})
-
-
-@app.route('/api/preguntas/<int:pregunta_id>', methods=['PUT'])
-def actualizar_pregunta(pregunta_id):
-    data = request.get_json()
-    conexion = obtenerConexion()
-    with conexion.cursor() as cursor:
-        sql = """
-        UPDATE pregunta 
-        SET texto_pregunta=%s, media_url=%s, tiempo_limite=%s
-        WHERE pregunta_id=%s
-        """
-        cursor.execute(sql, (
-            data['texto_pregunta'],
-            data.get('media_url', None),
-            data.get('tiempo_limite', None),
-            pregunta_id
-        ))
-        conexion.commit()
-    return jsonify({'status': 'ok', 'mensaje': 'Pregunta actualizada'})
-
-
-@app.route('/api/preguntas/<int:pregunta_id>', methods=['DELETE'])
-def eliminar_pregunta(pregunta_id):
-    conexion = obtenerConexion()
-    with conexion.cursor() as cursor:
-        cursor.execute("DELETE FROM pregunta WHERE pregunta_id=%s", (pregunta_id,))
-        conexion.commit()
-    return jsonify({'status': 'ok', 'mensaje': 'Pregunta eliminada'})
+    return jsonify({'status': 'ok', 'mensaje': 'Cuestionario eliminado lógicamente'})
 
 
 #---Esto lo usaremos en el crear cuestionario---
@@ -1658,7 +1560,7 @@ def crear_cuestionario_completo():
                     upload_result = cloudinary.uploader.upload(url_img_cuestionario)
                     url_img_cuestionario_cloud = upload_result["secure_url"]
                 else:
-                    url_img_cuestionario_cloud = None
+                    url_img_cuestionario_cloud = "https://img.freepik.com/vector-premium/imagen-no-es-conjunto-iconos-disponibles-simbolo-vectorial-stock-fotos-faltante-defecto-estilo-relleno-delineado-negro-signo-no-encontro-imagen_268104-6708.jpg"
 
                 # Crear el cuestionario
                 sql_cuestionario = """
@@ -1811,7 +1713,7 @@ def actualizar_cuestionario_completo(cuestionario_id):
                     upload_result = cloudinary.uploader.upload(url_img_cuestionario)
                     url_img_cuestionario_cloud = upload_result["secure_url"]
                 else:
-                    url_img_cuestionario_cloud = None
+                    url_img_cuestionario_cloud = "https://img.freepik.com/vector-premium/imagen-no-es-conjunto-iconos-disponibles-simbolo-vectorial-stock-fotos-faltante-defecto-estilo-relleno-delineado-negro-signo-no-encontro-imagen_268104-6708.jpg"
 
                 # --- Actualizar datos generales del cuestionario ---
                 sql_update_cuestionario = """
