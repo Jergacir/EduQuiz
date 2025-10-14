@@ -175,3 +175,17 @@ CREATE TABLE `participante_partida` (
   FOREIGN KEY (`usuario_id`) REFERENCES `usuario`(`usuario_id`),
   FOREIGN KEY (`partida_id`) REFERENCES `partida`(`partida_id`)
 );
+
+	INSERT INTO `skins` (`nombre`, `url_imagen`, `precio`, `vigencia` ) VALUES
+	('Skin Ingeniero Civil', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214821/Ingeniero-Civil128x128.png_pnf3ts.png', 250, 1), -- Ejemplo adicional
+	('Skin Administrador', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214817/Administrador-1.png_yx2uzf.png', 250, 1), -- Ejemplo adicional
+	('Skin Abogado', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214817/Abogado-1.png_ezmvx6.png', 250,1), -- Ejemplo adicional
+	('Skin Hacker', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214817/Hacker-1.png_zlyogm.png', 300,1), -- Ejemplo adicional
+	('Skin Doctor', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214816/medico-1.png_tqmr1v.png', 350,1); -- Ejemplo adicional
+	-- Insertando datos en la tabla 'accesorios'
+	INSERT INTO `accesorios` (`nombre`, `url_imagen`, `precio`, `vigencia`) VALUES
+	('Peluca Rubia', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214821/pelucaRubia_ftqdqz.png', 50,1),
+	('Simbionte', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214822/poloVenom_l06da3.png', 150,1),
+	('Super Polo', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214821/PoloSuperman_xgwvpe.png', 180,1), -- Ejemplo adicional
+	('Lentes Cool', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214824/lentesSol_bz4bbt.png', 80,1), -- Ejemplo adicional
+	('Sombrero Luffy', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214817/sombreroOnepiece_h2zf0c.png', 120,1); -- Ejemplo adicional
