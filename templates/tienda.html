@@ -34,7 +34,7 @@
                 <div class="perfil-info">
                     <span id="cant_monedas">10000</span>
                     <i class="icono">🪙</i>
-                    <img src="avatar.png" alt="Avatar" class="avatar"
+                    <img src="{{ url_for('static', filename='img/default.png') }}" alt="Avatar" class="avatar"
                         style="width: 30px; height: 30px; border-radius: 50%;">
                     <span>Mi Perfil</span>
                 </div>
@@ -42,10 +42,12 @@
 
             <div class="tienda-contenido">
 
+                {% if logged_in_user and logged_in_user.get('tipo_usuario') == 'G' %}
                 <div class="crud-botones">
-                    <button id="btn-crud-accesorios">CRUD de Accesorios</button>
-                    <button id="btn-crud-skins">CRUD de Skins</button>
+                    <button id="btn-crud-accesorios" type="button">CRUD de Accesorios</button>
+                    <button id="btn-crud-skins" type="button">CRUD de Skins</button>
                 </div>
+                {% endif %}
                 <h2>Accesorios</h2>
                 <div class="items-grid" id="accesorios-container">
                     {% for accesorio in accesorios %}
@@ -89,7 +91,7 @@
             <span class="cerrar-modal">&times;</span>
             <div class="crud-vista-lista" id="acc-lista-vista">
                 <h3>Gestión de Accesorios (CRUD)</h3>
-                <button id="btn-acc-abrir-crear" class="btn-agregar">➕ Agregar Nuevo Accesorio</button>
+                <button id="btn-acc-abrir-crear" class="btn-agregar" type="button">➕ Agregar Nuevo Accesorio</button>
 
                 <div class="tabla-contenedor">
                     <table id="tabla-accesorios">
@@ -108,7 +110,7 @@
             </div>
 
             <div class="crud-form-vista oculto" id="acc-form-vista">
-                <button id="btn-acc-volver-lista" class="btn-volver">← Volver a la Lista</button>
+                <button id="btn-acc-volver-lista" class="btn-volver" type="button">← Volver a la Lista</button>
                 <h3 id="acc-form-titulo">Agregar Nuevo Accesorio</h3>
                 <form id="form-accesorio">
                     <input type="hidden" id="acc-id" name="accesorio_id" value="">
@@ -133,7 +135,7 @@
             <span class="cerrar-modal">&times;</span>
             <div class="crud-vista-lista" id="skin-lista-vista">
                 <h3>Gestión de Skins (CRUD)</h3>
-                <button id="btn-skin-abrir-crear" class="btn-agregar">➕ Agregar Nueva Skin</button>
+                <button id="btn-skin-abrir-crear" class="btn-agregar" type="button">➕ Agregar Nueva Skin</button>
 
                 <div class="tabla-contenedor">
                     <table id="tabla-skins">
@@ -153,7 +155,7 @@
             </div>
 
             <div class="crud-form-vista oculto" id="skin-form-vista">
-                <button id="btn-skin-volver-lista" class="btn-volver">← Volver a la Lista</button>
+                <button id="btn-skin-volver-lista" class="btn-volver" type="button">← Volver a la Lista</button>
                 <h3 id="skin-form-titulo">Agregar Nueva Skin</h3>
                 <form id="form-skin">
                     <input type="hidden" id="skin-id" name="skin_id" value="">
@@ -177,9 +179,9 @@
     <div id="modal-confirm" class="modal oculto">
         <div class="modal-contenido">
             <p id="modal-confirm-text">¿Estás seguro?</p>
-            <div class="modal-buttons">
-                <button id="modal-confirm-cancel" class="btn-volver">Cancelar</button>
-                <button id="modal-confirm-ok" class="btn-agregar">Aceptar</button>
+                <div class="modal-buttons">
+                <button id="modal-confirm-cancel" class="btn-volver" type="button">Cancelar</button>
+                <button id="modal-confirm-ok" class="btn-agregar" type="button">Aceptar</button>
             </div>
         </div>
     </div>

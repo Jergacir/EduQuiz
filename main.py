@@ -391,7 +391,7 @@ def obtener_items_crud(tabla, id_columna):
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                sql = f"SELECT {id_columna} AS id, nombre, precio FROM {tabla}  WHERE vigencia = 1 ORDER BY {id_columna} ASC"
+                sql = f"SELECT {id_columna} AS id, nombre, url_imagen, precio FROM {tabla} WHERE vigencia = 1 ORDER BY {id_columna} ASC"
                 cursor.execute(sql)
                 items = cursor.fetchall() 
                 return items
@@ -645,7 +645,7 @@ def crear_accesorio_api():
         return jsonify({
             'success': True, 
             'message': 'Accesorio creado exitosamente.', 
-            'accesorio_id': resultado_o_error
+            'id': resultado_o_error
         }), 201
     else:
         return jsonify({'success': False, 'message': resultado_o_error}), 500
@@ -682,7 +682,7 @@ def editar_accesorio_api(accesorio_id):
         return jsonify({
             'success': True, 
             'message': mensaje, 
-            'accesorio_id': accesorio_id
+            'id': accesorio_id
         }), 200
     else:
         # 404 si no lo encuentra o 500 si es otro error de BD
@@ -702,7 +702,7 @@ def eliminar_accesorio_api(accesorio_id):
         return jsonify({
             'success': True,
             'message': mensaje,
-            'skin_id': accesorio_id
+            'id': accesorio_id
         }), 200
     else:
         status_code = 404 if 'No se encontró el ítem' in mensaje else 500
@@ -758,8 +758,8 @@ def crear_skin_api():
     if exito:
         return jsonify({
             'success': True, 
-            'message': 'Accesorio creado exitosamente.', 
-            'skin_id': resultado_o_error
+            'message': 'Skin creado exitosamente.', 
+            'id': resultado_o_error
         }), 201
     else:
         return jsonify({'success': False, 'message': resultado_o_error}), 500
@@ -796,7 +796,7 @@ def editar_skin_api(skin_id):
         return jsonify({
             'success': True, 
             'message': mensaje, 
-            'skin_id': skin_id
+            'id': skin_id
         }), 200
     else:
         # 404 si no lo encuentra o 500 si es otro error de BD
@@ -816,7 +816,7 @@ def eliminar_skin_api(skin_id):
         return jsonify({
             'success': True,
             'message': mensaje,
-            'skin_id': skin_id
+            'id': skin_id
         }), 200
     else:
         status_code = 404 if 'No se encontró el ítem' in mensaje else 500
