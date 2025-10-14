@@ -164,7 +164,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (formTitulo) formTitulo.textContent = `Agregar Nuevo ${tipoSingular.charAt(0).toUpperCase() + tipoSingular.slice(1)}`;
                 if (formSubmitBtn) formSubmitBtn.textContent = `Crear ${tipoSingular.charAt(0).toUpperCase() + tipoSingular.slice(1)}`;
                 if (formId) formId.value = '';
+                // Limpiar explícitamente los campos por si form.reset() no llega a limpiar todo
+                const nombreInput = document.getElementById(`${prefijo}-nombre`);
+                const urlInput = document.getElementById(`${prefijo}-url`);
+                const precioInput = document.getElementById(`${prefijo}-precio`);
                 if (form) form.reset();
+                if (nombreInput) nombreInput.value = '';
+                if (urlInput) urlInput.value = '';
+                if (precioInput) precioInput.value = '';
             }
         }
     }
