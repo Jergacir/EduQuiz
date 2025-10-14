@@ -68,7 +68,10 @@ document.addEventListener('DOMContentLoaded', function () {
     function cerrarModal(modal, tipo) {
         modal.style.display = 'none';
         // Asegurarse de que al cerrar siempre vuelva a la vista de lista
-        if (tipo) mostrarVista(tipo, 'lista');
+        if (tipo) {
+            mostrarVista(tipo, 'lista');
+            actualizarCards(tipo); // 🔥 recargar los cards de la tienda
+        }
     }
 
     btnAccesorios.addEventListener('click', () => abrirModal(modalAccesorio, 'accesorios'));
@@ -192,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         console.error('Error al obtener accesorio:', error);
                         alert('Hubo un error de conexión al cargar los datos del accesorio.');
                     }
-                }else{
+                } else {
                     try {
                         //Petición GET al backend para obtener el accesorio completo (incluyendo url_imagen)
                         const response = await fetch(`/api/tienda/skin/${id}`);
@@ -220,130 +223,186 @@ document.addEventListener('DOMContentLoaded', function () {
                 const tipo = this.getAttribute('data-tipo');
                 const nombre = this.closest('tr').cells[1].textContent;
 
-                if (confirm(`⚠️ ¿Estás seguro de que quieres eliminar el ${tipo.slice(0, -1)} '${nombre}' (ID ${id})? Esta acción no se puede deshacer.`)) {
-                    if (tipo === 'accesorios') {
-                        try {
-                            // Lógica de ELIMINAR (DELETE) para accesorios
-                            const response = await fetch(`/api/tienda/accesorios/eliminar/${id}`, {
-                                method: 'POST'
-                            });
-
-                            const data = await response.json();
-
-                            if (data.success) {
-                                alert(`✅ ${data.message}`);
-                                cargarDatosCRUD(tipo); // Recargar la lista
-                            } else {
-                                alert(`❌ Error al eliminar: ${data.message}`);
+                mostrarConfirmacion(
+                    `⚠️ ¿Estás seguro de que quieres eliminar el ${tipo.slice(0, -1)} '${nombre}' (ID ${id})? Esta acción no se puede deshacer.`,
+                    async () => {
+                        if (tipo === 'accesorios') {
+                            try {
+                                const response = await fetch(`/api/tienda/accesorios/eliminar/${id}`, { method: 'POST' });
+                                const data = await response.json();
+                                if (data.success) {
+                                    alert(`✅ ${data.message}`);
+                                    cargarDatosCRUD(tipo);
+                                     cerrarModal(modalAccesorio, 'accesorios');
+                                } else alert(`❌ Error al eliminar: ${data.message}`);
+                            } catch (error) {
+                                console.error(error);
+                                alert('Error al eliminar accesorio.');
                             }
-                        } catch (error) {
-                            console.error('Error de red/servidor al eliminar:', error);
-                            alert('Hubo un error de conexión al intentar eliminar el accesorio.');
-                        }
-                    } else {
-                        try {
-                            // Lógica de ELIMINAR (DELETE) para skins
-                            const response = await fetch(`/api/tienda/skin/eliminar/${id}`, {
-                                method: 'DELETE'
-                            });
-
-                            const data = await response.json();
-
-                            if (data.success) {
-                                alert(`✅ ${data.message}`);
-                                cargarDatosCRUD(tipo); // Recargar la lista
-                            } else {
-                                alert(`❌ Error al eliminar: ${data.message}`);
+                        } else {
+                            try {
+                                const response = await fetch(`/api/tienda/skin/eliminar/${id}`, { method: 'POST' });
+                                const data = await response.json();
+                                if (data.success) {
+                                    alert(`✅ ${data.message}`);
+                                    cargarDatosCRUD(tipo);
+                                     cerrarModal(modalAccesorio, 'skins');
+                                } else alert(`❌ Error al eliminar: ${data.message}`);
+                            } catch (error) {
+                                console.error(error);
+                                alert('Error al eliminar skin.');
                             }
-                        } catch (error) {
-                            console.error('Error de red/servidor al eliminar:', error);
-                            alert('Hubo un error de conexión al intentar eliminar el skin.');
                         }
                     }
-                }
+                );
             });
         });
     }
 
-    // --- Lógica de Formulario (Simulación de Envío) ---
-    // Mantener la lógica de simulación de envío, pero ahora usa la función de recarga
-    document.getElementById('form-accesorio').addEventListener('submit', async function (event) {
+    /// Accesorio
+    document.getElementById('form-accesorio').addEventListener('submit', function (event) {
         event.preventDefault();
-
         const form = event.target;
         const id = document.getElementById('acc-id').value;
         const formData = new FormData(form);
+        const accion = id ? 'Actualizar' : 'Crear';
+        const url = id ? `/api/tienda/accesorios/editar/${id}` : '/api/tienda/accesorios/crear';
 
-        let url = '/api/tienda/accesorios/crear';
-        let method = 'POST';
-        let accion = 'Crear';
-
-        // 💡 Lógica de Actualizar (Editar)
-        if (id) {
-            url = `/api/tienda/accesorios/editar/${id}`;
-            method = 'POST';
-            accion = 'Actualizar';
-        }
-
-        try {
-            const response = await fetch(url, {
-                method: method,
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                alert(`✅ Accesorio ${accion} con éxito. ID: ${data.accesorio_id || id}`);
-                // Vuelve y recarga la lista de accesorios
-                mostrarVista('accesorios', 'lista');
-            } else {
-                alert(`❌ Error al ${accion.toLowerCase()} accesorio: ${data.message}`);
+        mostrarConfirmacion(
+            `⚠️ ¿Deseas ${accion.toLowerCase()} este accesorio?`,
+            async () => {
+                try {
+                    const response = await fetch(url, { method: 'POST', body: formData });
+                    const data = await response.json();
+                    if (data.success) {
+                        alert(`✅ Accesorio ${accion} con éxito. ID: ${data.accesorio_id || id}`);
+                        mostrarVista('accesorios', 'lista');
+                        cargarDatosCRUD('accesorios');
+                         cerrarModal(modalAccesorio, 'accesorios');
+                    } else {
+                        alert(`❌ Error al ${accion.toLowerCase()}: ${data.message}`);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert(`Error al ${accion.toLowerCase()}.`);
+                }
             }
-
-        } catch (error) {
-            console.error('Error de red/servidor:', error);
-            alert(`Hubo un error de conexión al intentar ${accion.toLowerCase()} el accesorio.`);
-        }
+        );
     });
 
-    document.getElementById('form-skin').addEventListener('submit', async function (event) {
+    // Skin
+    document.getElementById('form-skin').addEventListener('submit', function (event) {
         event.preventDefault();
-
         const form = event.target;
         const id = document.getElementById('skin-id').value;
         const formData = new FormData(form);
+        const accion = id ? 'Actualizar' : 'Crear';
+        const url = id ? `/api/tienda/skin/editar/${id}` : '/api/tienda/skin/crear';
 
-        let url = '/api/tienda/skin/crear';
-        let method = 'POST';
-        let accion = 'Crear';
+        mostrarConfirmacion(
+            `⚠️ ¿Deseas ${accion.toLowerCase()} este skin?`,
+            async () => {
+                try {
+                    const response = await fetch(url, { method: 'POST', body: formData });
+                    const data = await response.json();
+                    if (data.success) {
+                        alert(`✅ Skin ${accion} con éxito. ID: ${data.skin_id || id}`);
+                        mostrarVista('skins', 'lista');
+                        cargarDatosCRUD('skins');
+                        cerrarModal(modalAccesorio, 'skins');
 
-        // 💡 Lógica de Actualizar (Editar)
-        if (id) {
-            url = `/api/tienda/skin/editar/${id}`;
-            method = 'POST';
-            accion = 'Actualizar';
-        }
+                    } else {
+                        alert(`❌ Error al ${accion.toLowerCase()}: ${data.message}`);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert(`Error al ${accion.toLowerCase()}.`);
+                }
+            }
+        );
+    });
+
+    // Referencias
+    const modalConfirm = document.getElementById('modal-confirm');
+    const modalConfirmText = document.getElementById('modal-confirm-text');
+    const btnConfirmOk = document.getElementById('modal-confirm-ok');
+    const btnConfirmCancel = document.getElementById('modal-confirm-cancel');
+
+    function mostrarConfirmacion(mensaje, callbackAceptar) {
+        modalConfirmText.textContent = mensaje;
+        modalConfirm.classList.remove('oculto');
+
+        // Limpiar listeners anteriores
+        btnConfirmOk.onclick = null;
+        btnConfirmCancel.onclick = null;
+
+        // Cuando se acepta
+        btnConfirmOk.onclick = () => {
+            callbackAceptar();
+            modalConfirm.classList.add('oculto');
+        };
+
+        // Cuando se cancela
+        btnConfirmCancel.onclick = () => {
+            modalConfirm.classList.add('oculto');
+        };
+    }
+
+
+    async function actualizarCards(tipo) {
+        const contenedor = tipo === 'skins'
+            ? document.getElementById('skins-container')
+            : document.getElementById('accesorios-container');
 
         try {
-            const response = await fetch(url, {
-                method: method,
-                body: formData
-            });
-
+            // Llamada limpia, sin caché
+            const response = await fetch(`/api/tienda/${tipo}?_=${Date.now()}`, { cache: 'no-store' });
+            if (!response.ok) throw new Error('Error al obtener datos');
             const data = await response.json();
 
-            if (data.success) {
-                alert(`✅ Skin ${accion} con éxito. ID: ${data.skin_id || id}`);
-                // Vuelve y recarga la lista de skins
-                mostrarVista('skins', 'lista');
-            } else {
-                alert(`❌ Error al ${accion.toLowerCase()} skin: ${data.message}`);
+            // 🔥 Limpiar todo antes de volver a pintar
+            contenedor.innerHTML = '';
+
+            if (data.length === 0) {
+                contenedor.innerHTML = `<p class="text-gray-500 text-center">No hay ${tipo} disponibles.</p>`;
+                return;
             }
 
-        } catch (error) {
-            console.error('Error de red/servidor:', error);
-            alert(`Hubo un error de conexión al intentar ${accion.toLowerCase()} el accesorio.`);
+            // 🔁 Volver a crear todos los cards con los nuevos datos
+            data.forEach(item => {
+                const card = crearCard(item, tipo);
+                contenedor.appendChild(card);
+            });
+
+            console.log(`Datos recibidos de ${tipo}:`, data);
+
+        } catch (err) {
+            console.error(`Error al actualizar ${tipo}:`, err);
         }
-    });
+    }
+
+    function crearCard(item, tipo) {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+
+        // Colores diferentes para skins y accesorios (como en tu HTML original)
+        const fondo = tipo === 'skins' ? '#cce5ff' : '#d1e7dd';
+
+        const imagen = item.url_imagen || item.imagen_url || '../static/img/default.png';
+        const nombre = item.nombre || 'Sin nombre';
+        const precio = item.precio || 0;
+
+        card.innerHTML = `
+        <div class="item-imagen" style="background-color: ${fondo};">
+            <img src="${imagen}" alt="${nombre}">
+        </div>
+        <p class="item-nombre">${nombre}</p>
+        <button class="btn-comprar">
+            <i class="icono">🪙</i> ${precio}
+        </button>
+    `;
+
+        return card;
+    }
+
 });
