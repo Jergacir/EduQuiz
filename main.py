@@ -1272,15 +1272,24 @@ def frm_verificar():
     return render_template('verificar.html', email=email, email_masked=mask_email(email or ''))
 
 
+
 @app.route('/procesar_verificacion', methods=['POST'])
 def procesar_verificacion():
     data = request.get_json(silent=True)
     if data:
         email = data.get('email')
         codigo = data.get('codigo')
+        nombre_reniec = data.get('nombre_reniec')  # nombre real desde el front
     else:
         email = request.form.get('email')
         codigo = request.form.get('codigo')
+        nombre_reniec = request.form.get('nombre_reniec')
+
+    # 🔍 DEBUG: ver qué llega desde el front
+    print("=== [DEBUG procesar_verificacion] ===")
+    print(f"Email recibido: {email}")
+    print(f"Nombre RENIEC recibido: {nombre_reniec}")
+    print("===================================")
 
     if not email or not codigo:
         if data:
@@ -1301,7 +1310,7 @@ def procesar_verificacion():
                 temp = cursor.fetchone()
 
                 if not temp:
-                    # Tal vez el usuario ya existe en la tabla definitiva
+                    # Verificar si ya está en la tabla usuario
                     cursor.execute("SELECT usuario_id, verificado FROM usuario WHERE correo=%s", (email,))
                     user_row = cursor.fetchone()
                     if user_row and user_row.get('verificado') == 1:
@@ -1309,6 +1318,7 @@ def procesar_verificacion():
                             return jsonify({'success': False, 'message': 'Cuenta ya verificada. Puedes iniciar sesión.'}), 200
                         flash('Cuenta ya verificada. Puedes iniciar sesión.', 'info')
                         return redirect(url_for('frm_login'))
+
                     if data:
                         return jsonify({'success': False, 'message': 'Correo no encontrado en el registro temporal. Vuelve a registrarte.'}), 404
                     flash('Correo no encontrado en el registro temporal. Vuelve a registrarte.', 'error')
@@ -1316,43 +1326,46 @@ def procesar_verificacion():
 
                 # Comparar código
                 if temp.get('verification_code') == codigo:
-                    # Antes de insertar, consultar API RENIEC para obtener nombres reales por DNI
-                    nombre_final = temp.get('nombre')
-                    try:
-                        reniec_url = f"https://api.decolecta.com/v1/reniec/dni?numero={temp.get('dni')}"
-                        headers = {'Accept': 'application/json'}
-                        token = os.environ.get('RENIEC_API_TOKEN')
-                        if token:
-                            headers['Authorization'] = f"Bearer {token}"
-                        resp = requests.get(reniec_url, headers=headers, timeout=5)
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            # Construir nombre: "FIRST_NAME FIRST_LAST_NAME SECOND_LAST_NAME" (mejor presentación)
-                            fn = data.get('first_name') or ''
-                            ln1 = data.get('first_last_name') or ''
-                            ln2 = data.get('second_last_name') or ''
-                            # Normalizar espacios
-                            combined = ' '.join([fn, ln1, ln2]).strip()
-                            if combined:
-                                nombre_final = combined.title()
-                    except Exception as e:
-                        print(f"Warning: fallo consulta RENIEC para {temp.get('dni')}: {e}")
+                    dni = temp.get('dni')
 
-                    # Insertar en tabla usuario usando el nombre obtenido (o el temporal si fallo)
+                    # 🟢 Priorizar nombre real del RENIEC si vino desde el frontend
+                    if nombre_reniec and len(nombre_reniec.strip()) > 0:
+                        nombre_final = nombre_reniec.strip()
+                        print(f"[DEBUG] ✅ Usando nombre RENIEC: {nombre_final}")
+                    else:
+                        nombre_final = temp.get('nombre')
+                        if nombre_final and nombre_final.strip() == dni:
+                            print("[DEBUG] 🚫 El nombre temporal es igual al DNI, dejando vacío.")
+                            nombre_final = "(Sin nombre RENIEC)"
+                        else:
+                            print(f"[DEBUG] ⚙️ Usando nombre temporal: {nombre_final}")
+
+                    # Insertar en tabla usuario
                     insert_sql = """
                         INSERT INTO usuario (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verificado)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """
                     cursor.execute(insert_sql, (
-                        temp['username'], nombre_final, temp['contrasena'], temp['correo'], temp['dni'], temp['tipo_usuario'], temp['cant_monedas'], 1
+                        temp['username'], nombre_final, temp['contrasena'],
+                        temp['correo'], temp['dni'], temp['tipo_usuario'],
+                        temp['cant_monedas'], 1
                     ))
+
                     # Borrar registro temporal
                     cursor.execute("DELETE FROM registro_temp WHERE temp_id=%s", (temp['temp_id'],))
                     conexion.commit()
+
                     if data:
-                        return jsonify({'success': True, 'message': 'Registro completado correctamente. Ya puedes iniciar sesión.'}), 200
+                        return jsonify({
+                            'success': True,
+                            'message': 'Registro completado correctamente.',
+                            'dni': dni,
+                            'nombre': nombre_final
+                        }), 200
+
                     flash('Registro completado correctamente. Ya puedes iniciar sesión.', 'success')
                     return redirect(url_for('frm_login'))
+
                 else:
                     if data:
                         return jsonify({'success': False, 'message': 'Código incorrecto. Intenta de nuevo.'}), 400
@@ -1360,11 +1373,30 @@ def procesar_verificacion():
                     return render_template('verificar.html', email=email, email_masked=mask_email(email))
 
     except Exception as e:
-        print(f"Error al verificar cuenta: {e}")
+        print(f"❌ Error al verificar cuenta: {e}")
         if data:
             return jsonify({'success': False, 'message': 'Error interno del servidor.'}), 500
         return redirect(url_for('frm_error'))
 
+@app.route('/api/get_dni', methods=['GET'])
+def get_dni():
+    email = request.args.get('email')
+    if not email:
+        return jsonify({"error": "Email requerido"}), 400
+
+    conexion = obtenerConexion()
+    if not conexion:
+        return jsonify({"error": "No hay conexión"}), 500
+
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("SELECT dni FROM registro_temp WHERE correo=%s", (email,))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({"error": "Registro temporal no encontrado"}), 404
+            return jsonify({"dni": row.get("dni")})
+    except Exception as e:
+        return jsonify({"error": "Error interno", "detail": str(e)}), 500
 
 @app.route('/reenviar_codigo', methods=['POST'])
 def reenviar_codigo():
