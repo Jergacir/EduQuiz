@@ -11,6 +11,7 @@ import ssl
 from email.message import EmailMessage
 import requests
 import cloudinary
+import string
 
 load_dotenv()
 
@@ -1864,6 +1865,14 @@ def eliminar_cuestionario(cuestionario_id):
     return jsonify({'status': 'ok', 'mensaje': 'Cuestionario eliminado lógicamente'})
 
 
+def generar_codigo_unico(cursor):
+    """Genera un código aleatorio de 6 letras no repetido en la base de datos."""
+    while True:
+        codigo = ''.join(random.choices(string.ascii_uppercase, k=6))
+        cursor.execute("SELECT 1 FROM cuestionario WHERE codigo_visualizacion = %s", (codigo,))
+        if cursor.fetchone() is None:
+            return codigo
+
 #---Esto lo usaremos en el crear cuestionario---
 @app.route("/api/cuestionario_completo", methods=["POST"])
 def crear_cuestionario_completo():
@@ -1884,13 +1893,17 @@ def crear_cuestionario_completo():
     try:
         with conexion:
             with conexion.cursor() as cursor:
+                
+                # --- Generar código de visualización único ---
+                codigo_visualizacion = generar_codigo_unico(cursor)
+
                 # --- Subir imagen del cuestionario a Cloudinary si existe ---
                 url_img_cuestionario_cloud = data.get("url_img_cuestionario") or "https://img.freepik.com/vector-premium/imagen-no-es-conjunto-iconos-disponibles-simbolo-vectorial-stock-fotos-faltante-defecto-estilo-relleno-delineado-negro-signo-no-encontro-imagen_268104-6708.jpg"
-                # Crear el cuestionario
+                # --- Crear el cuestionario ---
                 sql_cuestionario = """
                     INSERT INTO cuestionario
-                    (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario, codigo_visualizacion)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 cursor.execute(sql_cuestionario, (
                     data.get("nombre_cuestionario"),
@@ -1899,7 +1912,8 @@ def crear_cuestionario_completo():
                     data.get("modo_juego", "C"),
                     data.get("tiempo_limite_pregunta", 30),
                     data.get("usuario_id"),
-                    url_img_cuestionario_cloud
+                    url_img_cuestionario_cloud,
+                    codigo_visualizacion
                 ))
                 cuestionario_id = cursor.lastrowid
 
@@ -1938,7 +1952,8 @@ def crear_cuestionario_completo():
 
         return jsonify({
             "mensaje": "Cuestionario completo creado exitosamente",
-            "cuestionario_id": cuestionario_id
+            "cuestionario_id": cuestionario_id,
+            "codigo_visualizacion": codigo_visualizacion
         }), 201
 
     except Exception as e:
@@ -1962,7 +1977,7 @@ def obtener_cuestionario_completo(cuestionario_id):
             # --- Obtener cuestionario ---
             sql_cuestionario = """
                 SELECT cuestionario_id, nombre_cuestionario, descripcion, publico,
-                       modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario
+                       modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario, codigo_visualizacion
                 FROM cuestionario
                 WHERE cuestionario_id = %s
             """
@@ -2093,8 +2108,63 @@ def actualizar_cuestionario_completo(cuestionario_id):
         return jsonify({"error": str(e)}), 500
 
 
+
+@app.route("/verificar_codigo/<int:cuestionario_id>", methods=["POST"])
+def verificar_codigo(cuestionario_id):
+    """
+    Verifica si el código de visualización ingresado por el alumno
+    coincide con el del cuestionario.
+    """
+    conexion = obtenerConexion()
+    if not conexion:
+        return jsonify({"valido": False, "mensaje": "No se pudo conectar a la base de datos"}), 500
+
+    try:
+        data = request.get_json()
+        codigo_ingresado = (data.get("codigo") or "").strip()
+
+        if not codigo_ingresado:
+            return jsonify({"valido": False, "mensaje": "Código vacío"}), 400
+
+        with conexion.cursor() as cursor:
+            # --- Obtener el código real del cuestionario ---
+            sql = """
+                SELECT codigo_visualizacion
+                FROM cuestionario
+                WHERE cuestionario_id = %s AND estado = 1
+            """
+            cursor.execute(sql, (cuestionario_id,))
+            resultado = cursor.fetchone()
+
+            if not resultado:
+                return jsonify({"valido": False, "mensaje": "Cuestionario no encontrado"}), 404
+
+            codigo_real = resultado["codigo_visualizacion"]
+
+            # --- Comparar códigos ---
+            if codigo_real == codigo_ingresado:
+                return jsonify({"valido": True}), 200
+            else:
+                return jsonify({"valido": False, "mensaje": "Código incorrecto"}), 200
+
+    except Exception as e:
+        print("Error al verificar código:", e)
+        return jsonify({"valido": False, "mensaje": "Error interno del servidor"}), 500
+
+    finally:
+        conexion.close()
+
 @app.route("/editar_cuestionario/<int:cuestionario_id>")
 @login_required
 def frm_edicioncuestionario(cuestionario_id):
     # Solo pasamos cuestionario_id; logged_in_user ya estará disponible en el template
     return render_template('editarcuestionario.html', cuestionario_id=cuestionario_id)
+
+@app.route("/ver_cuestionario/<int:cuestionario_id>")
+@login_required
+def frm_ver_cuestionario(cuestionario_id):
+    # Aquí podrías cargar los datos del cuestionario desde la base de datos
+    # Por ejemplo:
+    # cuestionario = obtener_cuestionario(cuestionario_id)
+    
+    return render_template('visualizarCuestionario.html', cuestionario_id=cuestionario_id)
