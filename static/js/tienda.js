@@ -1,10 +1,17 @@
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('[INFO] tienda.js initialized');
     // --- Referencias Comunes ---
     const btnAccesorios = document.getElementById('btn-crud-accesorios');
     const btnSkins = document.getElementById('btn-crud-skins');
     const modalAccesorio = document.getElementById('modal-accesorio');
     const modalSkin = document.getElementById('modal-skin');
     const cerrarModales = document.querySelectorAll('.cerrar-modal');
+
+    // Si los botones no existen (usuario sin permisos), salir sin intentar bindear eventos
+    if (!modalAccesorio || !modalSkin) {
+        // No hay interfaces CRUD visibles; evitar errores posteriores
+        console.log('[INFO] CRUD de tienda no disponible para este usuario o modal ausente.');
+    }
 
     // Función para dibujar las filas de la tabla
     function dibujarTabla(items, tablaId, tipo) {
@@ -23,8 +30,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${item.nombre}</td>
                 <td>${item.precio} 🪙</td>
                 <td>
-                    <button class="btn-accion btn-editar" data-id="${item.id}" data-tipo="${tipo}">✏️ Editar</button>
-                    <button class="btn-accion btn-eliminar" data-id="${item.id}" data-tipo="${tipo}">🗑️ Eliminar</button>
+                    <button type="button" class="btn-accion btn-editar" data-id="${item.id}" data-tipo="${tipo}">✏️ Editar</button>
+                    <button type="button" class="btn-accion btn-eliminar" data-id="${item.id}" data-tipo="${tipo}">🗑️ Eliminar</button>
                 </td>
             `;
         });
@@ -74,20 +81,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    btnAccesorios.addEventListener('click', () => abrirModal(modalAccesorio, 'accesorios'));
-    btnSkins.addEventListener('click', () => abrirModal(modalSkin, 'skins'));
+    if (btnAccesorios) btnAccesorios.addEventListener('click', () => abrirModal(modalAccesorio, 'accesorios'));
+    if (btnSkins) btnSkins.addEventListener('click', () => abrirModal(modalSkin, 'skins'));
 
     cerrarModales.forEach(span => {
         span.addEventListener('click', function () {
             const modal = span.closest('.modal');
+            if (!modal) return;
             const tipo = modal.id.includes('accesorio') ? 'accesorios' : 'skins';
             cerrarModal(modal, tipo);
         });
     });
 
     window.addEventListener('click', function (event) {
-        if (event.target === modalAccesorio) cerrarModal(modalAccesorio, 'accesorios');
-        if (event.target === modalSkin) cerrarModal(modalSkin, 'skins');
+        if (modalAccesorio && event.target === modalAccesorio) cerrarModal(modalAccesorio, 'accesorios');
+        if (modalSkin && event.target === modalSkin) cerrarModal(modalSkin, 'skins');
     });
 
     // --- Lógica de Transición de Vistas CRUD (Lista vs Formulario) ---
@@ -156,24 +164,42 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (formTitulo) formTitulo.textContent = `Agregar Nuevo ${tipoSingular.charAt(0).toUpperCase() + tipoSingular.slice(1)}`;
                 if (formSubmitBtn) formSubmitBtn.textContent = `Crear ${tipoSingular.charAt(0).toUpperCase() + tipoSingular.slice(1)}`;
                 if (formId) formId.value = '';
+                // Limpiar explícitamente los campos por si form.reset() no llega a limpiar todo
+                const nombreInput = document.getElementById(`${prefijo}-nombre`);
+                const urlInput = document.getElementById(`${prefijo}-url`);
+                const precioInput = document.getElementById(`${prefijo}-precio`);
                 if (form) form.reset();
+                if (nombreInput) nombreInput.value = '';
+                if (urlInput) urlInput.value = '';
+                if (precioInput) precioInput.value = '';
             }
         }
     }
 
     // Eventos de botones para cambiar de vista (Crear/Volver)
-    document.getElementById('btn-acc-abrir-crear').addEventListener('click', () => mostrarVista('accesorios', 'form'));
-    document.getElementById('btn-acc-volver-lista').addEventListener('click', () => mostrarVista('accesorios', 'lista'));
-    document.getElementById('btn-skin-abrir-crear').addEventListener('click', () => mostrarVista('skins', 'form'));
-    document.getElementById('btn-skin-volver-lista').addEventListener('click', () => mostrarVista('skins', 'lista'));
+    const btnAccAbrir = document.getElementById('btn-acc-abrir-crear');
+    const btnAccVolver = document.getElementById('btn-acc-volver-lista');
+    const btnSkinAbrir = document.getElementById('btn-skin-abrir-crear');
+    const btnSkinVolver = document.getElementById('btn-skin-volver-lista');
+
+    if (btnAccAbrir) btnAccAbrir.addEventListener('click', () => mostrarVista('accesorios', 'form'));
+    if (btnAccVolver) btnAccVolver.addEventListener('click', () => mostrarVista('accesorios', 'lista'));
+    if (btnSkinAbrir) btnSkinAbrir.addEventListener('click', () => mostrarVista('skins', 'form'));
+    if (btnSkinVolver) btnSkinVolver.addEventListener('click', () => mostrarVista('skins', 'lista'));
 
 
     // --- Lógica para Botones de Acciones (Asignación de Eventos) ---
 
     function asignarEventosAccion() {
+        const editarBtns = document.querySelectorAll('.btn-editar');
+        const eliminarBtns = document.querySelectorAll('.btn-eliminar');
+        console.log('[DEBUG] asignarEventosAccion called - editarBtns:', editarBtns.length, 'eliminarBtns:', eliminarBtns.length);
         // Evento para Editar
         document.querySelectorAll('.btn-editar').forEach(btn => {
             btn.addEventListener('click', async function () {
+                const id_dbg = this.getAttribute('data-id');
+                const tipo_dbg = this.getAttribute('data-tipo');
+                console.log('[DEBUG] btn-editar clicked', id_dbg, tipo_dbg);
                 const id = this.getAttribute('data-id');
                 const tipo = this.getAttribute('data-tipo');
                 const nombre = this.closest('tr').cells[1].textContent;
@@ -219,6 +245,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // Evento para Eliminar
         document.querySelectorAll('.btn-eliminar').forEach(btn => {
             btn.addEventListener('click', async function () { // Agregamos 'async'
+                const id_dbg = this.getAttribute('data-id');
+                const tipo_dbg = this.getAttribute('data-tipo');
+                console.log('[DEBUG] btn-eliminar clicked', id_dbg, tipo_dbg);
                 const id = this.getAttribute('data-id');
                 const tipo = this.getAttribute('data-tipo');
                 const nombre = this.closest('tr').cells[1].textContent;
@@ -228,26 +257,36 @@ document.addEventListener('DOMContentLoaded', function () {
                     async () => {
                         if (tipo === 'accesorios') {
                             try {
-                                const response = await fetch(`/api/tienda/accesorios/eliminar/${id}`, { method: 'POST' });
+                                const url = `/api/tienda/accesorios/eliminar/${id}`;
+                                console.log('[DEBUG] DELETE accessory ->', url);
+                                const response = await fetch(url, { method: 'POST' });
                                 const data = await response.json();
+                                console.log('[DEBUG] response', response.status, data);
                                 if (data.success) {
                                     alert(`✅ ${data.message}`);
                                     cargarDatosCRUD(tipo);
-                                     cerrarModal(modalAccesorio, 'accesorios');
-                                } else alert(`❌ Error al eliminar: ${data.message}`);
+                                    if (modalAccesorio) cerrarModal(modalAccesorio, 'accesorios');
+                                } else {
+                                    alert(`❌ Error al eliminar: ${data.message || JSON.stringify(data)}`);
+                                }
                             } catch (error) {
                                 console.error(error);
                                 alert('Error al eliminar accesorio.');
                             }
                         } else {
                             try {
-                                const response = await fetch(`/api/tienda/skin/eliminar/${id}`, { method: 'POST' });
+                                const url = `/api/tienda/skin/eliminar/${id}`;
+                                console.log('[DEBUG] DELETE skin ->', url);
+                                const response = await fetch(url, { method: 'POST' });
                                 const data = await response.json();
+                                console.log('[DEBUG] response', response.status, data);
                                 if (data.success) {
                                     alert(`✅ ${data.message}`);
                                     cargarDatosCRUD(tipo);
-                                     cerrarModal(modalAccesorio, 'skins');
-                                } else alert(`❌ Error al eliminar: ${data.message}`);
+                                    if (modalSkin) cerrarModal(modalSkin, 'skins');
+                                } else {
+                                    alert(`❌ Error al eliminar: ${data.message || JSON.stringify(data)}`);
+                                }
                             } catch (error) {
                                 console.error(error);
                                 alert('Error al eliminar skin.');
@@ -272,19 +311,22 @@ document.addEventListener('DOMContentLoaded', function () {
             `⚠️ ¿Deseas ${accion.toLowerCase()} este accesorio?`,
             async () => {
                 try {
+                    console.log('[DEBUG] submit accessory form ->', url);
+                    for (let pair of formData.entries()) console.log('  ', pair[0], pair[1]);
                     const response = await fetch(url, { method: 'POST', body: formData });
                     const data = await response.json();
+                    console.log('[DEBUG] response', response.status, data);
                     if (data.success) {
-                        alert(`✅ Accesorio ${accion} con éxito. ID: ${data.accesorio_id || id}`);
+                        alert(`✅ Accesorio ${accion} con éxito. ID: ${data.id || id}`);
                         mostrarVista('accesorios', 'lista');
                         cargarDatosCRUD('accesorios');
-                         cerrarModal(modalAccesorio, 'accesorios');
+                        if (modalAccesorio) cerrarModal(modalAccesorio, 'accesorios');
                     } else {
-                        alert(`❌ Error al ${accion.toLowerCase()}: ${data.message}`);
+                        alert(`❌ Error al ${accion.toLowerCase()}: ${data.message || JSON.stringify(data)}`);
                     }
                 } catch (err) {
                     console.error(err);
-                    alert(`Error al ${accion.toLowerCase()}.`);
+                    alert(`Error al ${accion.toLowerCase()}. Revisa la consola y la pestaña Network para más detalles.`);
                 }
             }
         );
@@ -303,20 +345,23 @@ document.addEventListener('DOMContentLoaded', function () {
             `⚠️ ¿Deseas ${accion.toLowerCase()} este skin?`,
             async () => {
                 try {
+                    console.log('[DEBUG] submit skin form ->', url);
+                    for (let pair of formData.entries()) console.log('  ', pair[0], pair[1]);
                     const response = await fetch(url, { method: 'POST', body: formData });
                     const data = await response.json();
+                    console.log('[DEBUG] response', response.status, data);
                     if (data.success) {
-                        alert(`✅ Skin ${accion} con éxito. ID: ${data.skin_id || id}`);
+                        alert(`✅ Skin ${accion} con éxito. ID: ${data.id || id}`);
                         mostrarVista('skins', 'lista');
                         cargarDatosCRUD('skins');
-                        cerrarModal(modalAccesorio, 'skins');
+                        if (modalSkin) cerrarModal(modalSkin, 'skins');
 
                     } else {
-                        alert(`❌ Error al ${accion.toLowerCase()}: ${data.message}`);
+                        alert(`❌ Error al ${accion.toLowerCase()}: ${data.message || JSON.stringify(data)}`);
                     }
                 } catch (err) {
                     console.error(err);
-                    alert(`Error al ${accion.toLowerCase()}.`);
+                    alert(`Error al ${accion.toLowerCase()}. Revisa la consola y la pestaña Network para más detalles.`);
                 }
             }
         );
@@ -329,23 +374,65 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnConfirmCancel = document.getElementById('modal-confirm-cancel');
 
     function mostrarConfirmacion(mensaje, callbackAceptar) {
-        modalConfirmText.textContent = mensaje;
-        modalConfirm.classList.remove('oculto');
+    modalConfirmText.textContent = mensaje;
+    console.log('[DEBUG] mostrarConfirmacion -> show modal');
+    // Forzar el estilo display para evitar reglas CSS que pongan display:none en .modal
+    modalConfirm.classList.remove('oculto');
+    try { modalConfirm.style.display = 'flex'; } catch (e) {}
 
-        // Limpiar listeners anteriores
-        btnConfirmOk.onclick = null;
-        btnConfirmCancel.onclick = null;
+        // Limpiar listeners anteriores (si existían, los almacenamos en propiedades para remover)
+        try {
+            if (btnConfirmOk._handler) btnConfirmOk.removeEventListener('click', btnConfirmOk._handler);
+            if (btnConfirmCancel._handler) btnConfirmCancel.removeEventListener('click', btnConfirmCancel._handler);
+        } catch (e) {
+            // ignore
+        }
 
-        // Cuando se acepta
-        btnConfirmOk.onclick = () => {
-            callbackAceptar();
-            modalConfirm.classList.add('oculto');
+        // Para diagnóstico: registrar clicks dentro del modal
+        try {
+            if (!modalConfirm._diagAttached) {
+                modalConfirm.addEventListener('click', function (ev) {
+                    console.log('[DEBUG] modal click target:', ev.target && ev.target.id ? ev.target.id : ev.target);
+                });
+                modalConfirm._diagAttached = true;
+            }
+        } catch (e) { console.warn('[WARN] no se pudo agregar diagnostic listener en modalConfirm', e); }
+
+        if (!btnConfirmOk || !btnConfirmCancel) {
+            console.warn('[WARN] botones de confirmación no encontrados, ejecutando callback directamente');
+            try {
+                Promise.resolve(callbackAceptar()).catch(e => console.error('[ERROR] callbackAceptar (direct):', e));
+            } catch (e) {
+                console.error('[ERROR] callbackAceptar threw (direct):', e);
+            }
+            return;
+        }
+
+        // Cuando se acepta (usamos addEventListener y guardamos el handler para poder removerlo luego)
+        const okHandler = async function () {
+            console.log('[DEBUG] modal-confirm OK clicked');
+                try {
+                    await Promise.resolve(callbackAceptar());
+                    console.log('[DEBUG] callbackAceptar resolved');
+                } catch (e) {
+                    console.error('[ERROR] callbackAceptar threw:', e);
+                } finally {
+                    // Ocultar modal
+                    try { modalConfirm.style.display = 'none'; } catch (e) {}
+                    modalConfirm.classList.add('oculto');
+                }
         };
+        btnConfirmOk.addEventListener('click', okHandler);
+        btnConfirmOk._handler = okHandler;
 
         // Cuando se cancela
-        btnConfirmCancel.onclick = () => {
+        const cancelHandler = function () {
+            console.log('[DEBUG] modal-confirm Cancel clicked');
+            try { modalConfirm.style.display = 'none'; } catch (e) {}
             modalConfirm.classList.add('oculto');
         };
+        btnConfirmCancel.addEventListener('click', cancelHandler);
+        btnConfirmCancel._handler = cancelHandler;
     }
 
 
@@ -394,7 +481,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         card.innerHTML = `
         <div class="item-imagen" style="background-color: ${fondo};">
-            <img src="${imagen}" alt="${nombre}">
+            <img src="${imagen}" alt="${nombre}" onerror="this.onerror=null;this.src='../static/img/default.png';">
         </div>
         <p class="item-nombre">${nombre}</p>
         <button class="btn-comprar">

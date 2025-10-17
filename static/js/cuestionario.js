@@ -293,6 +293,72 @@ document.addEventListener("DOMContentLoaded", () => {
         saveModal.classList.add("hidden");
     });
 
+
+    // --- Preparar cuestionarioData con subida de imágenes ---
+    async function prepararCuestionarioData() {
+        // --- Subir imagen del cuestionario si es DataURL ---
+        if (cuestionario.imagen && cuestionario.imagen.startsWith("data:image")) {
+            const formData = new FormData();
+            const blob = await fetch(cuestionario.imagen).then(r => r.blob());
+            formData.append("file", blob);
+            formData.append("upload_preset", "cuestionarios_preset"); // tu preset
+
+            try {
+                const resp = await fetch("https://api.cloudinary.com/v1_1/dteucmell/image/upload", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await resp.json();
+                cuestionario.imagen = data.secure_url; // URL final
+            } catch (err) {
+                console.error("Error subiendo imagen del cuestionario:", err);
+                cuestionario.imagen = null;
+            }
+        }
+
+        // --- Subir imágenes de preguntas si son DataURL ---
+        for (const p of cuestionario.preguntas) {
+            if (p.imagen && p.imagen.startsWith("data:image")) {
+                const formData = new FormData();
+                const blob = await fetch(p.imagen).then(r => r.blob());
+                formData.append("file", blob);
+                formData.append("upload_preset", "cuestionarios_preset");
+
+                try {
+                    const resp = await fetch("https://api.cloudinary.com/v1_1/dteucmell/image/upload", {
+                        method: "POST",
+                        body: formData
+                    });
+                    const data = await resp.json();
+                    p.imagen = data.secure_url; // URL final
+                } catch (err) {
+                    console.error("Error subiendo imagen de pregunta:", err);
+                    p.imagen = null; // fallback
+                }
+            }
+        }
+
+        // --- Construir objeto final ---
+        return {
+            nombre_cuestionario: cuestionario.titulo,
+            descripcion: cuestionario.descripcion,
+            publico: detallesConfig.privacidad === "public" ? 1 : 0,
+            modo_juego: detallesConfig.tema === "multiple" ? "M" : "C",
+            tiempo_limite_pregunta: 30,
+            usuario_id: usuarioId,
+            url_img_cuestionario: cuestionario.imagen || null,
+            preguntas: cuestionario.preguntas.map(p => ({
+                texto_pregunta: p.texto,
+                media_url: p.imagen || null,
+                tiempo_limite: parseInt(p.tiempo) || 30,
+                respuestas: p.respuestas.map((r, i) => ({
+                    texto_respuesta: r,
+                    estado_respuesta: i === p.correcta ? 1 : 0
+                }))
+            }))
+        };
+    }
+
     // Confirmar guardado
     confirmSave.addEventListener("click", async () => {
         saveModal.classList.add("hidden");
@@ -303,24 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const cuestionarioData = {
-            nombre_cuestionario: cuestionario.titulo,
-            descripcion: cuestionario.descripcion,
-            publico: detallesConfig.privacidad === "public" ? 1 : 0,
-            modo_juego: detallesConfig.tema === "multiple" ? "M" : "C",
-            tiempo_limite_pregunta: 30,
-            usuario_id: usuarioId,
-            url_img_cuestionario: cuestionario.imagen || null,
-            preguntas: cuestionario.preguntas.map((p) => ({
-                texto_pregunta: p.texto,
-                media_url: p.imagen || null,
-                tiempo_limite: parseInt(p.tiempo) || 30,
-                respuestas: p.respuestas.map((r, i) => ({
-                    texto_respuesta: r,
-                    estado_respuesta: i === p.correcta ? 1 : 0
-                }))
-            }))
-        };
+        const cuestionarioData = await prepararCuestionarioData();
 
         console.log("📦 Datos a enviar:", cuestionarioData);
 

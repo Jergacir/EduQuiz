@@ -11,8 +11,7 @@ import ssl
 from email.message import EmailMessage
 import requests
 import cloudinary
-import cloudinary.uploader  # <-- importante
-import cloudinary.api 
+
 load_dotenv()
 
 cloudinary.config(
@@ -236,13 +235,13 @@ def obtener_todos_los_usuarios():
             with conexion.cursor() as cursor:
                 # 🔑 CLAVE: Asegurarse de que 'vigencia' esté incluido en el SELECT.
                 sql = """
-                    SELECT usuario_id, username, nombre, correo, tipo_usuario, cant_monedas, dni, vigencia 
+                    SELECT usuario_id, username, nombre, correo, tipo_usuario, cant_monedas, dni, vigencia
                     FROM usuario
                     ORDER BY usuario_id
                 """
                 cursor.execute(sql)
                 usuarios = cursor.fetchall()
-                
+
                 # Convertir los resultados, asegurando que 'vigencia' se interprete como booleano para JSON
                 lista_usuarios = []
                 for user in usuarios:
@@ -255,13 +254,14 @@ def obtener_todos_los_usuarios():
                         'cant_monedas': user.get('cant_monedas'),
                         'dni': user.get('dni'),
                         # Convertir 1/0 de la BD a booleano de Python
-                        'vigencia': bool(user.get('vigencia')), 
+                        'vigencia': bool(user.get('vigencia')),
                     }
                     lista_usuarios.append(user_dict)
                 return lista_usuarios
     except Exception as e:
         print(f"Error en obtener_todos_los_usuarios: {e}", file=sys.stderr)
         return []
+
 
 # --- DECORADORES DE AUTORIZACIÓN ---
 
@@ -273,7 +273,7 @@ def login_required(f):
         if 'user_id' not in session:
             flash("Debes iniciar sesión para acceder a esta página.", 'warning')
             return redirect(url_for('frm_login'))
-        
+
         # Si el usuario está autenticado, ejecuta la función original
         return f(*args, **kwargs)
     return decorated_function
@@ -294,7 +294,7 @@ def gestor_required(f):
         if not user_data or user_data.get('tipo_usuario') != 'G':
             flash("No tienes permiso para acceder a esta sección de administración.", 'error')
             return redirect(url_for('frm_home')) # Redirige al home si no es gestor
-        
+
         return f(*args, **kwargs)
     return decorated_function
 
@@ -314,7 +314,7 @@ def profesor_required(f):
         if not user_data or user_data.get('tipo_usuario') != 'P':
             flash("No tienes permiso para acceder a esta sección de profesor.", 'error')
             return redirect(url_for('frm_home')) # Redirige al home si no es gestor
-        
+
         return f(*args, **kwargs)
     return function
 
@@ -328,7 +328,7 @@ def inject_user_data():
     if 'user_id' in session:
         user_id = session['user_id']
         conexion = obtenerConexion()
-        
+
         if not conexion:
             return {} # Si no hay conexión, no inyecta datos.
 
@@ -339,7 +339,7 @@ def inject_user_data():
                     sql = "SELECT usuario_id,nombre, cant_monedas, tipo_usuario FROM usuario WHERE usuario_id=%s"
                     cursor.execute(sql, (user_id,))
                     user_data = cursor.fetchone()
-                    
+
             if user_data:
                 # Retornamos el diccionario que se inyectará en las plantillas
                 # Ahora incluye 'tipo_usuario'
@@ -350,7 +350,7 @@ def inject_user_data():
                 return {}
         except Exception:
             return {} # Fallo de DB
-            
+
     # Si el usuario no ha iniciado sesión, retorna vacío
     return {}
 
@@ -388,7 +388,7 @@ def frm_tienda():
     # Inicializamos las listas en caso de que haya un error
     lista_skins = []
     lista_accesorios = []
-    
+
     # 1. Obtenemos la conexión a la BD
     conexion = obtenerConexion()
     if conexion:
@@ -398,7 +398,7 @@ def frm_tienda():
                 sql_skins = "SELECT skin_id, nombre, url_imagen, precio FROM skins WHERE vigencia = 1  ORDER BY precio ASC"
                 cursor.execute(sql_skins)
                 lista_skins = cursor.fetchall()
-                
+
                 # 3. Consultamos todos los accesorios
                 sql_accesorios = "SELECT accesorio_id, nombre, url_imagen, precio FROM accesorios WHERE vigencia = 1 ORDER BY precio ASC"
                 cursor.execute(sql_accesorios)
@@ -408,24 +408,24 @@ def frm_tienda():
         finally:
             # La conexión se cierra automáticamente gracias al 'with'
             pass
-            
+
     # 4. Pasamos las listas a la plantilla HTML
     return render_template('tienda.html', skins=lista_skins, accesorios=lista_accesorios)
 
 # --- RUTA DE PARTIDAS (PARA EL PROFESOR) ---
 @app.route('/partidas_profesor')
-@login_required 
+@login_required
 @profesor_required # Esta vista solo debe ser para profesores
 def frm_partidas_profesor():
     # Aquí puedes cargar las partidas recientes del profesor
     # Por ahora, solo renderiza la plantilla.
     # Ejemplo:
-    # partidas = obtener_partidas_del_profesor(session['user_id']) 
+    # partidas = obtener_partidas_del_profesor(session['user_id'])
     return render_template('partidas_profesor.html') # Asumiendo que partidas.html es ahora la vista del profesor
 
 # --- RUTA PARA CREAR NUEVA PARTIDA (PARA EL PROFESOR) ---
 @app.route('/crear_partida')
-@login_required 
+@login_required
 @profesor_required # Solo accesible para profesores
 def frm_crear_partida():
     # Esta ruta debería mostrar un formulario o una interfaz para
@@ -439,19 +439,19 @@ def frm_crear_partida():
 
 # 1. Ruta para mostrar el formulario de unirse a partida
 @app.route('/partidas')
-@login_required 
+@login_required
 def frm_partidas():
     # 'logged_in_user' ya es accesible en el template gracias al @app.context_processor
     return render_template('partidas.html')
 
 # 2. Ruta de PLACEHOLDER para jugar (necesaria para el redirect de la API)
 @app.route('/jugar/<string:codigo_partida>')
-@login_required 
+@login_required
 def frm_jugar(codigo_partida):
     # Por ahora, solo redirige a un home o una página de espera.
     # Esta ruta será la vista principal del juego en vivo.
     flash(f"Te has unido a la partida con código: {codigo_partida}. (Vista de juego por implementar)", 'success')
-    return redirect(url_for('frm_home')) 
+    return redirect(url_for('frm_home'))
 
 # --- RUTAS API PARA CRUD DE TIENDA (Skins y Accesorios) ---
 
@@ -464,16 +464,16 @@ def obtener_items_crud(tabla, id_columna):
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                sql = f"SELECT {id_columna} AS id, nombre, precio FROM {tabla}  WHERE vigencia = 1 ORDER BY {id_columna} ASC"
+                sql = f"SELECT {id_columna} AS id, nombre,url_imagen, precio FROM {tabla}  WHERE vigencia = 1 ORDER BY {id_columna} ASC"
                 cursor.execute(sql)
-                items = cursor.fetchall() 
+                items = cursor.fetchall()
                 return items
     except Exception as e:
         print(f"Error al obtener items de la tabla {tabla}: {e}", file=sys.stderr)
         return []
 
 @app.route('/api/tienda/accesorios', methods=['GET'])
-@login_required 
+@login_required
 @gestor_required # Solo permite a Gestores ver la lista CRUD
 def listar_accesorios_api():
     """Ruta API para devolver la lista completa de accesorios para el CRUD."""
@@ -504,16 +504,16 @@ def insertar_item(tabla, nombre, url_imagen, precio, id_columna):
             sql = f"INSERT INTO `{tabla}` (`nombre`, `url_imagen`, `precio`) VALUES (%s, %s, %s)"
             cursor.execute(sql, (nombre, url_imagen, precio))
             conexion.commit()
-            
+
             # Opcional: obtener el ID del item recién insertado
             nuevo_id = cursor.lastrowid
-            
+
             return True, nuevo_id
 
     except Exception as e:
         print(f"Error al insertar en {tabla}: {e}", file=sys.stderr)
         return False, f"Error al insertar el ítem: {e}"
-    
+
 
 def actualizar_item(tabla, id_item, nombre, url_imagen, precio, columna_id):
     """
@@ -529,16 +529,16 @@ def actualizar_item(tabla, id_item, nombre, url_imagen, precio, columna_id):
         with conexion.cursor() as cursor:
             # Construimos la consulta SQL usando el nombre de la tabla y la columna ID
             sql = f"""
-                UPDATE `{tabla}` 
-                SET 
-                    `nombre` = %s, 
-                    `url_imagen` = %s, 
-                    `precio` = %s 
+                UPDATE `{tabla}`
+                SET
+                    `nombre` = %s,
+                    `url_imagen` = %s,
+                    `precio` = %s
                 WHERE `{columna_id}` = %s
             """
             cursor.execute(sql, (nombre, url_imagen, precio, id_item))
             conexion.commit()
-            
+
             if cursor.rowcount == 0:
                 return False, "No se encontró el ítem para actualizar o los datos eran idénticos."
 
@@ -595,10 +595,10 @@ def eliminar_item(tabla, id_item, columna_id):
             sql = f"DELETE FROM `{tabla}` WHERE `{columna_id}` = %s"
             cursor.execute(sql, (id_item,))
             conexion.commit()
-            
+
             if cursor.rowcount == 0:
                 return False, "No se encontró el ítem para eliminar."
-                
+
             return True, "Ítem eliminado exitosamente."
 
     except Exception as e:
@@ -618,7 +618,7 @@ def obtener_item_por_id(tabla, id_item, columna_id):
     try:
         with conexion.cursor() as cursor:
             # Usamos %s para el nombre de la columna para la consulta, pero %s para el ID en el execute.
-            # Nota: El nombre de la tabla y la columna ID DEBEN ser insertados directamente (f-string) 
+            # Nota: El nombre de la tabla y la columna ID DEBEN ser insertados directamente (f-string)
             # ya que no pueden ser placeholders (%s) en MySQL.
             sql = f"SELECT {columna_id} AS id, nombre, url_imagen, precio FROM `{tabla}` WHERE `{columna_id}` = %s"
             cursor.execute(sql, (id_item,))
@@ -628,13 +628,13 @@ def obtener_item_por_id(tabla, id_item, columna_id):
     except Exception as e:
         print(f"Error al obtener ítem por ID de {tabla}: {e}", file=sys.stderr)
         return None
-    
+
 # --- LÓGICA DE PARTIDAS: Validar y unir usuario a partida ---
 def validar_y_unir(codigo_partida, usuario_id):
     """
-    Intenta buscar la partida, valida su estado ('espera'), verifica el cupo 
+    Intenta buscar la partida, valida su estado ('espera'), verifica el cupo
     y asocia el usuario a ella.
-    
+
     Retorna True si la unión es exitosa o el usuario ya estaba unido, False en caso contrario.
     """
     conexion = obtenerConexion()
@@ -653,7 +653,7 @@ def validar_y_unir(codigo_partida, usuario_id):
                 if not partida or partida.get('estado') != 'espera':
                     print(f"Error: Partida '{codigo_partida}' no encontrada o no está en estado de espera.")
                     return False
-                
+
                 partida_id = partida['partida_id']
                 max_jugadores = partida['max_jugadores']
 
@@ -665,8 +665,8 @@ def validar_y_unir(codigo_partida, usuario_id):
                 # Si ya está dentro, se considera éxito (no necesitamos volver a insertarlo)
                 if resultado_conteo['usuario_existe'] > 0:
                     print(f"Advertencia: Usuario {usuario_id} ya está en la partida {codigo_partida}.")
-                    return True 
-                
+                    return True
+
                 # Verificar cupo
                 if resultado_conteo['total_jugadores'] >= max_jugadores:
                     print(f"Error: La partida '{codigo_partida}' está llena. (Max: {max_jugadores})")
@@ -701,7 +701,7 @@ def crear_accesorio_api():
     # 1. Validaciones
     if not nombre or not url_imagen or not precio_str:
         return jsonify({'success': False, 'message': 'Faltan campos obligatorios.'}), 400
-    
+
     try:
         precio = int(precio_str)
         if precio < 0:
@@ -716,8 +716,8 @@ def crear_accesorio_api():
     # 3. Respuesta
     if exito:
         return jsonify({
-            'success': True, 
-            'message': 'Accesorio creado exitosamente.', 
+            'success': True,
+            'message': 'Accesorio creado exitosamente.',
             'accesorio_id': resultado_o_error
         }), 201
     else:
@@ -739,7 +739,7 @@ def editar_accesorio_api(accesorio_id):
     # 1. Validaciones
     if not nombre or not url_imagen or not precio_str:
         return jsonify({'success': False, 'message': 'Faltan campos obligatorios.'}), 400
-    
+
     try:
         precio = int(precio_str)
         if precio < 0:
@@ -753,8 +753,8 @@ def editar_accesorio_api(accesorio_id):
     # 3. Respuesta
     if exito:
         return jsonify({
-            'success': True, 
-            'message': mensaje, 
+            'success': True,
+            'message': mensaje,
             'accesorio_id': accesorio_id
         }), 200
     else:
@@ -815,7 +815,7 @@ def crear_skin_api():
     # 1. Validaciones
     if not nombre or not url_imagen or not precio_str:
         return jsonify({'success': False, 'message': 'Faltan campos obligatorios.'}), 400
-    
+
     try:
         precio = int(precio_str)
         if precio < 0:
@@ -830,8 +830,8 @@ def crear_skin_api():
     # 3. Respuesta
     if exito:
         return jsonify({
-            'success': True, 
-            'message': 'Accesorio creado exitosamente.', 
+            'success': True,
+            'message': 'Accesorio creado exitosamente.',
             'skin_id': resultado_o_error
         }), 201
     else:
@@ -853,7 +853,7 @@ def editar_skin_api(skin_id):
     # 1. Validaciones
     if not nombre or not url_imagen or not precio_str:
         return jsonify({'success': False, 'message': 'Faltan campos obligatorios.'}), 400
-    
+
     try:
         precio = int(precio_str)
         if precio < 0:
@@ -867,8 +867,8 @@ def editar_skin_api(skin_id):
     # 3. Respuesta
     if exito:
         return jsonify({
-            'success': True, 
-            'message': mensaje, 
+            'success': True,
+            'message': mensaje,
             'skin_id': skin_id
         }), 200
     else:
@@ -894,7 +894,7 @@ def eliminar_skin_api(skin_id):
     else:
         status_code = 404 if 'No se encontró el ítem' in mensaje else 500
         return jsonify({'success': False, 'message': mensaje}), status_code
-    
+
 
 
 @app.route('/api/tienda/skin/<int:skin_id>', methods=['GET'])
@@ -923,18 +923,18 @@ def api_unirse_partida():
 
     if not codigo_partida or not usuario_id:
         return jsonify({"success": False, "message": "Faltan el código de partida o el ID de usuario."}), 400
-    
+
     # Asegúrate de que usuario_id sea un entero si tu BD lo espera como INT
     try:
         usuario_id = int(usuario_id)
     except ValueError:
         return jsonify({"success": False, "message": "ID de usuario inválido."}), 400
-        
+
     if validar_y_unir(codigo_partida, usuario_id):
         # La función url_for se encargará de crear la URL dinámica /jugar/CODIGO
         return jsonify({
-            "success": True, 
-            "message": "¡Te has unido a la partida!", 
+            "success": True,
+            "message": "¡Te has unido a la partida!",
             "redirect_url": url_for('frm_jugar', codigo_partida=codigo_partida)
         }), 200
     else:
@@ -952,7 +952,7 @@ def crud_usuarios():
 def logout():
     # Elimina el user_id de la sesión si existe
     session.pop('user_id', None)
-    
+
     # Redirige al usuario a la página de login
     flash("Has cerrado sesión exitosamente.", 'success')
     return redirect(url_for('frm_login'))
@@ -961,7 +961,7 @@ def logout():
 @app.route("/errorsistema")
 def frm_error():
     return render_template('errorsistema.html')
-    
+
 # Ruta para procesar el registro de usuario (CON ENCRIPTACIÓN BCrypt)
 @app.route("/procesarregistro", methods=['POST'])
 def procesarregistro():
@@ -978,11 +978,11 @@ def procesarregistro():
     if not tipo or not dni or not email or not contrasena_plana or not confirmar:
         flash("Faltan campos obligatorios.", 'error')
         return redirect(url_for('frm_registro'))
-    
+
     if len(dni) != 8 or not dni.isdigit():
         flash("DNI inválido. Debe contener 8 dígitos.", 'error')
         return redirect(url_for('frm_registro'))
-    
+
     if contrasena_plana != confirmar:
         flash("Las contraseñas no coinciden.", 'error')
         return redirect(url_for('frm_registro'))
@@ -1002,8 +1002,8 @@ def procesarregistro():
         return redirect(url_for('frm_registro'))
 
     # Cifrar la contraseña
-    hashed_password_bytes = bcrypt.generate_password_hash(contrasena_plana) 
-    contrasena_cifrada = hashed_password_bytes.decode('utf-8') 
+    hashed_password_bytes = bcrypt.generate_password_hash(contrasena_plana)
+    contrasena_cifrada = hashed_password_bytes.decode('utf-8')
 
     # Generar username y nombre a partir del correo
     username = email.split('@')[0]
@@ -1016,7 +1016,7 @@ def procesarregistro():
     conexion = obtenerConexion()
     if not conexion:
         print("No se pudo conectar a la base de datos")
-        return redirect(url_for('frm_error')) 
+        return redirect(url_for('frm_error'))
 
     try:
         # Guardar en tabla temporal registro_temp en vez de insertar inmediatamente en usuario
@@ -1089,9 +1089,9 @@ def listar_usuarios_api():
     # 1. Verificar autenticación
     if 'user_id' not in session:
         return jsonify({'error': 'No autenticado. Debes iniciar sesión.'}), 401
-    
+
     user_id = session['user_id']
-    
+
     # 2. Verificar si el usuario actual es un Gestor ('G')
     conexion = obtenerConexion()
     if not conexion:
@@ -1108,10 +1108,10 @@ def listar_usuarios_api():
                 if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
                     # Devolver un error 403 (Prohibido) si no tiene permiso de Gestor
                     return jsonify({'error': 'Acceso prohibido. No tienes permisos de administrador.'}), 403
-        
+
         # 3. Si el rol es 'G', procede a obtener la lista completa de usuarios
-        usuarios = obtener_todos_los_usuarios() 
-        
+        usuarios = obtener_todos_los_usuarios()
+
         return jsonify(usuarios)
 
     except Exception as e:
@@ -1138,22 +1138,22 @@ def register_gestor_api():
     contrasena_plana = data['contrasena']
     correo = data['correo']
     dni = data['dni']
-    
+
     # 🔑 Nuevo: Leer el campo 'verificado'. Usar 0 (False) si no está presente o es inválido.
     verificado_raw = data.get('verificado', 0)
-    
+
     # Validar y convertir 'verificado' a 1 o 0
     # Aceptamos '1', '0', 1, 0. Si no es 1, asumimos 0.
-    verificado = 1 if str(verificado_raw) == '1' else 0 
-    
+    verificado = 1 if str(verificado_raw) == '1' else 0
+
     # Validaciones básicas
     if len(dni) != 8 or not dni.isdigit():
         return jsonify({"success": False, "message": "DNI inválido. Debe contener 8 dígitos."}), 400
 
     # 1. Cifrar la contraseña
     try:
-        hashed_password_bytes = bcrypt.generate_password_hash(contrasena_plana) 
-        contrasena_cifrada = hashed_password_bytes.decode('utf-8') 
+        hashed_password_bytes = bcrypt.generate_password_hash(contrasena_plana)
+        contrasena_cifrada = hashed_password_bytes.decode('utf-8')
     except Exception:
         return jsonify({"success": False, "message": "Error al cifrar la contraseña."}), 500
 
@@ -1162,7 +1162,7 @@ def register_gestor_api():
         return jsonify({"success": False, "message": "Error de conexión a la base de datos."}), 500
 
     try:
-        with conexion: 
+        with conexion:
             with conexion.cursor() as cursor:
                 # 2. Validar unicidad (correo/dni)
                 sql_check = "SELECT usuario_id FROM usuario WHERE correo=%s OR dni=%s"
@@ -1174,9 +1174,9 @@ def register_gestor_api():
                 sql = """INSERT INTO usuario
                              (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verificado)
                              VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
-                
+
                 tipo_usuario = 'G'
-                
+
                 # LA TUPLA DE VALORES AHORA INCLUYE 'verificado'
                 cursor.execute(sql, (username, nombre, contrasena_cifrada, correo, dni, tipo_usuario, 0, verificado))
                 conexion.commit()
@@ -1189,23 +1189,23 @@ def register_gestor_api():
         print(f"Error en el registro de gestor (API): {e}")
         return jsonify({"success": False, "message": "Ocurrió un error en el sistema."}), 500
 
-# --- RUTA API PARA INACTIVAR USUARIO (CONSUMIDA POR crudusuario.js) ---
+# --- RUTA API PARA INACTIVAR USUARIO - Eliminación lógica(CONSUMIDA POR crudusuario.js) ---
 @app.route('/api/usuarios/<int:usuario_id>', methods=['DELETE'])
 def eliminar_usuario_api(usuario_id):
     """
     Ruta API para inactivar (soft delete) un usuario por su ID.
-    Mantiene el método DELETE para compatibilidad con el frontend, 
+    Mantiene el método DELETE para compatibilidad con el frontend,
     pero en la base de datos cambia el estado de 'vigente' a 0 (No Vigente).
     Requiere que el usuario logueado sea un Gestor ('G').
     """
     import sys  # Necesario para el print de error en stderr
-    
+
     # 1. Verificar autenticación
     if 'user_id' not in session:
         return jsonify({'error': 'No autenticado.'}), 401
-    
+
     user_id_logueado = session['user_id']
-    
+
     # 2. Verificar Permiso de Gestor ('G')
     conexion = obtenerConexion()
     if not conexion:
@@ -1221,30 +1221,31 @@ def eliminar_usuario_api(usuario_id):
 
                 if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
                     return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
-                
+
                 # 3. Restricción de auto-inactivación
                 if usuario_id == user_id_logueado:
                     return jsonify({'error': 'No puedes inactivar tu propia cuenta de Gestor a través de esta interfaz.'}), 403
 
                 # 4. Ejecutar la INACTIVACIÓN (Soft Delete)
-                # Cambiamos el estado de 'vigente' a 0 (No Vigente). 
+                # Cambiamos el estado de 'vigente' a 0 (No Vigente).
                 # Reemplazamos la consulta DELETE por UPDATE.
                 sql_update_vigencia = "UPDATE usuario SET vigencia = 0 WHERE usuario_id=%s AND vigencia = 1"
-                
+
                 cursor.execute(sql_update_vigencia, (usuario_id,))
                 filas_afectadas = cursor.rowcount
-                
+
                 conexion.commit()
 
                 if filas_afectadas == 0:
                     # Retorna 404 si el usuario no existe O si ya estaba inactivo (vigente=0)
                     return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado o ya estaba inactivo.'}), 404
-                
+
                 return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} inactivado exitosamente (vigente = 0).'}), 200
 
     except Exception as e:
         print(f"Error al inactivar usuario: {e}", file=sys.stderr)
         return jsonify({'error': 'Error interno del servidor al inactivar datos.'}), 500
+
 
 # --- NUEVA RUTA API PARA ACTIVAR USUARIO (DAR DE ALTA) ---
 @app.route('/api/usuarios/<int:usuario_id>/activar', methods=['PUT'])
@@ -1255,13 +1256,13 @@ def activar_usuario_api(usuario_id):
     Requiere que el usuario logueado sea un Gestor ('G').
     """
     import sys
-    
+
     # 1. Verificar autenticación
     if 'user_id' not in session:
         return jsonify({'error': 'No autenticado.'}), 401
-    
+
     user_id_logueado = session['user_id']
-    
+
     # 2. Verificar Permiso de Gestor ('G')
     conexion = obtenerConexion()
     if not conexion:
@@ -1277,29 +1278,117 @@ def activar_usuario_api(usuario_id):
 
                 if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
                     return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
-                
+
                 # 3. Restricción de auto-activación
                 if usuario_id == user_id_logueado:
                     return jsonify({'error': 'No puedes activar/desactivar tu propia cuenta de Gestor a través de esta interfaz.'}), 403
 
                 # 4. Ejecutar la ACTIVACIÓN (Dar de alta)
-                # Cambiamos el estado de 'vigente' a 1 (Vigente). 
+                # Cambiamos el estado de 'vigente' a 1 (Vigente).
                 sql_update_vigencia = "UPDATE usuario SET vigencia = 1 WHERE usuario_id=%s AND vigencia = 0"
-                
+
                 cursor.execute(sql_update_vigencia, (usuario_id,))
                 filas_afectadas = cursor.rowcount
-                
+
                 conexion.commit()
 
                 if filas_afectadas == 0:
                     # Retorna 404 si el usuario no existe O si ya estaba activo (vigente=1)
                     return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado o ya estaba activo.'}), 404
-                
+
                 return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} activado exitosamente (vigente = 1).'}), 200
 
     except Exception as e:
         print(f"Error al activar usuario: {e}", file=sys.stderr)
         return jsonify({'error': 'Error interno del servidor al activar datos.'}), 500
+
+# --- RUTA API PARA MODIFICAR USUARIO (EDICIÓN) ---
+# ==============================================================================
+@app.route('/api/usuarios/<int:usuario_id>', methods=['PUT'])
+def modificar_usuario_api(usuario_id):
+    """
+    Ruta API para modificar los datos de un usuario por su ID.
+    Solo permite modificar: nombre, username y vigencia.
+    Requiere que el usuario logueado sea un Gestor ('G').
+    """
+    import sys
+
+    # 1. Verificar autenticación
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autenticado.'}), 401
+
+    user_id_logueado = session['user_id']
+    data = request.get_json()
+
+    # 2. Verificar datos mínimos
+    if not data:
+        return jsonify({'error': 'Datos de actualización incompletos.'}), 400
+
+    # Campos requeridos para la actualización
+    nombre = data.get('nombre')
+    username = data.get('username')
+    vigencia = data.get('vigencia') # Recibido como booleano (true/false) o 1/0
+
+    # Solo requerimos los campos que se van a modificar
+    if nombre is None or username is None or vigencia is None:
+         return jsonify({'error': 'Faltan campos obligatorios para la modificación (nombre, username, vigencia).'}), 400
+
+    # Conversión de vigencia a formato de base de datos (0 o 1)
+    vigencia_db = 1 if vigencia in (True, 1, 'true', '1') else 0
+
+    conexion = obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # 3. Verificar Permiso de Gestor ('G')
+                sql_check_role = "SELECT tipo_usuario FROM usuario WHERE usuario_id=%s"
+                cursor.execute(sql_check_role, (user_id_logueado,))
+                user_role_data = cursor.fetchone()
+
+                if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
+                    return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
+
+                # 4. Restricción de auto-modificación (Opcional, pero buena práctica)
+                # Impedir que un gestor se cambie a sí mismo la vigencia o username
+                if usuario_id == user_id_logueado and vigencia_db == 0:
+                    return jsonify({'error': 'No puedes desactivar tu propia cuenta de Gestor a través de esta interfaz de administración.'}), 403
+
+                # 5. Ejecutar la ACTUALIZACIÓN
+                sql_update = """
+                    UPDATE usuario
+                    SET nombre = %s, username = %s, vigencia = %s
+                    WHERE usuario_id = %s
+                """
+
+                # Prepara los parámetros para la ejecución
+                params = (nombre, username, vigencia_db, usuario_id)
+
+                cursor.execute(sql_update, params)
+                filas_afectadas = cursor.rowcount
+
+                conexion.commit()
+
+                if filas_afectadas == 0:
+                    # Esto podría significar que el ID no existe o no hubo cambios
+                    # Para ser más explícitos, puedes hacer un SELECT previo
+                    return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado o no se realizaron cambios.'}), 404
+
+                return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} actualizado exitosamente.'}), 200
+
+    except pymysql.err.IntegrityError as e:
+        # 6. Manejar errores de unicidad (ej: username ya existe)
+        error_code = e.args[0]
+        if error_code == 1062: # Código de error para Duplicate entry
+             return jsonify({'error': 'El nombre de usuario o algún otro campo único ya existe.'}), 409
+        print(f"Error de integridad en DB: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error de datos en la base de datos.'}), 400
+
+    except Exception as e:
+        print(f"Error al modificar usuario: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error interno del servidor al actualizar datos.'}), 500
 
 # RUTA API PARA CREAR UN NUEVO USUARIO DESDE LA ADMINISTRACIÓN (Gestor)
 # ==============================================================================
@@ -1312,12 +1401,12 @@ def crear_usuario_api():
     # 1. VERIFICACIÓN DE PERMISOS (¡CLAVE!)
     if 'user_id' not in session:
         return jsonify({'error': 'No autenticado.'}), 401
-    
+
     # --- LÓGICA DE VERIFICACIÓN DE ROL FALTANTE AQUÍ ---
     # *EJEMPLO* de cómo se haría la verificación de rol:
-    # if obtener_rol_usuario(session['user_id']) != 'G': 
-    #     return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403 
-    
+    # if obtener_rol_usuario(session['user_id']) != 'G':
+    #     return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
+
     data = request.get_json()
 
     # 2. VALIDACIÓN DE CAMPOS OBLIGATORIOS (AHORA INCLUYE 'dni')
@@ -1336,7 +1425,7 @@ def crear_usuario_api():
     # 3. VALIDACIÓN ADICIONAL DEL DNI Y TIPO DE USUARIO
     if len(dni) != 8 or not dni.isdigit():
          return jsonify({"success": False, "error": "DNI inválido. Debe contener 8 dígitos."}), 400
-         
+
     if tipo_usuario not in ['A', 'P', 'G', 'E']:
          return jsonify({"success": False, "error": "Tipo de usuario inválido (solo A, P, G, E permitidos)."}), 400
 
@@ -1367,7 +1456,7 @@ def crear_usuario_api():
                 sql = """INSERT INTO usuario
                              (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas)
                              VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-                
+
                 # LA TUPLA DE VALORES DEBE COINCIDIR CON LA CONSULTA
                 cursor.execute(sql, (username, nombre, contrasena_cifrada, correo, dni, tipo_usuario, 0))
                 conexion.commit()
@@ -1376,96 +1465,8 @@ def crear_usuario_api():
 
     except Exception as e:
         # Imprime el error real en tu terminal de Flask para la depuración
-        print(f"Error al crear usuario (API): {e}") 
+        print(f"Error al crear usuario (API): {e}")
         return jsonify({"success": False, "error": "Ocurrió un error en el sistema."}), 500
-
-# --- RUTA API PARA MODIFICAR USUARIO (EDICIÓN) ---
-# ==============================================================================
-@app.route('/api/usuarios/<int:usuario_id>', methods=['PUT'])
-def modificar_usuario_api(usuario_id):
-    """
-    Ruta API para modificar los datos de un usuario por su ID.
-    Solo permite modificar: nombre, username y vigencia.
-    Requiere que el usuario logueado sea un Gestor ('G').
-    """
-    import sys
-    
-    # 1. Verificar autenticación
-    if 'user_id' not in session:
-        return jsonify({'error': 'No autenticado.'}), 401
-    
-    user_id_logueado = session['user_id']
-    data = request.get_json()
-
-    # 2. Verificar datos mínimos
-    if not data:
-        return jsonify({'error': 'Datos de actualización incompletos.'}), 400
-
-    # Campos requeridos para la actualización
-    nombre = data.get('nombre')
-    username = data.get('username')
-    vigencia = data.get('vigencia') # Recibido como booleano (true/false) o 1/0
-    
-    # Solo requerimos los campos que se van a modificar
-    if nombre is None or username is None or vigencia is None:
-         return jsonify({'error': 'Faltan campos obligatorios para la modificación (nombre, username, vigencia).'}), 400
-
-    # Conversión de vigencia a formato de base de datos (0 o 1)
-    vigencia_db = 1 if vigencia in (True, 1, 'true', '1') else 0
-
-    conexion = obtenerConexion()
-    if not conexion:
-        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
-
-    try:
-        with conexion:
-            with conexion.cursor() as cursor:
-                # 3. Verificar Permiso de Gestor ('G')
-                sql_check_role = "SELECT tipo_usuario FROM usuario WHERE usuario_id=%s"
-                cursor.execute(sql_check_role, (user_id_logueado,))
-                user_role_data = cursor.fetchone()
-
-                if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
-                    return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
-
-                # 4. Restricción de auto-modificación (Opcional, pero buena práctica)
-                # Impedir que un gestor se cambie a sí mismo la vigencia o username
-                if usuario_id == user_id_logueado and vigencia_db == 0:
-                    return jsonify({'error': 'No puedes desactivar tu propia cuenta de Gestor a través de esta interfaz de administración.'}), 403
-                    
-                # 5. Ejecutar la ACTUALIZACIÓN
-                sql_update = """
-                    UPDATE usuario 
-                    SET nombre = %s, username = %s, vigencia = %s
-                    WHERE usuario_id = %s
-                """
-                
-                # Prepara los parámetros para la ejecución
-                params = (nombre, username, vigencia_db, usuario_id)
-                
-                cursor.execute(sql_update, params)
-                filas_afectadas = cursor.rowcount
-                
-                conexion.commit()
-
-                if filas_afectadas == 0:
-                    # Esto podría significar que el ID no existe o no hubo cambios
-                    # Para ser más explícitos, puedes hacer un SELECT previo
-                    return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado o no se realizaron cambios.'}), 404
-                
-                return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} actualizado exitosamente.'}), 200
-
-    except pymysql.err.IntegrityError as e:
-        # 6. Manejar errores de unicidad (ej: username ya existe)
-        error_code = e.args[0]
-        if error_code == 1062: # Código de error para Duplicate entry
-             return jsonify({'error': 'El nombre de usuario o algún otro campo único ya existe.'}), 409
-        print(f"Error de integridad en DB: {e}", file=sys.stderr)
-        return jsonify({'error': 'Error de datos en la base de datos.'}), 400
-
-    except Exception as e:
-        print(f"Error al modificar usuario: {e}", file=sys.stderr)
-        return jsonify({'error': 'Error interno del servidor al actualizar datos.'}), 500
 
 # Ruta para procesar el Login (CON VERIFICACIÓN BCrypt)
 @app.route("/procesarlogin", methods=['POST'])
@@ -1476,7 +1477,7 @@ def procesarlogin():
     if not conexion:
         print("No se pudo conectar a la base de datos (login)")
         return redirect(url_for('frm_error'))
-    
+
     try:
         with conexion:
             with conexion.cursor() as cursor:
@@ -1499,7 +1500,7 @@ def procesarlogin():
                         return render_template('verificar.html', email=correo_val, email_masked=mask_email(correo_val or ''))
 
                     # Login Exitoso
-                    session['user_id'] = result['usuario_id'] 
+                    session['user_id'] = result['usuario_id']
                     return redirect(url_for('frm_home'))
                 else:
                     # Contraseña incorrecta
@@ -1509,7 +1510,7 @@ def procesarlogin():
                 # El correo no existe
                 flash("Credenciales incorrectas. Verifica tu correo y contraseña.", 'error')
                 return redirect(url_for('frm_login'))
-                
+
     except Exception as e:
         print(f"Error en el login: {e}")
         return redirect(url_for('frm_error'))
@@ -1747,7 +1748,7 @@ def listar_cuestionarios(usuario_id):
     conexion = obtenerConexion()
     with conexion.cursor() as cursor:
         cursor.execute("""
-            SELECT c.*, 
+            SELECT c.*,
                    (SELECT COUNT(*) FROM pregunta p WHERE p.cuestionario_id = c.cuestionario_id) AS num_preguntas
             FROM cuestionario c
             WHERE c.usuario_id = %s and estado=1
@@ -1763,7 +1764,7 @@ def listar_cuestionarios_publicos():
     conexion = obtenerConexion()
     with conexion.cursor() as cursor:
         cursor.execute("""
-            SELECT c.*, 
+            SELECT c.*,
                    (SELECT COUNT(*) FROM pregunta p WHERE p.cuestionario_id = c.cuestionario_id) AS num_preguntas
             FROM cuestionario c
             WHERE c.publico = 1 AND c.estado = 1
@@ -1804,16 +1805,10 @@ def crear_cuestionario_completo():
         with conexion:
             with conexion.cursor() as cursor:
                 # --- Subir imagen del cuestionario a Cloudinary si existe ---
-                url_img_cuestionario = data.get("url_img_cuestionario")
-                if url_img_cuestionario:
-                    upload_result = cloudinary.uploader.upload(url_img_cuestionario)
-                    url_img_cuestionario_cloud = upload_result["secure_url"]
-                else:
-                    url_img_cuestionario_cloud = "https://img.freepik.com/vector-premium/imagen-no-es-conjunto-iconos-disponibles-simbolo-vectorial-stock-fotos-faltante-defecto-estilo-relleno-delineado-negro-signo-no-encontro-imagen_268104-6708.jpg"
-
+                url_img_cuestionario_cloud = data.get("url_img_cuestionario") or "https://img.freepik.com/vector-premium/imagen-no-es-conjunto-iconos-disponibles-simbolo-vectorial-stock-fotos-faltante-defecto-estilo-relleno-delineado-negro-signo-no-encontro-imagen_268104-6708.jpg"
                 # Crear el cuestionario
                 sql_cuestionario = """
-                    INSERT INTO cuestionario 
+                    INSERT INTO cuestionario
                     (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """
@@ -1835,11 +1830,7 @@ def crear_cuestionario_completo():
                         VALUES (%s, %s, %s, %s)
                     """
                     # Subir imagen a Cloudinary si existe
-                    if pregunta.get("media_url"):
-                        upload_result = cloudinary.uploader.upload(pregunta["media_url"])
-                        media_url = upload_result["secure_url"]
-                    else:
-                        media_url = None
+                    media_url = pregunta.get("media_url")
 
                     # Insertar pregunta usando la URL de Cloudinary
                     cursor.execute(sql_pregunta, (
@@ -1875,7 +1866,7 @@ def crear_cuestionario_completo():
         conexion.rollback()
         return jsonify({"error": str(e)}), 500
 
-    
+
 
 @app.route("/api/cuestionario_completo/<int:cuestionario_id>", methods=["GET"])
 def obtener_cuestionario_completo(cuestionario_id):
@@ -1890,7 +1881,7 @@ def obtener_cuestionario_completo(cuestionario_id):
         with conexion.cursor() as cursor:
             # --- Obtener cuestionario ---
             sql_cuestionario = """
-                SELECT cuestionario_id, nombre_cuestionario, descripcion, publico, 
+                SELECT cuestionario_id, nombre_cuestionario, descripcion, publico,
                        modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario
                 FROM cuestionario
                 WHERE cuestionario_id = %s
@@ -1957,12 +1948,7 @@ def actualizar_cuestionario_completo(cuestionario_id):
         with conexion:
             with conexion.cursor() as cursor:
                 # --- Subir imagen del cuestionario a Cloudinary si existe ---
-                url_img_cuestionario = data.get("url_img_cuestionario")
-                if url_img_cuestionario:
-                    upload_result = cloudinary.uploader.upload(url_img_cuestionario)
-                    url_img_cuestionario_cloud = upload_result["secure_url"]
-                else:
-                    url_img_cuestionario_cloud = "https://img.freepik.com/vector-premium/imagen-no-es-conjunto-iconos-disponibles-simbolo-vectorial-stock-fotos-faltante-defecto-estilo-relleno-delineado-negro-signo-no-encontro-imagen_268104-6708.jpg"
+                url_img_cuestionario_cloud = data.get("url_img_cuestionario") or "https://img.freepik.com/vector-premium/imagen-no-es-conjunto-iconos-disponibles-simbolo-vectorial-stock-fotos-faltante-defecto-estilo-relleno-delineado-negro-signo-no-encontro-imagen_268104-6708.jpg"
 
                 # --- Actualizar datos generales del cuestionario ---
                 sql_update_cuestionario = """
@@ -1992,11 +1978,7 @@ def actualizar_cuestionario_completo(cuestionario_id):
                 # --- Insertar nuevas preguntas y respuestas ---
                 for pregunta in data["preguntas"]:
                     # Subir imagen de la pregunta si existe
-                    if pregunta.get("media_url"):
-                        upload_result = cloudinary.uploader.upload(pregunta["media_url"])
-                        media_url = upload_result["secure_url"]
-                    else:
-                        media_url = None
+                    media_url = pregunta.get("media_url")
 
                     sql_insert_pregunta = """
                         INSERT INTO pregunta (texto_pregunta, media_url, tiempo_limite, cuestionario_id)
