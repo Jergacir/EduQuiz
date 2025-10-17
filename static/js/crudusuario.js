@@ -519,6 +519,82 @@ async function manejarGuardarGestion(event) {
     }
 }
 
+
+// =========================================================
+// NUEVA FUNCIÓN PARA CONFIRMACIÓN
+// =========================================================
+/**
+ * Pide confirmación y, si es afirmativa, llama a la función asíncrona 
+ * que maneja la baja por API (fetch DELETE).
+ */
+function confirmarYManejarBaja() {
+    const username = datosUsuarioLogueado.username || "este usuario";
+    
+    const mensaje = `¿Estás ABSOLUTAMENTE SEGURO de que quieres dar de BAJA tu cuenta (${username})? Esta acción la marcará como 'No Vigente' y te desconectará del sistema.`;
+    
+    if (window.confirm(mensaje)) {
+        // Si el usuario confirma, llamamos a la función asíncrona de la API
+        manejarDarDeBajaPropia(); 
+    } else {
+        console.log("Acción de baja de cuenta cancelada por el usuario.");
+    }
+}
+
+
+/**
+ * Función para Dar de Baja (Inactivar) la cuenta propia usando la API DELETE.
+ * (La copio de tu código original para referencia, verifica que esté allí)
+ */
+// =========================================================
+// Función Asíncrona (CORREGIDA)
+// =========================================================
+async function manejarDarDeBajaPropia() {
+    const usuarioId = datosUsuarioLogueado.usuario_id;
+
+    if (!usuarioId) {
+        alert("Error: No se encontró el ID del usuario logueado para dar de baja.");
+        return;
+    }
+
+    try {
+        // Llama a la ruta de Flask /baja_cuenta con método POST
+        const response = await fetch(`/baja_cuenta`, {
+            method: 'POST',
+            // Correcto: no se envían headers JSON.
+        });
+
+        // Correcto: se elimina el parsing de JSON.
+
+        if (response.redirected) {
+            console.log("Baja exitosa. El servidor está redirigiendo para cerrar sesión.");
+            
+            // 🔑 CLAVE: Forzar la navegación del navegador a la ruta de logout
+            // que es el destino final de la redirección de Flask.
+            window.location.href = '/logout'; 
+            
+            return;
+        } 
+        
+        // Si no hay redirección (Flask retorna a 'crud_usuarios'):
+        if (!response.ok) {
+            // Manejo de errores de red o servidor no cubiertos.
+            console.error(`Respuesta del servidor no exitosa: ${response.status}`);
+            alert('Ocurrió un error al procesar la baja de la cuenta. Revisa los mensajes en pantalla.');
+        } else {
+            // Caso donde la cuenta ya estaba inactiva (Flask redirigió a crud_usuarios con un 'flash')
+            alert("El proceso de baja ha terminado. Revisa si hay mensajes de estado en la página.");
+        }
+
+
+    } catch (error) {
+        console.error('Error durante la inactivación de la cuenta:', error.message);
+        alert('Ocurrió un error de red o interno al intentar dar de baja la cuenta.');
+    }
+}
+
+// Llama a esta función al cargar los datos del perfil si no usas el hidden input en el formulario.
+// Si usas el hidden input como en la sección 1, solo la función `confirmarBaja()` es necesaria.
+
 /**
  * Inicializa los listeners de eventos al cargar el DOM.
  */
