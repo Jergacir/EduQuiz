@@ -29,7 +29,7 @@ bcrypt = Bcrypt(app) # Inicializar Bcrypt con tu aplicación Flask
 def obtenerConexion():
     try:
         connection = pymysql.connect(host='localhost',
-                                     port=3306, 
+                                     port=3339, 
                                      user='root',
                                      password='',
                                      database='bd_eduquiz',
@@ -1270,6 +1270,53 @@ def eliminar_usuario_api(usuario_id):
         return jsonify({'error': 'Error interno del servidor al inactivar datos.'}), 500
 
 
+@app.route('/baja_cuenta', methods=['POST'])
+def dar_baja_cuenta():
+    """
+    Ruta para que el usuario logueado marque su propia cuenta como NO VIGENTE (soft delete).
+    Luego, cierra la sesión.
+    """
+    if 'user_id' not in session:
+        # Si no hay sesión, simplemente redirige al login.
+        flash('Debes iniciar sesión para realizar esta acción.', 'error')
+        return redirect(url_for('frm_login'))
+
+    user_id_a_inactivar = session['user_id']
+    conexion = obtenerConexion()
+    
+    if not conexion:
+        flash('Error de conexión a la base de datos. Intente más tarde.', 'error')
+        return redirect(url_for('crud_usuarios')) # O a una página de error
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # 1. Ejecutar la INACTIVACIÓN (Soft Delete)
+                # La consulta usa el ID de la SESIÓN por seguridad.
+                # Se asegura de que solo se actualice si ya está vigente (vigencia = 1).
+                sql_update_vigencia = "UPDATE usuario SET vigencia = 0 WHERE usuario_id=%s AND vigencia = 1"
+                cursor.execute(sql_update_vigencia, (user_id_a_inactivar,))
+                filas_afectadas = cursor.rowcount
+                conexion.commit()
+
+                if filas_afectadas == 0:
+                    flash('Tu cuenta no pudo ser dada de baja. Es posible que ya esté inactiva.', 'warning')
+                    return redirect(url_for('crud_usuarios')) 
+                
+        # 2. Baja exitosa. Preparamos el mensaje y cerramos la sesión.
+        flash('Tu cuenta ha sido dada de baja exitosamente. ¡Lamentamos verte partir!', 'success')
+        
+        # 3. Ejecutar el logout para limpiar la sesión y redirigir a la página de login
+        # Asegúrate de que tu función 'logout' retorne un redirect de Flask.
+        return logout() 
+        
+    except Exception as e:
+        import sys
+        print(f"Error al dar de baja la propia cuenta: {e}", file=sys.stderr)
+        flash('Ocurrió un error interno al procesar la baja de la cuenta.', 'error')
+        return redirect(url_for('crud_usuarios'))
+
+
 # --- NUEVA RUTA API PARA ACTIVAR USUARIO (DAR DE ALTA) ---
 @app.route('/api/usuarios/<int:usuario_id>/activar', methods=['PUT'])
 def activar_usuario_api(usuario_id):
@@ -1491,12 +1538,13 @@ def crear_usuario_api():
         print(f"Error al crear usuario (API): {e}")
         return jsonify({"success": False, "error": "Ocurrió un error en el sistema."}), 500
 
-# Ruta para procesar el Login (CON VERIFICACIÓN BCrypt)
+# Ruta para procesar el Login (CON VERIFICACIÓN BCrypt y VIGENCIA)
 @app.route("/procesarlogin", methods=['POST'])
 def procesarlogin():
     correo = request.form['correo']
     contrasena_plana = request.form['contrasena'] # Contraseña en texto plano
     conexion = obtenerConexion()
+    
     if not conexion:
         print("No se pudo conectar a la base de datos (login)")
         return redirect(url_for('frm_error'))
@@ -1504,8 +1552,8 @@ def procesarlogin():
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                # Buscamos por correo y traemos la contraseña cifrada y el estado de verificación
-                sql = "SELECT `usuario_id`, `contrasena`, `verificado`, `correo` FROM `usuario` WHERE `correo`=%s"
+                # 🔑 CAMBIO CLAVE: Solicitamos también el campo `vigencia`
+                sql = "SELECT `usuario_id`, `contrasena`, `verificado`, `correo`, `vigencia` FROM `usuario` WHERE `correo`=%s"
                 cursor.execute(sql, (correo,))
                 result = cursor.fetchone()
 
@@ -1513,18 +1561,27 @@ def procesarlogin():
             if result:
                 hashed_password = result['contrasena']
                 verificado = result.get('verificado', 0)
+                vigencia = result.get('vigencia', 0) # 🔑 Obtenemos el estado de vigencia (1=Vigente, 0=No Vigente)
 
-                # Usar check_password_hash para comparar la plana (usuario) con la cifrada (DB)
+                # 1. Verificar la contraseña
                 if bcrypt.check_password_hash(hashed_password, contrasena_plana):
+                    
+                    # 🔑 2. VERIFICAR VIGENCIA
+                    if vigencia == 0:
+                        flash('Tu cuenta ha sido dada de baja o se encuentra inactiva. Contacta con soporte.', 'error')
+                        return redirect(url_for('frm_login'))
+                        
+                    # 3. Verificar si necesita activación por correo
                     if verificado == 0:
                         # Cuenta no verificada: pedir código
                         flash('Tu cuenta aún no está verificada. Ingresa el código enviado a tu correo.', 'warning')
                         correo_val = result.get('correo')
                         return render_template('verificar.html', email=correo_val, email_masked=mask_email(correo_val or ''))
 
-                    # Login Exitoso
+                    # 4. Login Exitoso (Contraseña correcta, Vigente y Verificado)
                     session['user_id'] = result['usuario_id']
                     return redirect(url_for('frm_home'))
+                    
                 else:
                     # Contraseña incorrecta
                     flash("Credenciales incorrectas. Verifica tu correo y contraseña.", 'error')
