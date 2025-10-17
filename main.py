@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import pymysql.cursors
 from functools import wraps
-from flask_bcrypt import Bcrypt 
-import sys 
+from flask_bcrypt import Bcrypt
+import sys
 from dotenv import load_dotenv
 import os
 import random
@@ -14,6 +14,7 @@ import cloudinary
 import secrets
 import hashlib
 from datetime import datetime, timedelta
+import string
 
 load_dotenv()
 
@@ -171,7 +172,7 @@ def send_password_reset_email(to_email: str, token: str):
         reset_link = f"{base}/restablecer?token={token}" if base else f"/restablecer?token={token}"
 
     text_body = (
-        f"Hola,\n\n" 
+        f"Hola,\n\n"
         f"Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Si no la solicitaste, ignora este correo.\n\n"
         f"Para restablecer tu contraseña, abre el siguiente enlace (válido por 1 hora):\n{reset_link}\n\n"
         f"Si no solicitaste este cambio, puedes ignorar este correo.\n\nSaludos,\nEquipo EduQuiz"
@@ -235,8 +236,8 @@ def solicitar_restablecer():
                 user = cursor.fetchone()
                 if not user:
                     # No revelar que el email no existe — comportarse como si se envió
-                        flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'info')
-                        return redirect(url_for('frm_login'))
+                    flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'reset_info')
+                    return render_template('solicitar_restablecer.html')
 
                 usuario_id = user['usuario_id']
                 # Generar token y guardarlo hasheado
@@ -254,13 +255,12 @@ def solicitar_restablecer():
                 # Enviar email
                 try:
                     send_password_reset_email(email, token)
+                    flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'reset_info')
+                    return render_template('solicitar_restablecer.html')
                 except Exception as e:
                     print(f"Error enviando email de restablecimiento: {e}")
-                    flash('No se pudo enviar el correo de restablecimiento. Contacta al administrador.', 'warning')
-                    return redirect(url_for('frm_login'))
-
-                flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'info')
-                return redirect(url_for('frm_login'))
+                    flash('No se pudo enviar el correo de restablecimiento. Contacta al administrador.', 'reset_warning')
+                    return render_template('solicitar_restablecer.html')
 
     except Exception as e:
         print(f"Error en solicitar_restablecer: {e}")
@@ -364,9 +364,9 @@ def restablecer_post():
 
 def obtener_datos_usuario_logueado(usuario_id):
     """
-    Obtiene todos los datos no sensibles del usuario actualmente logueado 
+    Obtiene todos los datos no sensibles del usuario actualmente logueado
     utilizando su ID de sesión.
-    
+
     :param usuario_id: El ID del usuario almacenado en la sesión de Flask.
     :return: Un diccionario con los datos del usuario o None si no se encuentra.
     """
@@ -379,15 +379,15 @@ def obtener_datos_usuario_logueado(usuario_id):
             with conexion.cursor() as cursor:
                 # 🔑 CLAVE: La consulta es por un único ID usando el WHERE.
                 sql = """
-                    SELECT usuario_id, username, nombre, correo, tipo_usuario, 
-                           cant_monedas, dni, vigencia 
+                    SELECT usuario_id, username, nombre, correo, tipo_usuario,
+                           cant_monedas, dni, vigencia
                     FROM usuario
                     WHERE usuario_id = %s
                 """
                 # IMPORTANTE: Usar %s y una tupla para evitar inyección SQL
-                cursor.execute(sql, (usuario_id,)) 
+                cursor.execute(sql, (usuario_id,))
                 usuario = cursor.fetchone()  # Solo se necesita un registro
-                
+
                 if usuario:
                     # Mapear el resultado de la base de datos a un diccionario
                     user_dict = {
@@ -399,7 +399,7 @@ def obtener_datos_usuario_logueado(usuario_id):
                         'cant_monedas': usuario.get('cant_monedas'),
                         'dni': usuario.get('dni'),
                         # Convertir 1/0 de la BD a booleano de Python
-                        'vigencia': bool(usuario.get('vigencia')), 
+                        'vigencia': bool(usuario.get('vigencia')),
                     }
                     return user_dict
                 else:
@@ -421,9 +421,9 @@ def api_obtener_perfil():
         return jsonify({"error": "No autenticado"}), 401
 
     user_id = session['user_id']
-    
+
     # 2. Obtener datos con la función existente
-    datos_usuario = obtener_datos_usuario_logueado(user_id) 
+    datos_usuario = obtener_datos_usuario_logueado(user_id)
 
     if not datos_usuario:
         # Devuelve un 404 si el usuario no existe (aunque esté logueado)
@@ -564,6 +564,88 @@ def inject_user_data():
 
     # Si el usuario no ha iniciado sesión, retorna vacío
     return {}
+
+# --- RUTA DE RESULTADOS DE PARTIDA (PROFESOR) ---
+@app.route('/resultados_partida/<int:partida_id>')
+@login_required
+@profesor_required
+def frm_resultados_partida(partida_id):
+    # Lógica: Consultar la base de datos usando partida_id para obtener:
+    # 1. Información general de la partida (nombre, fecha).
+    # 2. Lista de jugadores y sus puntajes/respuestas.
+
+    # Datos de ejemplo (sustituir por la consulta a la DB)
+    partida_info = {
+        'nombre_cuestionario': 'Historia de México',
+        'fecha': '2020-10-15',
+        'jugadores_totales': 35,
+        'modalidad': 'Individual',
+        'cuestionario_id': 5,
+        # Añade estas variables de análisis para el wireframe
+        'acierto_promedio': '75%',
+        'tiempo_promedio': '25 min',
+        'participacion': '92%',
+    }
+
+    # IMPORTANTE: Se añadió 'avatar_url' a los datos de ejemplo
+    resultados_jugadores = [
+        {'nombre': 'Carlos M.', 'puntaje': 9500, 'avatar_url': '/static/img/avatar.jpeg'},
+        {'nombre': 'Ana G.', 'puntaje': 8000, 'avatar_url': '/static/img/avatar.jpeg'},
+        {'nombre': 'Luis R.', 'puntaje': 7500, 'avatar_url': '/static/img/avatar.jpeg'},
+        {'nombre': 'Javier L.', 'puntaje': 6200, 'avatar_url': '/static/img/avatar.jpeg'},
+        {'nombre': 'Maria C.', 'puntaje': 5800, 'avatar_url': '/static/img/avatar.jpeg'},
+        {'nombre': 'Sofía P.', 'puntaje': 5000, 'avatar_url': '/static/img/avatar.jpeg'},
+    ]
+
+    # Opcional: Ordenar los resultados por puntaje (descendente)
+    # resultados_jugadores.sort(key=lambda x: x['puntaje'], reverse=True)
+
+    return render_template(
+        'resultados_partida.html',
+        partida_info=partida_info,
+        resultados=resultados_jugadores,
+        partida_id=partida_id
+    )
+
+@app.route('/exportar_resultados/<int:partida_id>')
+@login_required
+@profesor_required
+def frm_exportar_resultados(partida_id):
+    # Esto es solo para mostrar el nombre del cuestionario en la cabecera
+    # En un caso real, harías una consulta a la DB
+    partida_info = {
+        'nombre_cuestionario': 'Cuestionario de Historia de México',
+        'partida_id': partida_id
+    }
+
+    return render_template(
+        'exportar_resultados.html',
+        partida_id=partida_id,
+        partida_info=partida_info
+    )
+
+# RUTA PARA EL PROCESO DE EXPORTACIÓN REAL (API)
+@app.route('/api/exportar_partida/<int:partida_id>', methods=['POST'])
+@login_required
+@profesor_required
+def api_exportar_partida(partida_id):
+    data = request.json
+    formato = data.get('formato')
+    campos = data.get('campos') # Lista de campos seleccionados
+
+    # --- Lógica de Exportación Real ---
+    # 1. Obtener los datos de la partida y los campos seleccionados de la DB.
+    # 2. Formatear los datos según el `formato` (CSV, Excel, PDF).
+    # 3. Devolver la respuesta adecuada (por ejemplo, un archivo binario o un enlace de descarga).
+
+    # Placeholder: En una implementación real, esto devolvería el archivo.
+    print(f"Exportando partida #{partida_id} a {formato} con campos: {campos}")
+
+    return jsonify({
+        "status": "success",
+        "mensaje": f"Exportación a {formato} iniciada. Se descargará pronto.",
+        "download_url": "#" # Enlace de descarga real
+    }), 200
 
 # --- RUTAS DE NAVEGACIÓN ---
 
@@ -1536,6 +1618,57 @@ def activar_usuario_api(usuario_id):
         print(f"Error al activar usuario: {e}", file=sys.stderr)
         return jsonify({'error': 'Error interno del servidor al activar datos.'}), 500
 
+
+
+@app.route('/baja_cuenta', methods=['POST'])
+def dar_baja_cuenta():
+    """
+    Ruta para que el usuario logueado marque su propia cuenta como NO VIGENTE (soft delete).
+    Luego, cierra la sesión.
+    """
+    if 'user_id' not in session:
+        # Si no hay sesión, simplemente redirige al login.
+        flash('Debes iniciar sesión para realizar esta acción.', 'error')
+        return redirect(url_for('frm_login'))
+
+    user_id_a_inactivar = session['user_id']
+    conexion = obtenerConexion()
+
+    if not conexion:
+        flash('Error de conexión a la base de datos. Intente más tarde.', 'error')
+        return redirect(url_for('crud_usuarios')) # O a una página de error
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # 1. Ejecutar la INACTIVACIÓN (Soft Delete)
+                # La consulta usa el ID de la SESIÓN por seguridad.
+                # Se asegura de que solo se actualice si ya está vigente (vigencia = 1).
+                sql_update_vigencia = "UPDATE usuario SET vigencia = 0 WHERE usuario_id=%s AND vigencia = 1"
+                cursor.execute(sql_update_vigencia, (user_id_a_inactivar,))
+                filas_afectadas = cursor.rowcount
+                conexion.commit()
+
+                if filas_afectadas == 0:
+                    flash('Tu cuenta no pudo ser dada de baja. Es posible que ya esté inactiva.', 'warning')
+                    return redirect(url_for('crud_usuarios'))
+
+        # 2. Baja exitosa. Preparamos el mensaje y cerramos la sesión.
+        flash('Tu cuenta ha sido dada de baja exitosamente. ¡Lamentamos verte partir!', 'success')
+
+        # 3. Ejecutar el logout para limpiar la sesión y redirigir a la página de login
+        # Asegúrate de que tu función 'logout' retorne un redirect de Flask.
+        return logout()
+
+    except Exception as e:
+        import sys
+        print(f"Error al dar de baja la propia cuenta: {e}", file=sys.stderr)
+        flash('Ocurrió un error interno al procesar la baja de la cuenta.', 'error')
+        return redirect(url_for('crud_usuarios'))
+
+
+
+
 # --- RUTA API PARA MODIFICAR USUARIO (EDICIÓN) ---
 # ==============================================================================
 @app.route('/api/usuarios/<int:usuario_id>', methods=['PUT'])
@@ -1702,12 +1835,14 @@ def crear_usuario_api():
         print(f"Error al crear usuario (API): {e}")
         return jsonify({"success": False, "error": "Ocurrió un error en el sistema."}), 500
 
-# Ruta para procesar el Login (CON VERIFICACIÓN BCrypt)
+
+# Ruta para procesar el Login (CON VERIFICACIÓN BCrypt y VIGENCIA)
 @app.route("/procesarlogin", methods=['POST'])
 def procesarlogin():
     correo = request.form['correo']
     contrasena_plana = request.form['contrasena'] # Contraseña en texto plano
     conexion = obtenerConexion()
+
     if not conexion:
         print("No se pudo conectar a la base de datos (login)")
         return redirect(url_for('frm_error'))
@@ -1715,8 +1850,8 @@ def procesarlogin():
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                # Buscamos por correo y traemos la contraseña cifrada y el estado de verificación
-                sql = "SELECT `usuario_id`, `contrasena`, `verificado`, `correo` FROM `usuario` WHERE `correo`=%s"
+                # 🔑 CAMBIO CLAVE: Solicitamos también el campo `vigencia`
+                sql = "SELECT `usuario_id`, `contrasena`, `verificado`, `correo`, `vigencia` FROM `usuario` WHERE `correo`=%s"
                 cursor.execute(sql, (correo,))
                 result = cursor.fetchone()
 
@@ -1724,18 +1859,27 @@ def procesarlogin():
             if result:
                 hashed_password = result['contrasena']
                 verificado = result.get('verificado', 0)
+                vigencia = result.get('vigencia', 0) # 🔑 Obtenemos el estado de vigencia (1=Vigente, 0=No Vigente)
 
-                # Usar check_password_hash para comparar la plana (usuario) con la cifrada (DB)
+                # 1. Verificar la contraseña
                 if bcrypt.check_password_hash(hashed_password, contrasena_plana):
+
+                    # 🔑 2. VERIFICAR VIGENCIA
+                    if vigencia == 0:
+                        flash('Tu cuenta ha sido dada de baja o se encuentra inactiva. Contacta con soporte.', 'error')
+                        return redirect(url_for('frm_login'))
+
+                    # 3. Verificar si necesita activación por correo
                     if verificado == 0:
                         # Cuenta no verificada: pedir código
                         flash('Tu cuenta aún no está verificada. Ingresa el código enviado a tu correo.', 'warning')
                         correo_val = result.get('correo')
                         return render_template('verificar.html', email=correo_val, email_masked=mask_email(correo_val or ''))
 
-                    # Login Exitoso
+                    # 4. Login Exitoso (Contraseña correcta, Vigente y Verificado)
                     session['user_id'] = result['usuario_id']
                     return redirect(url_for('frm_home'))
+
                 else:
                     # Contraseña incorrecta
                     flash("Credenciales incorrectas. Verifica tu correo y contraseña.", 'error')
@@ -1748,13 +1892,6 @@ def procesarlogin():
     except Exception as e:
         print(f"Error en el login: {e}")
         return redirect(url_for('frm_error'))
-
-@app.route('/verificar', methods=['GET'])
-def frm_verificar():
-    # Muestra el formulario para que el usuario ingrese el código de verificación.
-    email = request.args.get('email')
-    return render_template('verificar.html', email=email, email_masked=mask_email(email or ''))
-
 
 
 @app.route('/procesar_verificacion', methods=['POST'])
@@ -2017,6 +2154,14 @@ def eliminar_cuestionario(cuestionario_id):
         conexion.commit()
     return jsonify({'status': 'ok', 'mensaje': 'Cuestionario eliminado lógicamente'})
 
+def generar_codigo_unico(cursor):
+    """Genera un código aleatorio de 6 letras no repetido en la base de datos."""
+    while True:
+        codigo = ''.join(random.choices(string.ascii_uppercase, k=6))
+        cursor.execute("SELECT 1 FROM cuestionario WHERE codigo_visualizacion = %s", (codigo,))
+        if cursor.fetchone() is None:
+            return codigo
+
 
 #---Esto lo usaremos en el crear cuestionario---
 @app.route("/api/cuestionario_completo", methods=["POST"])
@@ -2038,13 +2183,17 @@ def crear_cuestionario_completo():
     try:
         with conexion:
             with conexion.cursor() as cursor:
+
+                # --- Generar código de visualización único ---
+                codigo_visualizacion = generar_codigo_unico(cursor)
+
                 # --- Subir imagen del cuestionario a Cloudinary si existe ---
                 url_img_cuestionario_cloud = data.get("url_img_cuestionario") or "https://img.freepik.com/vector-premium/imagen-no-es-conjunto-iconos-disponibles-simbolo-vectorial-stock-fotos-faltante-defecto-estilo-relleno-delineado-negro-signo-no-encontro-imagen_268104-6708.jpg"
-                # Crear el cuestionario
+                # --- Crear el cuestionario ---
                 sql_cuestionario = """
                     INSERT INTO cuestionario
-                    (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario, codigo_visualizacion)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 cursor.execute(sql_cuestionario, (
                     data.get("nombre_cuestionario"),
@@ -2053,7 +2202,8 @@ def crear_cuestionario_completo():
                     data.get("modo_juego", "C"),
                     data.get("tiempo_limite_pregunta", 30),
                     data.get("usuario_id"),
-                    url_img_cuestionario_cloud
+                    url_img_cuestionario_cloud,
+                    codigo_visualizacion
                 ))
                 cuestionario_id = cursor.lastrowid
 
@@ -2092,7 +2242,8 @@ def crear_cuestionario_completo():
 
         return jsonify({
             "mensaje": "Cuestionario completo creado exitosamente",
-            "cuestionario_id": cuestionario_id
+            "cuestionario_id": cuestionario_id,
+            "codigo_visualizacion": codigo_visualizacion
         }), 201
 
     except Exception as e:
@@ -2116,7 +2267,7 @@ def obtener_cuestionario_completo(cuestionario_id):
             # --- Obtener cuestionario ---
             sql_cuestionario = """
                 SELECT cuestionario_id, nombre_cuestionario, descripcion, publico,
-                       modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario
+                       modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario, codigo_visualizacion
                 FROM cuestionario
                 WHERE cuestionario_id = %s
             """
@@ -2246,9 +2397,63 @@ def actualizar_cuestionario_completo(cuestionario_id):
         conexion.rollback()
         return jsonify({"error": str(e)}), 500
 
+@app.route("/verificar_codigo/<int:cuestionario_id>", methods=["POST"])
+def verificar_codigo(cuestionario_id):
+    """
+    Verifica si el código de visualización ingresado por el alumno
+    coincide con el del cuestionario.
+    """
+    conexion = obtenerConexion()
+    if not conexion:
+        return jsonify({"valido": False, "mensaje": "No se pudo conectar a la base de datos"}), 500
+
+    try:
+        data = request.get_json()
+        codigo_ingresado = (data.get("codigo") or "").strip()
+
+        if not codigo_ingresado:
+            return jsonify({"valido": False, "mensaje": "Código vacío"}), 400
+
+        with conexion.cursor() as cursor:
+            # --- Obtener el código real del cuestionario ---
+            sql = """
+                SELECT codigo_visualizacion
+                FROM cuestionario
+                WHERE cuestionario_id = %s AND estado = 1
+            """
+            cursor.execute(sql, (cuestionario_id,))
+            resultado = cursor.fetchone()
+
+            if not resultado:
+                return jsonify({"valido": False, "mensaje": "Cuestionario no encontrado"}), 404
+
+            codigo_real = resultado["codigo_visualizacion"]
+
+            # --- Comparar códigos ---
+            if codigo_real == codigo_ingresado:
+                return jsonify({"valido": True}), 200
+            else:
+                return jsonify({"valido": False, "mensaje": "Código incorrecto"}), 200
+
+    except Exception as e:
+        print("Error al verificar código:", e)
+        return jsonify({"valido": False, "mensaje": "Error interno del servidor"}), 500
+
+    finally:
+        conexion.close()
+
 
 @app.route("/editar_cuestionario/<int:cuestionario_id>")
 @login_required
 def frm_edicioncuestionario(cuestionario_id):
     # Solo pasamos cuestionario_id; logged_in_user ya estará disponible en el template
     return render_template('editarcuestionario.html', cuestionario_id=cuestionario_id)
+
+@app.route("/ver_cuestionario/<int:cuestionario_id>")
+@login_required
+def frm_ver_cuestionario(cuestionario_id):
+    # Aquí podrías cargar los datos del cuestionario desde la base de datos
+    # Por ejemplo:
+    # cuestionario = obtener_cuestionario(cuestionario_id)
+
+    return render_template('visualizarCuestionario.html', cuestionario_id=cuestionario_id)

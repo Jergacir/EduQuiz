@@ -239,7 +239,8 @@ h1 {
 
 .rg-modal-box {
     background: #fff;
-    border: 2px solid red;
+    /* neutral border to avoid error-like appearance */
+    border: 1px solid rgba(0,0,0,0.08);
     padding: 20px;
     border-radius: 8px;
     max-width: 520px;

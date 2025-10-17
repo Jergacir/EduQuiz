@@ -30,5 +30,34 @@
       </div>
     </div>
   </div>
+  <script src="{{ url_for('static', filename='js/ui_modal.js') }}"></script>
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}
+    <div class="flash-msg" data-cat="{{ cat }}" data-msg="{{ msg|e }}" style="display:none"></div>
+  {% endfor %}
+  <div id="login-url" data-url="{{ url_for('frm_login') }}" style="display:none"></div>
+  <script>
+    (function(){
+      try {
+        var nodes = document.querySelectorAll('.flash-msg');
+        for (var i=0;i<nodes.length;i++){
+          var n = nodes[i];
+          var cat = n.getAttribute('data-cat');
+          var msg = n.getAttribute('data-msg');
+          if (cat === 'reset_info'){
+            var loginEl = document.getElementById('login-url');
+            var loginUrl = loginEl ? loginEl.getAttribute('data-url') : '/login';
+            if (typeof showModal === 'function') showModal('Enviado', msg, { onClose: function(){ window.location.href = loginUrl; } });
+            else { alert(msg); window.location.href = loginUrl; }
+            break;
+          }
+          if (cat === 'reset_warning'){
+            if (typeof showModal === 'function') showModal('Advertencia', msg);
+            else alert(msg);
+            break;
+          }
+        }
+      } catch(e){ console.error(e); }
+    })();
+  </script>
 </body>
 </html>
