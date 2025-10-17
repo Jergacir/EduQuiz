@@ -502,3 +502,39 @@ hr {
 .quiz-card .btn-visualize:hover {
     background-color: #1d4ed8; /* Azul más oscuro al pasar el mouse */
 }
+
+.quiz-code {
+    margin-top: 6px;
+    font-size: 0.9em;
+    color: #2563eb; /* azul */
+    background-color: #eef2ff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.code-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 1em 0;
+}
+
+.code-box {
+  width: 35px;
+  height: 40px;
+  font-size: 1.3em;
+  text-align: center;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+}
+
+.code-box:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+.error-text {
+  color: #e74c3c;
+  margin-top: 0.5em;
+}

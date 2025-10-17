@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuestionarios - EduQuiz</title>
+    <link rel="stylesheet" href="../static/css/home.css">
+    <link rel="stylesheet" href="../static/css/visualizarcuestionario.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+
+</head>
+
+<body data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="/static/img/logo.png" alt="EduQuiz Logo">
+            EduQuiz
+        </div>
+        <nav class="nav-menu">
+            <a href="{{ url_for('frm_home') }}" class="nav-item">
+                <i class="icon-inicio"></i> Inicio
+            </a>
+            <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item active">
+                <i class="icon-cuestionarios"></i> Cuestionarios
+            </a>
+            <a href="" class="nav-item">
+                <i class="icon-tienda"></i> Tienda
+            </a>
+            <a href="{{ url_for('frm_partidas') }}" class="nav-item">
+                <i class="icon-partida"></i> Unirme a una partida
+            </a>
+            <hr>
+            <a href="" class="nav-item">
+                <i class="icon-configuracion"></i> Configuración
+            </a>
+            <a href="" class="nav-item">
+                <i class="icon-cerrar-sesion"></i> Cerrar Sesión
+            </a>
+        </nav>
+    </aside>
+
+    <div class="main-container">
+
+        <header class="top-header">
+            <div class="search-bar">
+                <input type="text" placeholder="Buscar cuestionarios">
+                <i class="icon-search"></i>
+            </div>
+
+            <div class="user-profile-widget">
+                <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
+                <a href="" class="profile-link">
+                    <img src="/static/img/avatar.png" alt="Avatar" class="avatar">
+                    <span class="username">Mi Perfil</span>
+                </a>
+            </div>
+        </header>
+
+        <main class="content-area">
+
+            <h1 class="page-title">Visualizar cuestionario</h1>
+
+            <div class="quiz-view-header">
+                <div class="quiz-image-placeholder">
+                    <i class="fas fa-image"></i>
+                </div>
+                <div class="quiz-details">
+                    <input type="text" class="quiz-title-input" value="Título del cuestionario" readonly>
+                    <textarea class="quiz-description-input" rows="3" readonly>Descripción del cuestionario</textarea>
+                </div>
+                <div class="quiz-actions">
+                    
+                    <button class="btn-play">
+                        Jugar en solitario <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <div class="view-options">
+                        <button class="btn-view-option active"><i class="fas fa-th-large"></i></button>
+                        <button class="btn-view-option"><i class="fas fa-list"></i></button>
+                        <button class="btn-view-option"><i class="fas fa-arrows-alt-h"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="section-title">Preguntas (<span id="question-count">Cantidad</span>)</h2>
+
+            <div class="questions-grid">
+                <div class="question-card">
+                    <h3 class="question-number">Pregunta 01</h3>
+                    <div class="question-content-placeholder">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div class="answer-options">
+                        <button class="answer-btn correct">Respuesta 1</button>
+                        <button class="answer-btn incorrect">Respuesta 2</button>
+                        <button class="answer-btn incorrect">Respuesta 3</button>
+                        <button class="answer-btn incorrect">Respuesta 4</button>
+                    </div>
+                </div>
+
+                <div class="question-card">
+                    <h3 class="question-number">Pregunta 02</h3>
+                    <div class="question-content-placeholder">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div class="answer-options">
+                        <button class="answer-btn incorrect">Respuesta 1</button>
+                        <button class="answer-btn correct">Respuesta 2</button>
+                        <button class="answer-btn incorrect">Respuesta 3</button>
+                        <button class="answer-btn incorrect">Respuesta 4</button>
+                    </div>
+                </div>
+
+                <div class="question-card">
+                    <h3 class="question-number">Pregunta 03</h3>
+                    <div class="question-content-placeholder">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div class="answer-options">
+                        <button class="answer-btn incorrect">Respuesta 1</button>
+                        <button class="answer-btn incorrect">Respuesta 2</button>
+                        <button class="answer-btn correct">Respuesta 3</button>
+                        <button class="answer-btn incorrect">Respuesta 4</button>
+                    </div>
+                </div>
+
+                <div class="question-card">
+                    <h3 class="question-number">Pregunta 04</h3>
+                    <div class="question-content-placeholder">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div class="answer-options">
+                        <button class="answer-btn incorrect">Respuesta 1</button>
+                        <button class="answer-btn incorrect">Respuesta 2</button>
+                        <button class="answer-btn incorrect">Respuesta 3</button>
+                        <button class="answer-btn correct">Respuesta 4</button>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <script src="../static/js/visualizarcuestonario.js"> </script>
+
+</body>
+
+</html>

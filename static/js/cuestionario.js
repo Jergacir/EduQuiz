@@ -383,10 +383,37 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
 
             if (response.ok) {
-                alert(`✅ Cuestionario "${cuestionarioData.nombre_cuestionario}" guardado correctamente.`);
                 console.log("Respuesta del servidor:", data);
+
+                // Mostrar modal con el código generado
+                const codigoModal = document.getElementById("codigoModal");
+                const codigoGenerado = document.getElementById("codigoGenerado");
+                const copiarCodigoBtn = document.getElementById("copiarCodigoBtn");
+                const cerrarCodigoBtn = document.getElementById("cerrarCodigoBtn");
+
+                // Insertar el código del backend en el modal
+                codigoGenerado.textContent = data.codigo_visualizacion || "ERROR";
+
+                // Mostrar modal
+                codigoModal.classList.remove("hidden");
+
+                // Copiar código
+                copiarCodigoBtn.onclick = () => {
+                    navigator.clipboard.writeText(data.codigo_visualizacion)
+                        .then(() => {
+                            copiarCodigoBtn.textContent = "✅ Copiado";
+                            setTimeout(() => copiarCodigoBtn.textContent = "Copiar código", 2000);
+                        });
+                };
+
+                // Cerrar modal
+                cerrarCodigoBtn.onclick = () => {
+                    codigoModal.classList.add("hidden");
+                    // Redirigir luego de cerrar (opcional)
+                    window.location.href = "/cuestionario";
+                };
+
                 cambiosPendientes = false;
-                window.location.href = "/cuestionario";
             } else {
                 console.error("Error del servidor:", data);
                 alert("❌ Error al guardar el cuestionario.");

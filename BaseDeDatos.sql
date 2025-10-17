@@ -125,6 +125,8 @@ CREATE TABLE `cuestionario` (
 
 ALTER TABLE `cuestionario`
 ADD COLUMN `estado` BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE `cuestionario`
+ADD COLUMN `codigo_visualizacion` VARCHAR(8) UNIQUE;
 
 -- 3. TABLA PREGUNTA
 CREATE TABLE `pregunta` (

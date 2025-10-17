@@ -97,16 +97,39 @@
     </div>
 
     <!-- MODAL DE CONFIRMACIÓN -->
-<div id="confirmDeleteModal" class="modal hidden">
-    <div class="modal-content">
-        <h3>¿Eliminar cuestionario?</h3>
-        <p>Esta acción lo eliminará lógicamente del sistema. ¿Deseas continuar?</p>
-        <div class="modal-buttons">
-            <button id="cancelDelete" class="btn-cancel">Cancelar</button>
-            <button id="confirmDelete" class="btn-confirm">Eliminar</button>
+    <div id="confirmDeleteModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>¿Eliminar cuestionario?</h3>
+            <p>Esta acción lo eliminará lógicamente del sistema. ¿Deseas continuar?</p>
+            <div class="modal-buttons">
+                <button id="cancelDelete" class="btn-cancel">Cancelar</button>
+                <button id="confirmDelete" class="btn-confirm">Eliminar</button>
+            </div>
         </div>
     </div>
-</div>
+    <!-- MODAL DE CÓDIGO DE VISUALIZACIÓN -->
+    <div id="visualizarModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Ingresar código de visualización</h3>
+            <p>Introduce los 6 dígitos del código para ver el cuestionario:</p>
+
+            <div class="code-inputs">
+                <input type="text" maxlength="1" class="code-box">
+                <input type="text" maxlength="1" class="code-box">
+                <input type="text" maxlength="1" class="code-box">
+                <input type="text" maxlength="1" class="code-box">
+                <input type="text" maxlength="1" class="code-box">
+                <input type="text" maxlength="1" class="code-box">
+            </div>
+
+            <p id="code-error" class="error-text hidden">Código incorrecto. Inténtalo de nuevo.</p>
+
+            <div class="modal-buttons">
+                <button id="cancelCode" class="btn-cancel">Cancelar</button>
+                <button id="verifyCode" class="btn-confirm">Verificar</button>
+            </div>
+        </div>
+    </div>
     <script src="../static/js/menucuestionario.js"> </script>
 
 </body>

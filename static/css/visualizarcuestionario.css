@@ -1,0 +1,389 @@
+/* ======================================= */
+/* Estilos para 'Visualizar cuestionario'  */
+/* ======================================= */
+
+/* Estilos generales del contenedor de visualización */
+.page-title {
+    font-size: 2em;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* Sección superior de detalles y acciones */
+.quiz-view-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 30px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Contenedor de la imagen/placeholder */
+.quiz-image-placeholder {
+    width: 180px;
+    height: 180px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0; /* Evita que se encoja */
+}
+
+.quiz-image-placeholder .fas {
+    font-size: 4em;
+    color: #ccc;
+}
+
+/* Detalles del cuestionario (Título y Descripción) */
+.quiz-details {
+    flex-grow: 1;
+    min-width: 0; /* Permite que el contenido se ajuste correctamente */
+}
+
+.quiz-title-input {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #333;
+    width: 100%;
+    border: none;
+    padding: 0;
+    margin-bottom: 10px;
+    background: transparent;
+    cursor: default;
+    /* Estilos para hacerlo parecer texto estático */
+    pointer-events: none;
+}
+
+.quiz-description-input {
+    font-size: 1em;
+    color: #666;
+    width: 100%;
+    border: none;
+    padding: 0;
+    resize: none;
+    background: transparent;
+    cursor: default;
+    /* Estilos para hacerlo parecer texto estático */
+    pointer-events: none;
+}
+
+/* Acciones y vistas (Botón Jugar y opciones de vista) */
+.quiz-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* Estilo para el contador de monedas (si se usa aquí) */
+.quiz-actions .coins-display {
+    font-size: 1.1em;
+    color: #ff9800; /* Color de las monedas */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+}
+
+.quiz-actions .coins-display span {
+    color: #333;
+}
+
+.quiz-actions .fa-coins {
+    color: #ff9800;
+}
+
+
+.btn-play {
+    background-color: #007bff; /* Color azul para el botón de acción principal */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-play:hover {
+    background-color: #0056b3;
+}
+
+/* Opciones de vista de preguntas */
+.view-options {
+    display: flex;
+    gap: 0;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.btn-view-option {
+    background-color: #fff;
+    color: #666;
+    padding: 8px 12px;
+    border: none;
+    border-right: 1px solid #ccc;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-view-option:last-child {
+    border-right: none;
+}
+
+.btn-view-option:hover {
+    background-color: #f0f0f0;
+}
+
+.btn-view-option.active {
+    background-color: #007bff;
+    color: white;
+}
+
+
+/* ======================================= */
+/* Estilos de la rejilla de preguntas      */
+/* ======================================= */
+
+.section-title {
+    font-size: 1.4em;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20px;
+    margin-top: 20px;
+}
+
+.questions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.question-card {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+.question-number {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.question-content-placeholder {
+    height: 150px; /* Altura para el contenido de la pregunta (texto/imagen) */
+    background-color: #f9f9f9;
+    border: 1px dashed #ccc;
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-grow: 1; /* Para que ocupe el espacio disponible */
+}
+
+.question-content-placeholder .fas {
+    font-size: 3em;
+    color: #ccc;
+}
+
+/* Contenedor de las opciones de respuesta */
+.answer-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+}
+
+.answer-btn {
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 0.95em;
+    font-weight: 500;
+    cursor: default; /* En la vista, no deben ser clickeables para responder */
+    transition: background-color 0.2s, border-color 0.2s;
+    pointer-events: none; /* Deshabilita clics */
+    border: 1px solid #ddd;
+    background-color: #f0f0f0;
+    color: #444;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Estilo para la respuesta correcta */
+.answer-btn.correct {
+    background-color: #e6ffe6; /* Fondo verde claro */
+    border-color: #28a745; /* Borde verde */
+    color: #1e7e34; /* Texto verde oscuro */
+}
+
+/* Estilo para las respuestas incorrectas (si quieres un borde/color distinto para mostrar que NO es la correcta) */
+.answer-btn.incorrect {
+    /* No hay un estilo fuerte, solo el borde por defecto o uno sutilmente diferente */
+    border-color: #f8d7da; /* Rojo muy claro para indicar que NO es la correcta */
+    background-color: #fff;
+    color: #495057;
+}
+
+/* Media Queries para diseño responsivo */
+@media (max-width: 900px) {
+    .quiz-view-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .quiz-details {
+        text-align: center;
+    }
+
+    .quiz-actions {
+        flex-direction: row;
+        width: 100%;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+    }
+
+    .quiz-actions .coins-display {
+        order: -1; /* Mueve las monedas a la izquierda */
+    }
+
+    .questions-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+.quiz-image-placeholder {
+  width: 180px;
+  height: 180px;
+  background-color: #f5f5f5;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.quiz-image-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* === Área de detalles del cuestionario === */
+.quiz-details {
+  flex: 1;
+  margin-left: 20px;
+}
+
+.quiz-title-input {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+  width: 100%;
+  border: none;
+  background: transparent;
+}
+
+.quiz-description-input {
+  width: 100%;
+  resize: none;
+  border: none;
+  background: transparent;
+  color: #555;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+/* === Preguntas === */
+.questions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+/* Tarjeta de pregunta */
+.question-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.question-card:hover {
+  transform: translateY(-3px);
+}
+
+/* Imagen o ícono de la pregunta */
+.question-content-placeholder {
+  width: 100%;
+  height: 140px;
+  background-color: #f7f7f7;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.question-content-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.question-number {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+/* Botones de respuesta */
+.answer-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.answer-btn {
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: none;
+  background-color: #eaeaea;
+  cursor: default;
+  font-size: 0.95rem;
+}
+
+.answer-btn.correct {
+  background-color: #d4f8d4;
+  border-left: 4px solid #3cb371;
+}
+
+.answer-btn.incorrect {
+  background-color: #f8d4d4;
+  border-left: 4px solid #c0392b;
+}
