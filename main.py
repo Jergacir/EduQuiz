@@ -355,6 +355,88 @@ def inject_user_data():
     # Si el usuario no ha iniciado sesión, retorna vacío
     return {}
 
+# --- RUTA DE RESULTADOS DE PARTIDA (PROFESOR) ---
+@app.route('/resultados_partida/<int:partida_id>')
+@login_required 
+@profesor_required
+def frm_resultados_partida(partida_id):
+    # Lógica: Consultar la base de datos usando partida_id para obtener:
+    # 1. Información general de la partida (nombre, fecha).
+    # 2. Lista de jugadores y sus puntajes/respuestas.
+    
+    # Datos de ejemplo (sustituir por la consulta a la DB)
+    partida_info = {
+        'nombre_cuestionario': 'Historia de México',
+        'fecha': '2020-10-15',
+        'jugadores_totales': 35,
+        'modalidad': 'Individual',
+        'cuestionario_id': 5,
+        # Añade estas variables de análisis para el wireframe
+        'acierto_promedio': '75%', 
+        'tiempo_promedio': '25 min', 
+        'participacion': '92%',
+    }
+    
+    # IMPORTANTE: Se añadió 'avatar_url' a los datos de ejemplo
+    resultados_jugadores = [
+        {'nombre': 'Carlos M.', 'puntaje': 9500, 'avatar_url': '/static/img/avatar.jpeg'},
+        {'nombre': 'Ana G.', 'puntaje': 8000, 'avatar_url': '/static/img/avatar.jpeg'},
+        {'nombre': 'Luis R.', 'puntaje': 7500, 'avatar_url': '/static/img/avatar.jpeg'},
+        {'nombre': 'Javier L.', 'puntaje': 6200, 'avatar_url': '/static/img/avatar.jpeg'},
+        {'nombre': 'Maria C.', 'puntaje': 5800, 'avatar_url': '/static/img/avatar.jpeg'},
+        {'nombre': 'Sofía P.', 'puntaje': 5000, 'avatar_url': '/static/img/avatar.jpeg'},
+    ]
+    
+    # Opcional: Ordenar los resultados por puntaje (descendente)
+    # resultados_jugadores.sort(key=lambda x: x['puntaje'], reverse=True)
+    
+    return render_template(
+        'resultados_partida.html', 
+        partida_info=partida_info, 
+        resultados=resultados_jugadores, 
+        partida_id=partida_id
+    )
+
+@app.route('/exportar_resultados/<int:partida_id>')
+@login_required 
+@profesor_required 
+def frm_exportar_resultados(partida_id):
+    # Esto es solo para mostrar el nombre del cuestionario en la cabecera
+    # En un caso real, harías una consulta a la DB
+    partida_info = {
+        'nombre_cuestionario': 'Cuestionario de Historia de México',
+        'partida_id': partida_id
+    }
+    
+    return render_template(
+        'exportar_resultados.html', 
+        partida_id=partida_id,
+        partida_info=partida_info
+    )
+
+# RUTA PARA EL PROCESO DE EXPORTACIÓN REAL (API)
+@app.route('/api/exportar_partida/<int:partida_id>', methods=['POST'])
+@login_required 
+@profesor_required 
+def api_exportar_partida(partida_id):
+    data = request.json
+    formato = data.get('formato')
+    campos = data.get('campos') # Lista de campos seleccionados
+    
+    # --- Lógica de Exportación Real ---
+    # 1. Obtener los datos de la partida y los campos seleccionados de la DB.
+    # 2. Formatear los datos según el `formato` (CSV, Excel, PDF).
+    # 3. Devolver la respuesta adecuada (por ejemplo, un archivo binario o un enlace de descarga).
+    
+    # Placeholder: En una implementación real, esto devolvería el archivo.
+    print(f"Exportando partida #{partida_id} a {formato} con campos: {campos}")
+    
+    return jsonify({
+        "status": "success", 
+        "mensaje": f"Exportación a {formato} iniciada. Se descargará pronto.",
+        "download_url": "#" # Enlace de descarga real
+    }), 200
+
 # --- RUTAS DE NAVEGACIÓN ---
 
 @app.route("/probarconexion")

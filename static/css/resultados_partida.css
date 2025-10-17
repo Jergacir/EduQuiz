@@ -1,0 +1,287 @@
+/* ======================================================= */
+/* ESTILOS PARA LA VISTA DE RESULTADOS DE PARTIDA (PROFESOR) */
+/* ======================================================= */
+
+.resultados-partida-area {
+    background-color: #fff;
+    padding: 30px 40px;
+    min-height: calc(100vh - 80px);
+    /* Se añade posición relativa para posicionar el botón de exportar */
+    position: relative; 
+}
+
+/* --- CABECERA SUPERIOR DE RESULTADOS --- */
+.resultados-header {
+    /* Eliminamos el 'justify-content: space-between' ya que el botón se movió */
+    display: flex;
+    justify-content: flex-start; 
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.partida-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.partida-meta h1 {
+    font-size: 2rem;
+    color: #2D3047;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.partida-id-label {
+    font-size: 0.9rem;
+    background-color: #f0f0f0;
+    color: #666;
+    padding: 4px 10px;
+    border-radius: 8px;
+    margin-left: 10px;
+    font-weight: normal;
+}
+
+.meta-details {
+    display: flex;
+    gap: 25px;
+    font-size: 0.95rem;
+    color: #555;
+}
+
+.meta-details i {
+    color: #40446C;
+    margin-right: 5px;
+}
+
+/* --- BOTONES DE ACCIÓN (Derecha) --- */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #2D3047;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #1b1d2b;
+}
+
+.btn-secondary {
+    background-color: #059669;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #047857;
+}
+
+.btn-primary i, .btn-secondary i {
+    margin-right: 8px;
+}
+
+.btn-back {
+    background-color: transparent;
+    border: 1px solid #ccc;
+    color: #40446C;
+    padding: 8px 15px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    transition: background-color 0.2s ease;
+    width: fit-content;
+}
+
+.btn-back:hover {
+    background-color: #f5f5f5;
+}
+
+.btn-back i {
+    margin-right: 5px;
+}
+
+/* --- SECCIÓN DE ANÁLISIS --- */
+.analysis-section {
+    margin: 40px 0;
+}
+
+.analysis-section h2 {
+    font-size: 1.6rem;
+    color: #40446C;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 20px;
+}
+
+.analysis-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 25px 20px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.analysis-value {
+    display: block;
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.analysis-label {
+    font-size: 1rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.analysis-value.success { color: #059669; } /* Verde acierto */
+.analysis-value.primary { color: #40446C; } /* Azul oscuro */
+.analysis-value.info    { color: #0E7490; } /* Azul claro */
+.analysis-value.warning { color: #D97706; } /* Naranja */
+
+/* --- TÍTULO DE RANKING --- */
+.ranking-title {
+    font-size: 1.5rem;
+    color: #40446C;
+    margin-bottom: 20px;
+    font-weight: 600;
+    display: flex; /* Para alinear el subtítulo */
+    align-items: baseline;
+}
+
+.ranking-subtitle {
+    font-size: 1rem;
+    color: #666;
+    font-weight: 400;
+    margin-left: 10px;
+}
+
+/* --- REJILLA DE CARDS DE RANKING (NUEVO) --- */
+.ranking-card-grid {
+    display: grid;
+    /* 3 columnas de ancho flexible */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+    gap: 25px;
+    padding-bottom: 80px; /* Espacio para que el botón de exportar no tape las cards */
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    background-color: #fcfcfc;
+    border: 1px solid #eee;
+    border-left: 5px solid #40446C; /* Borde de color principal */
+    border-radius: 12px;
+    padding: 15px 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    position: relative;
+    transition: box-shadow 0.2s;
+}
+
+.ranking-item:hover {
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.jugador-posicion {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #ccc;
+    margin-right: 15px;
+    width: 30px; /* Ancho fijo para las posiciones */
+    text-align: center;
+}
+
+/* Colores para las primeras 3 posiciones */
+.pos-1 { color: gold; }
+.pos-2 { color: silver; }
+.pos-3 { color: #CD7F32; }
+
+.jugador-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 15px;
+    border: 3px solid #eee;
+}
+
+.jugador-info {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.jugador-nombre {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2D3047;
+}
+
+.jugador-puntuacion {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #059669; /* Color verde para el puntaje */
+    margin-top: 2px;
+}
+
+/* Estilo para los iconos de medalla (opcional, si los usas) */
+.icon-medal {
+    font-size: 1.5rem;
+    margin-left: auto;
+}
+.icon-medal.gold { color: gold; }
+.icon-medal.silver { color: silver; }
+.icon-medal.bronze { color: #CD7F32; }
+
+
+/* --- BOTÓN EXPORTAR MOVIMIENTO --- */
+.export-button-container {
+    position: absolute;
+    right: 40px; /* Alineado con el padding del content-area */
+    bottom: 30px; /* En la esquina inferior derecha */
+}
+
+.btn-exportar {
+    /* Reutiliza .btn-primary */
+    min-width: 250px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Eliminamos los estilos obsoletos de tabla */
+.table-responsive, .ranking-table, .ranking-table thead th, .ranking-table tbody tr, .ranking-table td {
+    display: none; /* O puedes borrarlos si sabes que no se usan en otro lado */
+}

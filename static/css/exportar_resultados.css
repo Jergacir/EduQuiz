@@ -1,0 +1,208 @@
+/* ======================================================= */
+/* ESTILOS PARA LA VISTA DE EXPORTAR RESULTADOS */
+/* ======================================================= */
+
+.exportar-resultados-area {
+    background-color: #fff;
+    padding: 30px 40px;
+    min-height: calc(100vh - 80px);
+}
+
+/* --- CABECERA DE EXPORTACIÓN --- */
+.export-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.export-header h1 {
+    font-size: 2rem;
+    color: #2D3047;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.partida-id-label {
+    font-size: 0.9rem;
+    background-color: #f0f0f0;
+    color: #666;
+    padding: 4px 10px;
+    border-radius: 8px;
+    margin-left: 10px;
+    font-weight: normal;
+}
+
+/* Reutilizando .btn-back de resultados_partida.css */
+/* .btn-back { ... } */
+
+
+/* --- SECCIONES PRINCIPALES --- */
+.export-sections-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr; /* Columna 1 para formato, Columna 2 para datos */
+    gap: 40px;
+}
+
+.export-section {
+    margin-bottom: 30px;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    color: #40446C;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+/* --- SECCIÓN 1: FORMATOS (Cards) --- */
+.format-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.format-card {
+    background: #f7f7f7;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.format-card:hover {
+    border-color: #40446C;
+    background-color: #f0f3ff;
+}
+
+.format-card.selected {
+    border-color: #059669; /* Verde para la selección */
+    background-color: #e6f7f1;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.4); /* Anillo de selección */
+}
+
+.format-card i {
+    font-size: 2.5rem;
+    color: #40446C;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.format-card.selected i {
+    color: #059669; /* Icono verde en selección */
+}
+
+.format-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2D3047;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.format-description {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0;
+}
+
+/* --- SECCIÓN 2: CAMPOS (Checkboxes) --- */
+.fields-options {
+    background-color: #f7f7f7;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #eee;
+}
+
+.select-all-box {
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+    font-weight: 700;
+    color: #2D3047;
+    font-size: 1.1rem;
+}
+
+.select-all-box input[type="checkbox"] {
+    margin-right: 10px;
+    transform: scale(1.1);
+}
+
+.fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 columnas para los checkboxes */
+    gap: 15px 20px;
+}
+
+.field-item {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    color: #40446C;
+}
+
+.field-item input[type="checkbox"] {
+    /* Estilos de checkbox simples */
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    accent-color: #40446C; /* Color del checkbox al marcar */
+}
+
+.field-item label {
+    cursor: pointer;
+}
+
+/* --- PIE DE PÁGINA DE EXPORTACIÓN --- */
+.export-action-footer {
+    display: flex;
+    justify-content: flex-end; /* Botón a la derecha */
+    align-items: center;
+    padding-top: 20px;
+    margin-top: 30px;
+    border-top: 1px solid #eee;
+    gap: 20px;
+}
+
+.btn-exportar-final {
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    /* Reutiliza .btn-primary */
+}
+
+#export-status-message {
+    margin: 0;
+    font-weight: 600;
+    color: #059669; /* Color verde para éxito */
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 992px) {
+    .export-sections-container {
+        grid-template-columns: 1fr; /* Apilar secciones en pantallas pequeñas */
+        gap: 30px;
+    }
+}
+
+@media (max-width: 600px) {
+    .exportar-resultados-area {
+        padding: 20px 20px;
+    }
+
+    .fields-grid {
+        grid-template-columns: 1fr; /* Una sola columna para campos en móvil */
+    }
+
+    .export-action-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

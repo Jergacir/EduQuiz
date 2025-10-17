@@ -7,8 +7,8 @@
     <title>Partidas - EduQuiz</title>
 
     <link rel="stylesheet" href="../static/css/home.css">
-    <link rel="stylesheet" href="../static/css/crearQuizz.css"> 
-    <link rel="stylesheet" href="../static/css/partidas_profesor.css"> 
+    <link rel="stylesheet" href="../static/css/crearQuizz.css">
+    <link rel="stylesheet" href="../static/css/partidas_profesor.css">
 </head>
 
 <body data-usuario-id="{{ logged_in_user.usuario_id }}">
@@ -44,7 +44,8 @@
     <div class="main-container">
 
         <header class="top-header">
-            <div class="search-bar-top"> <h2>Partidas</h2>
+            <div class="search-bar-top">
+                <h2>Partidas</h2>
             </div>
             <div class="user-profile-widget">
                 <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
@@ -84,13 +85,31 @@
                         </tr>
                     </thead>
                     <tbody id="partidas-list">
+                        {% for partida in partidas %}
+                        <tr>
+                            <td>{{ partida.nombre_cuestionario }}</td>
+                            <td>{{ partida.fecha }}</td>
+                            <td>{{ partida.modalidad }}</td>
+                            <td>{{ partida.jugadores }}</td>
+                            <td>{{ partida.preguntas }}</td>
+                            <td>
+                                <a href="{{ url_for('frm_resultados_partida', partida_id=partida.partida_id) }}"
+                                    class="btn-ver-resultados">
+                                    Ver Resultados
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
                         <tr>
                             <td>Cuestionario de Matemáticas 1</td>
                             <td>2023-09-15</td>
                             <td>Individual</td>
                             <td>25</td>
                             <td>10</td>
-                            <td><button class="btn-ver-resultados">Ver Resultados</button></td>
+                            <td>
+                                <a href="{{ url_for('frm_resultados_partida', partida_id=1) }}"
+                                    class="btn-ver-resultados">Ver Resultados</a>
+                            </td>
                         </tr>
                         <tr>
                             <td>Cuestionario de Ciencias 2</td>
@@ -131,7 +150,7 @@
         </main>
     </div>
 
-    <script src="../static/js/partidas_profesor.js"></script> 
+    <script src="../static/js/partidas_profesor.js"></script>
 </body>
 
 </html>

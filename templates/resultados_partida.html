@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados Partida #{{ partida_id }} - EduQuiz</title>
+
+    <link rel="stylesheet" href="../static/css/home.css">
+    <link rel="stylesheet" href="../static/css/partidas_profesor.css">
+    <link rel="stylesheet" href="../static/css/resultados_partida.css">
+</head>
+
+<body data-usuario-id="{{ logged_in_user.usuario_id }}" data-partida-id="{{ partida_id }}">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="/static/img/logo.png" alt="EduQuiz Logo">
+            EduQuiz
+        </div>
+        <nav class="nav-menu">
+            <a href="{{ url_for('frm_home') }}" class="nav-item">
+                <i class="icon-inicio"></i> Inicio
+            </a>
+            <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item">
+                <i class="icon-cuestionarios"></i> Cuestionarios
+            </a>
+            <a href="{{ url_for('frm_tienda') }}" class="nav-item">
+                <i class="icon-tienda"></i> Tienda
+            </a>
+            <a href="{{ url_for('frm_partidas_profesor') }}" class="nav-item active">
+                <i class="icon-partida"></i> Partidas
+            </a>
+            <hr>
+            <a href="" class="nav-item">
+                <i class="icon-configuracion"></i> Configuración
+            </a>
+            <a href="" class="nav-item">
+                <i class="icon-cerrar-sesion"></i> Cerrar Sesión
+            </a>
+        </nav>
+    </aside>
+
+    <div class="main-container">
+
+        <header class="top-header">
+            <div class="search-bar-top">
+                <h2>Resultados de Partida</h2>
+            </div>
+            <div class="user-profile-widget">
+                <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
+                <a href="" class="profile-link">
+                    <img src="/static/img/avatar.jpeg" alt="Avatar" class="avatar">
+                    <span class="username">Mi Perfil</span>
+                </a>
+            </div>
+        </header>
+
+        <main class="content-area resultados-partida-area">
+
+            <div class="resultados-header">
+                <div class="partida-meta">
+                    <a href="{{ url_for('frm_partidas_profesor') }}" class="btn-back">
+                        <i class="icon-arrow-left"></i> Volver a Partidas
+                    </a>
+                    <h1>{{ partida_info.nombre_cuestionario }} 
+                        <span class="partida-id-label">#{{ partida_id }}</span>
+                    </h1>
+                    <div class="meta-details">
+                        <span><i class="icon-calendar"></i> Fecha: {{ partida_info.fecha }}</span>
+                        <span><i class="icon-users"></i> Jugadores: {{ partida_info.jugadores_totales }}</span>
+                    </div>
+                </div>
+                </div>
+
+            <div class="analysis-section">
+                <h2>Análisis de Partida</h2> <div class="analysis-grid">
+                    <div class="analysis-card">
+                        <div class="analysis-value success">{{ partida_info.acierto_promedio | default('75%') }}</div>
+                        <div class="analysis-label">Puntuación Media</div>
+                    </div>
+                    <div class="analysis-card">
+                        <div class="analysis-value primary">{{ partida_info.tiempo_promedio | default('25 min') }}</div>
+                        <div class="analysis-label">Tiempo Medio</div>
+                    </div>
+                    <div class="analysis-card">
+                        <div class="analysis-value info">{{ partida_info.participacion | default('92%') }}</div>
+                        <div class="analysis-label">Participación</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="ranking-title">
+                Puntuaciones Individuales 
+                <span class="ranking-subtitle">| Ordenado por Puntuación</span>
+            </h3>
+
+            <div class="ranking-card-grid">
+                {% for jugador in resultados %}
+                <div class="ranking-item">
+                    <span class="jugador-posicion pos-{{ loop.index }}">{{ loop.index }}</span>
+                    <img src="{{ jugador.avatar_url | default(url_for('static', filename='img/avatar.jpeg')) }}" alt="Avatar" class="jugador-avatar">
+                    <div class="jugador-info">
+                        <span class="jugador-nombre">{{ jugador.nombre }}</span>
+                        <span class="jugador-puntuacion">{{ jugador.puntaje }} puntos</span>
+                    </div>
+                    {% if loop.index == 1 %}
+                        <i class="icon-medal gold"></i>
+                    {% elif loop.index == 2 %}
+                        <i class="icon-medal silver"></i>
+                    {% elif loop.index == 3 %}
+                        <i class="icon-medal bronze"></i>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="export-button-container">
+                <a href="{{ url_for('frm_exportar_resultados', partida_id=partida_id) }}" class="btn-primary btn-exportar">
+                    <i class="icon-download"></i> Exportar Resultados
+                </a>
+            </div>
+
+        </main>
+    </div>
+</body>
+</html>
