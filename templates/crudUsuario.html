@@ -29,10 +29,9 @@
             <header class="header">
                 <div class="titulo">Configuración</div>
                 <div class="perfil-info">
-                    <span id="cant_monedas">10000</span>
-                    <i class="icono">🪙</i> 
+                    <span id="cant_monedas">10000</span> <i class="icono">🪙</i> 
                     <img src="avatar.png" alt="Avatar" class="avatar" style="width: 30px; height: 30px; border-radius: 50%;">
-                    <span>Mi Perfil</span>
+                    <span id="header_perfil_nombre">Mi Perfil</span> 
                 </div>
             </header>
 
@@ -46,31 +45,73 @@
 
                 <div id="perfil" class="tab-content activo">
                     <form id="form-perfil">
+                        <!-- ID DE USUARIO (informativo) -->
                         <div class="campo">
-                            <label for="nombre">Nombres y Apellidos</label>
-                            <input type="text" id="nombre" name="nombre" value="Joe Villarreal Mejia">
+                            <label for="usuario_id" class="block text-sm font-medium text-gray-700 mb-1">ID de Usuario</label>
+                            <input type="text" id="usuario_id" name="usuario_id" value="Cargando..." readonly class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
                         </div>
+                        
+                        <!-- NOMBRE Y APELLIDOS -->
                         <div class="campo">
-                            <label for="username">Nombre de Usuario</label>
-                            <div class="input-con-icono">
-                                <input type="text" id="username" name="username" value="joe_developer_chatgpt" readonly>
-                                <span class="editar-icono" onclick="habilitarEdicion('username')">✏️</span>
+                            <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombres y Apellidos</label>
+                            <input type="text" id="nombre" name="nombre" placeholder="Tu nombre completo" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <!-- NOMBRE DE USUARIO -->
+                        <div class="campo">
+                            <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Nombre de Usuario</label>
+                            <div class="input-con-icono relative">
+                                <input type="text" id="username" name="username" placeholder="tu_usuario" readonly class="w-full p-3 border border-gray-300 rounded-lg input-deshabilitado">
+                                <span class="editar-icono absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer hover:text-blue-500 transition" onclick="habilitarEdicion('username')">✏️</span>
                             </div>
                         </div>
+
+                        <!-- EMAIL -->
                         <div class="campo">
-                            <label for="correo">Email</label>
-                            <div class="input-con-icono">
-                                <input type="email" id="correo" name="correo" value="DNI@usat.pe" readonly>
-                                <span class="editar-icono" onclick="habilitarEdicion('correo')">✏️</span>
+                            <label for="correo" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <div class="input-con-icono relative">
+                                <input type="email" id="correo" name="correo" placeholder="correo@ejemplo.com" readonly class="w-full p-3 border border-gray-300 rounded-lg input-deshabilitado">
+                                <span class="editar-icono absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer hover:text-blue-500 transition" onclick="habilitarEdicion('correo')">✏️</span>
                             </div>
                         </div>
+
+                        <!-- DNI (NO EDITABLE) -->
                         <div class="campo">
-                            <label>Tipo de cuenta</label>
-                            <input type="text" id="tipo_usuario" name="tipo_usuario" value="Estudiante" readonly class="input-deshabilitado">
+                            <label for="dni" class="block text-sm font-medium text-gray-700 mb-1">DNI</label>
+                            <input type="text" id="dni" name="dni" placeholder="00000000" readonly class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
                         </div>
+                        
+                        <!-- MONEDAS (NO EDITABLE) -->
+                        <div class="campo">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Monedas Ganadas</label>
+                            <div class="monedas-info flex items-center space-x-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                <i class="text-xl text-yellow-500">🪙</i>
+                                <span id="cant_monedas_display" class="font-bold text-lg text-yellow-700">...</span>
+                            </div>
+                        </div>
+
+                        <!-- TIPO DE CUENTA (NO EDITABLE) -->
+                        <div class="campo">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de cuenta</label>
+                            <input type="text" id="tipo_usuario" name="tipo_usuario" readonly class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
+                        </div>
+
+                        <!-- VIGENCIA (NO EDITABLE) -->
+                        <div class="campo">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Estado de Vigencia</label>
+                            <input type="text" id="vigencia" name="vigencia" readonly class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
+                        </div>
+
+                        <!-- Mensaje de estado -->
+                        <div id="perfil-status" class="md:col-span-2 text-center p-3 rounded-lg hidden" role="alert"></div>
+
+
                         <div class="acciones">
                             <button type="button" id="cancelar" class="btn-secundario">Cancelar</button>
                             <button type="submit" id="guardar" class="btn-principal">Guardar</button>
+                            <button type="button" id="btn-dar-baja-perfil" class="btn-eliminar">
+                                Dar de Baja Cuenta
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -80,7 +121,7 @@
 
                 <div id="administracion" class="tab-content">
                     <h2>Gestión General de Usuarios</h2>
-                    <p>Mantenimiento (CRUD) simulado para la tabla USUARIO2.</p>
+                    
                     <form id="form-gestion-usuario" class="formulario-gestion" style="display:none;">
                         <h3><span id="form-titulo">Crear</span> Usuario</h3>
                         <input type="hidden" id="gestion-usuario_id">

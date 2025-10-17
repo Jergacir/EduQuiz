@@ -1,17 +1,16 @@
-// Variable que contendrá los datos del usuario logueado (obtenidos del backend)
-let datosUsuarioLogueado = {}; 
-
-// Variable que contendrá los datos REALES (obtenidos del backend) para la administración
-let listaUsuarios = []; 
-
+// =========================================================
+// Variables de Estado Global
+// =========================================================
+let datosUsuarioLogueado = {}; // Contiene los datos del usuario logueado
+let listaUsuarios = []; // Contiene la lista de usuarios para la administración
 let usuarioEditandoId = null; // Para rastrear qué usuario estamos editando
-
-/**
- * [NUEVA FUNCIÓN] Obtiene los datos del perfil del usuario logueado de la API.
- */
 async function obtenerDatosPerfil() {
     try {
-        const response = await fetch('/api/perfil'); // Llama a la ruta para el perfil actual
+        // Usando el endpoint: /api/perfil (Asegúrate de que esta ruta coincida con tu backend)
+        const response = await fetch('/api/perfil'); 
+        
+        // 🔑 VERIFICACIÓN 1: Muestra el estado de la respuesta
+        console.log("DEBUG API: Estado de la respuesta:", response.status, response.statusText);
         
         if (response.status === 401) {
             console.error("Error 401: Sesión expirada o no iniciada.");
@@ -19,10 +18,16 @@ async function obtenerDatosPerfil() {
         }
 
         if (!response.ok) {
-            throw new Error(`Error al obtener el perfil: ${response.statusText}`);
+            // Muestra más detalles si no es un 401 pero falla
+            const errorBody = await response.text(); 
+            throw new Error(`Error al obtener el perfil: ${response.statusText}. Cuerpo: ${errorBody.substring(0, 100)}`);
         }
         
         datosUsuarioLogueado = await response.json(); 
+        
+        // 🔑 VERIFICACIÓN 2: MUESTRA LOS DATOS RECIBIDOS EN CONSOLA
+        console.log("DEBUG PERFIL: Datos del usuario logueado (JSON):", datosUsuarioLogueado);
+        
         return datosUsuarioLogueado;
 
     } catch (error) {
@@ -30,10 +35,10 @@ async function obtenerDatosPerfil() {
         return null;
     }
 }
-
-
+// ---------------------------------------------------------------------
 /**
- * Función para cargar los datos del objeto REAL en la interfaz de perfil.
+ * Función para cargar los datos del objeto REAL en la interfaz de perfil y en el Header.
+ * Esta función no necesita cambios, ya que obtenerDatosPerfil() ahora verifica los datos.
  */
 async function cargarDatosPerfil() {
     // Si los datos no se han cargado aún, intentamos obtenerlos
@@ -41,24 +46,116 @@ async function cargarDatosPerfil() {
         await obtenerDatosPerfil();
     }
     
+    // 🔑 VERIFICACIÓN 3: Muestra qué datos se intentarán renderizar
+    console.log("DEBUG RENDER: Intentando renderizar el objeto:", datosUsuarioLogueado);
+    
     // Verificamos si la carga fue exitosa
     if (datosUsuarioLogueado && datosUsuarioLogueado.usuario_id) {
+        
+        // 1. Rellenar campos del formulario 'Editar perfil'
+        document.getElementById('usuario_id').value = datosUsuarioLogueado.usuario_id || '';
         document.getElementById('nombre').value = datosUsuarioLogueado.nombre || '';
         document.getElementById('username').value = datosUsuarioLogueado.username || '';
         document.getElementById('correo').value = datosUsuarioLogueado.correo || '';
-        document.getElementById('cant_monedas').textContent = datosUsuarioLogueado.cant_monedas || 0;
 
-        // Mapeo del tipo de usuario
+        // 2. Rellenar campos no editables (DNI)
+        document.getElementById('dni').value = datosUsuarioLogueado.dni || 'N/A';
+
+        // 3. Monedas (Display en Formulario y Header)
+        const cantMonedas = datosUsuarioLogueado.cant_monedas || 0;
+        
+        // Actualiza el display de monedas DENTRO del formulario
+        const cantMonedasDisplay = document.getElementById('cant_monedas_display');
+        if (cantMonedasDisplay) cantMonedasDisplay.textContent = `${cantMonedas} 🪙`;
+        
+        // CORRECCIÓN: Actualiza el contador de monedas en el HEADER
+        const cantMonedasHeader = document.getElementById('cant_monedas');
+        if (cantMonedasHeader) cantMonedasHeader.textContent = cantMonedas; 
+        
+        // 4. Tipo de Usuario (Mapeo)
         const tipoMap = { 'A': 'Alumno', 'P': 'Profesor', 'G': 'Gestor' }; 
         const tipo = tipoMap[datosUsuarioLogueado.tipo_usuario] || 'Desconocido';
-        // Asumiendo que 'tipo_usuario' en el perfil SIEMPRE debe ser readonly/deshabilitado.
         const tipoUsuarioInput = document.getElementById('tipo_usuario');
-        tipoUsuarioInput.value = tipo;
-        tipoUsuarioInput.setAttribute('readonly', true); // Aseguramos que sea readonly
-        tipoUsuarioInput.classList.add('input-no-editable'); // Añadimos clase para opacidad
+        if (tipoUsuarioInput) tipoUsuarioInput.value = tipo;
+
+        // 5. Vigencia (Mapeo)
+        const esVigente = datosUsuarioLogueado.vigencia === 1 || datosUsuarioLogueado.vigencia === true;
+        const vigenciaTexto = esVigente ? 'Vigente (Activo)' : 'No Vigente (Inactivo)';
+        const vigenciaInput = document.getElementById('vigencia');
+        if (vigenciaInput) vigenciaInput.value = vigenciaTexto;
+        
+        // 6. CORRECCIÓN: Actualizar Nombre de Usuario en el HEADER (usando el nuevo ID)
+        const headerNombreElement = document.getElementById('header_perfil_nombre');
+        if (headerNombreElement) {
+            headerNombreElement.textContent = datosUsuarioLogueado.username || 'Mi Perfil';
+        }
+        
+        // 7. Asegurar las clases de deshabilitado (Se ha añadido una pequeña validación por si el elemento no existe)
+        const idsADeshabilitar = ['usuario_id', 'dni', 'tipo_usuario', 'vigencia'];
+        idsADeshabilitar.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('input-deshabilitado');
+        });
+        
     } else {
-        console.error("No se pudieron cargar los datos del usuario logueado.");
-        // Opcional: Mostrar mensaje al usuario
+        console.error("No se pudieron cargar los datos del usuario logueado. Objeto final:", datosUsuarioLogueado);
+    }
+}
+
+/**
+ * 🔑 NUEVO: Maneja el proceso de Dar de Baja (Inactivar) la cuenta propia.
+ */
+async function manejarDarDeBajaPropia() {
+    const usuarioId = datosUsuarioLogueado.usuario_id;
+    const username = datosUsuarioLogueado.username;
+
+    if (!usuarioId) {
+        console.error("Error: No se encontró el ID del usuario logueado.");
+        return;
+    }
+
+    // ⚠️ Importante: Reemplazar window.confirm() con un modal UI personalizado 
+    // en una aplicación real.
+    if (!window.confirm(`¿Estás SEGURO de que quieres dar de BAJA tu propia cuenta (${username})? Esto la inactivará, pero podrás reactivarla contactando a un administrador.`)) {
+        console.log("Inactivación de cuenta cancelada por el usuario.");
+        return;
+    }
+
+    try {
+        // Llama al mismo endpoint DELETE usado por el administrador
+        const response = await fetch(`/api/usuarios/${usuarioId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            // Manejar la restricción del backend (ej. Gestor no puede darse de baja)
+            console.error(data.error || `Fallo al dar de baja la cuenta: ${response.statusText}`); 
+            // ⚠️ Aquí podrías mostrar un mensaje de error más amigable al usuario.
+            
+            // Si es un 403 (Prohibido/Restricción de Gestor), recargamos el perfil 
+            // por si acaso y salimos.
+            if (response.status === 403) {
+                alert(`Error: ${data.error}. No se pudo inactivar la cuenta.`);
+                await cargarDatosPerfil();
+            }
+            return;
+        }
+
+        // Éxito: La cuenta ha sido inactivada.
+        console.log(data.message || "¡Cuenta inactivada exitosamente!");
+        alert("¡Tu cuenta ha sido inactivada exitosamente! Se cerrará la sesión.");
+
+        // Forzar recarga de datos (mostrará como No Vigente)
+        await cargarDatosPerfil();
+
+        // Opcional y recomendado: Redirigir a la página de inicio o cerrar sesión.
+        // window.location.href = '/logout'; 
+
+    } catch (error) {
+        console.error('Error durante la inactivación de la cuenta:', error.message);
     }
 }
 
@@ -426,6 +523,7 @@ async function manejarGuardarGestion(event) {
  * Inicializa los listeners de eventos al cargar el DOM.
  */
 document.addEventListener('DOMContentLoaded', async () => {
+
     // 🔑 CAMBIO: Inicialmente intenta obtener y cargar el perfil de la API
     await cargarDatosPerfil(); 
     
@@ -481,5 +579,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Maneja la creación/edición al guardar (Ahora solo edición)
     formGestion.addEventListener('submit', manejarGuardarGestion);
-    
+
 });

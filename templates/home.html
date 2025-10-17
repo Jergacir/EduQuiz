@@ -75,7 +75,8 @@
             <a href="" class="nav-item">
                 <i class="icon-configuracion"></i> Configuración
             </a>
-            <a href="" class="nav-item">
+            <!-- 🔑 ENLACE DE CERRAR SESIÓN MODIFICADO -->
+            <a href="{{ url_for('logout') }}" class="nav-item" id="btn-cerrar-sesion">
                 <i class="icon-cerrar-sesion"></i> Cerrar Sesión
             </a>
             </nav>
@@ -150,5 +151,6 @@
 
         </main>
     </div>
+    <script src="../static/js/home.js"></script>
 </body>
 </html>
