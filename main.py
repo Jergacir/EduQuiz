@@ -1538,12 +1538,13 @@ def crear_usuario_api():
         print(f"Error al crear usuario (API): {e}")
         return jsonify({"success": False, "error": "Ocurrió un error en el sistema."}), 500
 
-# Ruta para procesar el Login (CON VERIFICACIÓN BCrypt)
+# Ruta para procesar el Login (CON VERIFICACIÓN BCrypt y VIGENCIA)
 @app.route("/procesarlogin", methods=['POST'])
 def procesarlogin():
     correo = request.form['correo']
     contrasena_plana = request.form['contrasena'] # Contraseña en texto plano
     conexion = obtenerConexion()
+    
     if not conexion:
         print("No se pudo conectar a la base de datos (login)")
         return redirect(url_for('frm_error'))
@@ -1551,8 +1552,8 @@ def procesarlogin():
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                # Buscamos por correo y traemos la contraseña cifrada y el estado de verificación
-                sql = "SELECT `usuario_id`, `contrasena`, `verificado`, `correo` FROM `usuario` WHERE `correo`=%s"
+                # 🔑 CAMBIO CLAVE: Solicitamos también el campo `vigencia`
+                sql = "SELECT `usuario_id`, `contrasena`, `verificado`, `correo`, `vigencia` FROM `usuario` WHERE `correo`=%s"
                 cursor.execute(sql, (correo,))
                 result = cursor.fetchone()
 
@@ -1560,18 +1561,27 @@ def procesarlogin():
             if result:
                 hashed_password = result['contrasena']
                 verificado = result.get('verificado', 0)
+                vigencia = result.get('vigencia', 0) # 🔑 Obtenemos el estado de vigencia (1=Vigente, 0=No Vigente)
 
-                # Usar check_password_hash para comparar la plana (usuario) con la cifrada (DB)
+                # 1. Verificar la contraseña
                 if bcrypt.check_password_hash(hashed_password, contrasena_plana):
+                    
+                    # 🔑 2. VERIFICAR VIGENCIA
+                    if vigencia == 0:
+                        flash('Tu cuenta ha sido dada de baja o se encuentra inactiva. Contacta con soporte.', 'error')
+                        return redirect(url_for('frm_login'))
+                        
+                    # 3. Verificar si necesita activación por correo
                     if verificado == 0:
                         # Cuenta no verificada: pedir código
                         flash('Tu cuenta aún no está verificada. Ingresa el código enviado a tu correo.', 'warning')
                         correo_val = result.get('correo')
                         return render_template('verificar.html', email=correo_val, email_masked=mask_email(correo_val or ''))
 
-                    # Login Exitoso
+                    # 4. Login Exitoso (Contraseña correcta, Vigente y Verificado)
                     session['user_id'] = result['usuario_id']
                     return redirect(url_for('frm_home'))
+                    
                 else:
                     # Contraseña incorrecta
                     flash("Credenciales incorrectas. Verifica tu correo y contraseña.", 'error')
