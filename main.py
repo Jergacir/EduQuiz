@@ -11,7 +11,9 @@ import ssl
 from email.message import EmailMessage
 import requests
 import cloudinary
-import string
+import secrets
+import hashlib
+from datetime import datetime, timedelta
 
 load_dotenv()
 
@@ -148,6 +150,214 @@ def send_verification_email(to_email: str, code: str):
         traceback.print_exc()
         # Re-lanzar para que los handlers existentes puedan reaccionar o capturarlo
         raise
+
+
+def send_password_reset_email(to_email: str, token: str):
+    """Envía el email con el enlace para restablecer la contraseña."""
+    host = os.environ.get('EMAIL_HOST')
+    port = int(os.environ.get('EMAIL_PORT', 587))
+    smtp_user = os.environ.get('EMAIL_USER')
+    smtp_pass = os.environ.get('EMAIL_PASS')
+    from_header = os.environ.get('EMAIL_FROM') or smtp_user
+    if not host or not smtp_user or not smtp_pass:
+        raise RuntimeError('Configuración SMTP incompleta. Ajusta EMAIL_HOST/EMAIL_USER/EMAIL_PASS')
+
+    subject = 'Restablece tu contraseña en EduQuiz'
+    # Construir enlace de reset
+    try:
+        reset_link = url_for('frm_restablecer', token=token, _external=True)
+    except Exception:
+        base = os.environ.get('APP_BASE_URL', '').rstrip('/')
+        reset_link = f"{base}/restablecer?token={token}" if base else f"/restablecer?token={token}"
+
+    text_body = (
+        f"Hola,\n\n" 
+        f"Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Si no la solicitaste, ignora este correo.\n\n"
+        f"Para restablecer tu contraseña, abre el siguiente enlace (válido por 1 hora):\n{reset_link}\n\n"
+        f"Si no solicitaste este cambio, puedes ignorar este correo.\n\nSaludos,\nEquipo EduQuiz"
+    )
+
+    html_body = f"""
+    <html><body style='font-family:Arial,sans-serif;color:#222;'>
+      <p>Hola,</p>
+      <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Si no la solicitaste, ignora este correo.</p>
+      <p>Pulsa el siguiente botón para restablecer tu contraseña (válido por 1 hora):</p>
+      <p><a href="{reset_link}" style="background:#0a58ca;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">Restablecer contraseña</a></p>
+      <p style="color:#666;font-size:13px">Si no solicitaste este cambio, ignora este correo.</p>
+      <hr style="border:none;border-top:1px solid #eee" />
+      <p style="font-size:13px;color:#999">EduQuiz</p>
+    </body></html>
+    """
+
+    msg = EmailMessage()
+    msg['From'] = from_header
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.set_content(text_body)
+    msg.add_alternative(html_body, subtype='html')
+
+    skip_tls = os.environ.get('SKIP_TLS_VERIFY', '0') in ('1', 'true', 'True')
+    if skip_tls:
+        context = ssl._create_unverified_context()
+    else:
+        context = ssl.create_default_context()
+
+    with smtplib.SMTP(host, port, timeout=20) as server:
+        server.starttls(context=context)
+        server.login(smtp_user, smtp_pass)
+        server.send_message(msg)
+
+
+# ---------- ENDPOINTS PARA RECUPERACIÓN DE CONTRASEÑA ----------
+
+@app.route('/solicitar_restablecer', methods=['GET'])
+def frm_solicitar_restablecer():
+    return render_template('solicitar_restablecer.html')
+
+
+@app.route('/solicitar_restablecer', methods=['POST'])
+def solicitar_restablecer():
+    email = request.form.get('email')
+    if not email:
+        flash('Ingresa un correo válido.', 'error')
+        return redirect(url_for('frm_solicitar_restablecer'))
+
+    conexion = obtenerConexion()
+    if not conexion:
+        flash('Error al conectar con la base de datos.', 'error')
+        return redirect(url_for('frm_solicitar_restablecer'))
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                sql = "SELECT usuario_id, correo FROM usuario WHERE correo=%s"
+                cursor.execute(sql, (email,))
+                user = cursor.fetchone()
+                if not user:
+                    # No revelar que el email no existe — comportarse como si se envió
+                        flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'info')
+                        return redirect(url_for('frm_login'))
+
+                usuario_id = user['usuario_id']
+                # Generar token y guardarlo hasheado
+                token = secrets.token_urlsafe(32)
+                token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+                expires_at = datetime.utcnow() + timedelta(hours=1)
+
+                # DEBUG: mostrar token en consola para pruebas locales (no en producción)
+                print(f"[DEBUG] Password reset token para {email}: {token}")
+
+                sql_insert = "INSERT INTO password_reset_tokens (usuario_id, token_hash, expires_at) VALUES (%s, %s, %s)"
+                cursor.execute(sql_insert, (usuario_id, token_hash, expires_at.strftime('%Y-%m-%d %H:%M:%S')))
+                conexion.commit()
+
+                # Enviar email
+                try:
+                    send_password_reset_email(email, token)
+                except Exception as e:
+                    print(f"Error enviando email de restablecimiento: {e}")
+                    flash('No se pudo enviar el correo de restablecimiento. Contacta al administrador.', 'warning')
+                    return redirect(url_for('frm_login'))
+
+                flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'info')
+                return redirect(url_for('frm_login'))
+
+    except Exception as e:
+        print(f"Error en solicitar_restablecer: {e}")
+        flash('Ocurrió un error. Intenta más tarde.', 'error')
+        return redirect(url_for('frm_solicitar_restablecer'))
+
+
+@app.route('/restablecer', methods=['GET'])
+def frm_restablecer():
+    token = request.args.get('token')
+    if not token:
+        flash('Token inválido.', 'error')
+        return redirect(url_for('frm_login'))
+
+    # No revelar si el token es inválido; mostrar formulario si parece bueno
+    return render_template('restablecer.html', token=token)
+
+
+@app.route('/restablecer', methods=['POST'])
+def restablecer_post():
+    token = request.form.get('token')
+    nueva = request.form.get('contrasena')
+    confirmar = request.form.get('confirmarContrasena')
+
+    if not token or not nueva or not confirmar:
+        flash('Faltan campos.', 'error')
+        return redirect(url_for('frm_login'))
+
+    if nueva != confirmar:
+        flash('Las contraseñas no coinciden.', 'error')
+        return redirect(url_for('frm_restablecer') + f"?token={token}")
+
+    # Validación de contraseña fuerte (reuse same rules)
+    import re
+    pwd = nueva
+    pwd_errors = []
+    if len(pwd) < 8:
+        pwd_errors.append('al menos 8 caracteres')
+    if not re.search(r'[A-Z]', pwd):
+        pwd_errors.append('una letra mayúscula')
+    if not re.search(r'[a-z]', pwd):
+        pwd_errors.append('una letra minúscula')
+    if not re.search(r'\d', pwd):
+        pwd_errors.append('un número')
+    if not re.search(r'[!@#$%^&*()_+\-=[\]{};:\\"\\|,.<>\/?`~]', pwd):
+        pwd_errors.append('un carácter especial (ej: !@#$%)')
+
+    if pwd_errors:
+        flash('La contraseña no cumple los requisitos: ' + ', '.join(pwd_errors), 'error')
+        return redirect(url_for('frm_restablecer') + f"?token={token}")
+
+    # Buscar token en la BD (hash) y validar expiración
+    conexion = obtenerConexion()
+    if not conexion:
+        flash('Error de conexión.', 'error')
+        return redirect(url_for('frm_login'))
+
+    try:
+        token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+        with conexion:
+            with conexion.cursor() as cursor:
+                sql = "SELECT prt_id, usuario_id, expires_at FROM password_reset_tokens WHERE token_hash=%s"
+                cursor.execute(sql, (token_hash,))
+                row = cursor.fetchone()
+                if not row:
+                    flash('Token inválido o expirado.', 'error')
+                    return redirect(url_for('frm_login'))
+
+                expires = row['expires_at']
+                if isinstance(expires, str):
+                    expires_dt = datetime.strptime(expires, '%Y-%m-%d %H:%M:%S')
+                else:
+                    expires_dt = expires
+
+                if expires_dt < datetime.utcnow():
+                    flash('El token ha expirado.', 'error')
+                    return redirect(url_for('frm_login'))
+
+                usuario_id = row['usuario_id']
+                # Actualizar contraseña
+                hashed_bytes = bcrypt.generate_password_hash(nueva)
+                hashed = hashed_bytes.decode('utf-8')
+                sql_upd = "UPDATE usuario SET contrasena=%s WHERE usuario_id=%s"
+                cursor.execute(sql_upd, (hashed, usuario_id))
+
+                # Invalidate token (delete)
+                sql_del = "DELETE FROM password_reset_tokens WHERE prt_id=%s"
+                cursor.execute(sql_del, (row['prt_id'],))
+                conexion.commit()
+
+                flash('Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.', 'success')
+                return redirect(url_for('frm_login'))
+
+    except Exception as e:
+        print(f"Error en restablecer_post: {e}")
+        flash('Ocurrió un error procesando la solicitud.', 'error')
+        return redirect(url_for('frm_login'))
 
 # OBTENER DATOS DEL USUARIO LOGEADO
 # ==============================================================================
@@ -354,88 +564,6 @@ def inject_user_data():
 
     # Si el usuario no ha iniciado sesión, retorna vacío
     return {}
-
-# --- RUTA DE RESULTADOS DE PARTIDA (PROFESOR) ---
-@app.route('/resultados_partida/<int:partida_id>')
-@login_required 
-@profesor_required
-def frm_resultados_partida(partida_id):
-    # Lógica: Consultar la base de datos usando partida_id para obtener:
-    # 1. Información general de la partida (nombre, fecha).
-    # 2. Lista de jugadores y sus puntajes/respuestas.
-    
-    # Datos de ejemplo (sustituir por la consulta a la DB)
-    partida_info = {
-        'nombre_cuestionario': 'Historia de México',
-        'fecha': '2020-10-15',
-        'jugadores_totales': 35,
-        'modalidad': 'Individual',
-        'cuestionario_id': 5,
-        # Añade estas variables de análisis para el wireframe
-        'acierto_promedio': '75%', 
-        'tiempo_promedio': '25 min', 
-        'participacion': '92%',
-    }
-    
-    # IMPORTANTE: Se añadió 'avatar_url' a los datos de ejemplo
-    resultados_jugadores = [
-        {'nombre': 'Carlos M.', 'puntaje': 9500, 'avatar_url': '/static/img/avatar.jpeg'},
-        {'nombre': 'Ana G.', 'puntaje': 8000, 'avatar_url': '/static/img/avatar.jpeg'},
-        {'nombre': 'Luis R.', 'puntaje': 7500, 'avatar_url': '/static/img/avatar.jpeg'},
-        {'nombre': 'Javier L.', 'puntaje': 6200, 'avatar_url': '/static/img/avatar.jpeg'},
-        {'nombre': 'Maria C.', 'puntaje': 5800, 'avatar_url': '/static/img/avatar.jpeg'},
-        {'nombre': 'Sofía P.', 'puntaje': 5000, 'avatar_url': '/static/img/avatar.jpeg'},
-    ]
-    
-    # Opcional: Ordenar los resultados por puntaje (descendente)
-    # resultados_jugadores.sort(key=lambda x: x['puntaje'], reverse=True)
-    
-    return render_template(
-        'resultados_partida.html', 
-        partida_info=partida_info, 
-        resultados=resultados_jugadores, 
-        partida_id=partida_id
-    )
-
-@app.route('/exportar_resultados/<int:partida_id>')
-@login_required 
-@profesor_required 
-def frm_exportar_resultados(partida_id):
-    # Esto es solo para mostrar el nombre del cuestionario en la cabecera
-    # En un caso real, harías una consulta a la DB
-    partida_info = {
-        'nombre_cuestionario': 'Cuestionario de Historia de México',
-        'partida_id': partida_id
-    }
-    
-    return render_template(
-        'exportar_resultados.html', 
-        partida_id=partida_id,
-        partida_info=partida_info
-    )
-
-# RUTA PARA EL PROCESO DE EXPORTACIÓN REAL (API)
-@app.route('/api/exportar_partida/<int:partida_id>', methods=['POST'])
-@login_required 
-@profesor_required 
-def api_exportar_partida(partida_id):
-    data = request.json
-    formato = data.get('formato')
-    campos = data.get('campos') # Lista de campos seleccionados
-    
-    # --- Lógica de Exportación Real ---
-    # 1. Obtener los datos de la partida y los campos seleccionados de la DB.
-    # 2. Formatear los datos según el `formato` (CSV, Excel, PDF).
-    # 3. Devolver la respuesta adecuada (por ejemplo, un archivo binario o un enlace de descarga).
-    
-    # Placeholder: En una implementación real, esto devolvería el archivo.
-    print(f"Exportando partida #{partida_id} a {formato} con campos: {campos}")
-    
-    return jsonify({
-        "status": "success", 
-        "mensaje": f"Exportación a {formato} iniciada. Se descargará pronto.",
-        "download_url": "#" # Enlace de descarga real
-    }), 200
 
 # --- RUTAS DE NAVEGACIÓN ---
 
@@ -1353,53 +1481,6 @@ def eliminar_usuario_api(usuario_id):
         return jsonify({'error': 'Error interno del servidor al inactivar datos.'}), 500
 
 
-@app.route('/baja_cuenta', methods=['POST'])
-def dar_baja_cuenta():
-    """
-    Ruta para que el usuario logueado marque su propia cuenta como NO VIGENTE (soft delete).
-    Luego, cierra la sesión.
-    """
-    if 'user_id' not in session:
-        # Si no hay sesión, simplemente redirige al login.
-        flash('Debes iniciar sesión para realizar esta acción.', 'error')
-        return redirect(url_for('frm_login'))
-
-    user_id_a_inactivar = session['user_id']
-    conexion = obtenerConexion()
-    
-    if not conexion:
-        flash('Error de conexión a la base de datos. Intente más tarde.', 'error')
-        return redirect(url_for('crud_usuarios')) # O a una página de error
-
-    try:
-        with conexion:
-            with conexion.cursor() as cursor:
-                # 1. Ejecutar la INACTIVACIÓN (Soft Delete)
-                # La consulta usa el ID de la SESIÓN por seguridad.
-                # Se asegura de que solo se actualice si ya está vigente (vigencia = 1).
-                sql_update_vigencia = "UPDATE usuario SET vigencia = 0 WHERE usuario_id=%s AND vigencia = 1"
-                cursor.execute(sql_update_vigencia, (user_id_a_inactivar,))
-                filas_afectadas = cursor.rowcount
-                conexion.commit()
-
-                if filas_afectadas == 0:
-                    flash('Tu cuenta no pudo ser dada de baja. Es posible que ya esté inactiva.', 'warning')
-                    return redirect(url_for('crud_usuarios')) 
-                
-        # 2. Baja exitosa. Preparamos el mensaje y cerramos la sesión.
-        flash('Tu cuenta ha sido dada de baja exitosamente. ¡Lamentamos verte partir!', 'success')
-        
-        # 3. Ejecutar el logout para limpiar la sesión y redirigir a la página de login
-        # Asegúrate de que tu función 'logout' retorne un redirect de Flask.
-        return logout() 
-        
-    except Exception as e:
-        import sys
-        print(f"Error al dar de baja la propia cuenta: {e}", file=sys.stderr)
-        flash('Ocurrió un error interno al procesar la baja de la cuenta.', 'error')
-        return redirect(url_for('crud_usuarios'))
-
-
 # --- NUEVA RUTA API PARA ACTIVAR USUARIO (DAR DE ALTA) ---
 @app.route('/api/usuarios/<int:usuario_id>/activar', methods=['PUT'])
 def activar_usuario_api(usuario_id):
@@ -1621,13 +1702,12 @@ def crear_usuario_api():
         print(f"Error al crear usuario (API): {e}")
         return jsonify({"success": False, "error": "Ocurrió un error en el sistema."}), 500
 
-# Ruta para procesar el Login (CON VERIFICACIÓN BCrypt y VIGENCIA)
+# Ruta para procesar el Login (CON VERIFICACIÓN BCrypt)
 @app.route("/procesarlogin", methods=['POST'])
 def procesarlogin():
     correo = request.form['correo']
     contrasena_plana = request.form['contrasena'] # Contraseña en texto plano
     conexion = obtenerConexion()
-    
     if not conexion:
         print("No se pudo conectar a la base de datos (login)")
         return redirect(url_for('frm_error'))
@@ -1635,8 +1715,8 @@ def procesarlogin():
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                # 🔑 CAMBIO CLAVE: Solicitamos también el campo `vigencia`
-                sql = "SELECT `usuario_id`, `contrasena`, `verificado`, `correo`, `vigencia` FROM `usuario` WHERE `correo`=%s"
+                # Buscamos por correo y traemos la contraseña cifrada y el estado de verificación
+                sql = "SELECT `usuario_id`, `contrasena`, `verificado`, `correo` FROM `usuario` WHERE `correo`=%s"
                 cursor.execute(sql, (correo,))
                 result = cursor.fetchone()
 
@@ -1644,27 +1724,18 @@ def procesarlogin():
             if result:
                 hashed_password = result['contrasena']
                 verificado = result.get('verificado', 0)
-                vigencia = result.get('vigencia', 0) # 🔑 Obtenemos el estado de vigencia (1=Vigente, 0=No Vigente)
 
-                # 1. Verificar la contraseña
+                # Usar check_password_hash para comparar la plana (usuario) con la cifrada (DB)
                 if bcrypt.check_password_hash(hashed_password, contrasena_plana):
-                    
-                    # 🔑 2. VERIFICAR VIGENCIA
-                    if vigencia == 0:
-                        flash('Tu cuenta ha sido dada de baja o se encuentra inactiva. Contacta con soporte.', 'error')
-                        return redirect(url_for('frm_login'))
-                        
-                    # 3. Verificar si necesita activación por correo
                     if verificado == 0:
                         # Cuenta no verificada: pedir código
                         flash('Tu cuenta aún no está verificada. Ingresa el código enviado a tu correo.', 'warning')
                         correo_val = result.get('correo')
                         return render_template('verificar.html', email=correo_val, email_masked=mask_email(correo_val or ''))
 
-                    # 4. Login Exitoso (Contraseña correcta, Vigente y Verificado)
+                    # Login Exitoso
                     session['user_id'] = result['usuario_id']
                     return redirect(url_for('frm_home'))
-                    
                 else:
                     # Contraseña incorrecta
                     flash("Credenciales incorrectas. Verifica tu correo y contraseña.", 'error')
@@ -1947,14 +2018,6 @@ def eliminar_cuestionario(cuestionario_id):
     return jsonify({'status': 'ok', 'mensaje': 'Cuestionario eliminado lógicamente'})
 
 
-def generar_codigo_unico(cursor):
-    """Genera un código aleatorio de 6 letras no repetido en la base de datos."""
-    while True:
-        codigo = ''.join(random.choices(string.ascii_uppercase, k=6))
-        cursor.execute("SELECT 1 FROM cuestionario WHERE codigo_visualizacion = %s", (codigo,))
-        if cursor.fetchone() is None:
-            return codigo
-
 #---Esto lo usaremos en el crear cuestionario---
 @app.route("/api/cuestionario_completo", methods=["POST"])
 def crear_cuestionario_completo():
@@ -1975,17 +2038,13 @@ def crear_cuestionario_completo():
     try:
         with conexion:
             with conexion.cursor() as cursor:
-                
-                # --- Generar código de visualización único ---
-                codigo_visualizacion = generar_codigo_unico(cursor)
-
                 # --- Subir imagen del cuestionario a Cloudinary si existe ---
                 url_img_cuestionario_cloud = data.get("url_img_cuestionario") or "https://img.freepik.com/vector-premium/imagen-no-es-conjunto-iconos-disponibles-simbolo-vectorial-stock-fotos-faltante-defecto-estilo-relleno-delineado-negro-signo-no-encontro-imagen_268104-6708.jpg"
-                # --- Crear el cuestionario ---
+                # Crear el cuestionario
                 sql_cuestionario = """
                     INSERT INTO cuestionario
-                    (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario, codigo_visualizacion)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """
                 cursor.execute(sql_cuestionario, (
                     data.get("nombre_cuestionario"),
@@ -1994,8 +2053,7 @@ def crear_cuestionario_completo():
                     data.get("modo_juego", "C"),
                     data.get("tiempo_limite_pregunta", 30),
                     data.get("usuario_id"),
-                    url_img_cuestionario_cloud,
-                    codigo_visualizacion
+                    url_img_cuestionario_cloud
                 ))
                 cuestionario_id = cursor.lastrowid
 
@@ -2034,8 +2092,7 @@ def crear_cuestionario_completo():
 
         return jsonify({
             "mensaje": "Cuestionario completo creado exitosamente",
-            "cuestionario_id": cuestionario_id,
-            "codigo_visualizacion": codigo_visualizacion
+            "cuestionario_id": cuestionario_id
         }), 201
 
     except Exception as e:
@@ -2059,7 +2116,7 @@ def obtener_cuestionario_completo(cuestionario_id):
             # --- Obtener cuestionario ---
             sql_cuestionario = """
                 SELECT cuestionario_id, nombre_cuestionario, descripcion, publico,
-                       modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario, codigo_visualizacion
+                       modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario
                 FROM cuestionario
                 WHERE cuestionario_id = %s
             """
@@ -2190,63 +2247,8 @@ def actualizar_cuestionario_completo(cuestionario_id):
         return jsonify({"error": str(e)}), 500
 
 
-
-@app.route("/verificar_codigo/<int:cuestionario_id>", methods=["POST"])
-def verificar_codigo(cuestionario_id):
-    """
-    Verifica si el código de visualización ingresado por el alumno
-    coincide con el del cuestionario.
-    """
-    conexion = obtenerConexion()
-    if not conexion:
-        return jsonify({"valido": False, "mensaje": "No se pudo conectar a la base de datos"}), 500
-
-    try:
-        data = request.get_json()
-        codigo_ingresado = (data.get("codigo") or "").strip()
-
-        if not codigo_ingresado:
-            return jsonify({"valido": False, "mensaje": "Código vacío"}), 400
-
-        with conexion.cursor() as cursor:
-            # --- Obtener el código real del cuestionario ---
-            sql = """
-                SELECT codigo_visualizacion
-                FROM cuestionario
-                WHERE cuestionario_id = %s AND estado = 1
-            """
-            cursor.execute(sql, (cuestionario_id,))
-            resultado = cursor.fetchone()
-
-            if not resultado:
-                return jsonify({"valido": False, "mensaje": "Cuestionario no encontrado"}), 404
-
-            codigo_real = resultado["codigo_visualizacion"]
-
-            # --- Comparar códigos ---
-            if codigo_real == codigo_ingresado:
-                return jsonify({"valido": True}), 200
-            else:
-                return jsonify({"valido": False, "mensaje": "Código incorrecto"}), 200
-
-    except Exception as e:
-        print("Error al verificar código:", e)
-        return jsonify({"valido": False, "mensaje": "Error interno del servidor"}), 500
-
-    finally:
-        conexion.close()
-
 @app.route("/editar_cuestionario/<int:cuestionario_id>")
 @login_required
 def frm_edicioncuestionario(cuestionario_id):
     # Solo pasamos cuestionario_id; logged_in_user ya estará disponible en el template
     return render_template('editarcuestionario.html', cuestionario_id=cuestionario_id)
-
-@app.route("/ver_cuestionario/<int:cuestionario_id>")
-@login_required
-def frm_ver_cuestionario(cuestionario_id):
-    # Aquí podrías cargar los datos del cuestionario desde la base de datos
-    # Por ejemplo:
-    # cuestionario = obtener_cuestionario(cuestionario_id)
-    
-    return render_template('visualizarCuestionario.html', cuestionario_id=cuestionario_id)

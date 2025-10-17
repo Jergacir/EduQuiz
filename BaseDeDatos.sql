@@ -125,8 +125,6 @@ CREATE TABLE `cuestionario` (
 
 ALTER TABLE `cuestionario`
 ADD COLUMN `estado` BOOLEAN NOT NULL DEFAULT TRUE;
-ALTER TABLE `cuestionario`
-ADD COLUMN `codigo_visualizacion` VARCHAR(8) UNIQUE;
 
 -- 3. TABLA PREGUNTA
 CREATE TABLE `pregunta` (
@@ -191,3 +189,14 @@ CREATE TABLE `participante_partida` (
 	('Super Polo', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214821/PoloSuperman_xgwvpe.png', 180,1), -- Ejemplo adicional
 	('Lentes Cool', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214824/lentesSol_bz4bbt.png', 80,1), -- Ejemplo adicional
 	('Sombrero Luffy', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214817/sombreroOnepiece_h2zf0c.png', 120,1); -- Ejemplo adicional
+
+-- Tabla para tokens de restablecimiento de contraseña
+CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
+  `prt_id` INT NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT NOT NULL,
+  `token_hash` VARCHAR(255) NOT NULL,
+  `expires_at` DATETIME NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`prt_id`),
+  FOREIGN KEY (`usuario_id`) REFERENCES `usuario`(`usuario_id`) ON DELETE CASCADE
+);

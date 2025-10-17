@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Restablecer contraseña - EduQuiz</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/registro.css') }}">
+</head>
+<body>
+  <div class="contenedor">
+    <div class="panel-izquierdo">
+      <div class="formulario-contenedor">
+        <h1>Restablecer contraseña</h1>
+        <form method="post" action="{{ url_for('restablecer_post') }}">
+          <input type="hidden" name="token" value="{{ token }}">
+          <div class="grupo-formulario campo-contrasena">
+            <label for="contrasena">Nueva contraseña</label>
+            <input id="contrasena" name="contrasena" type="password" required>
+          </div>
+          <div class="grupo-formulario campo-contrasena">
+            <label for="confirmarContrasena">Confirmar contraseña</label>
+            <input id="confirmarContrasena" name="confirmarContrasena" type="password" required>
+          </div>
+          <button class="btn-primario" type="submit">Restablecer contraseña</button>
+        </form>
+        <div class="enlace-sesion">
+          <a href="{{ url_for('frm_login') }}">Volver al inicio de sesión</a>
+        </div>
+      </div>
+    </div>
+    <div class="panel-derecho">
+      <div class="panel-derecho-contenido">
+        <h2>Establece una nueva contraseña</h2>
+        <p>Asegúrate de usar una contraseña segura (mínimo 8 caracteres, mayúsculas, minúsculas, número y carácter especial).</p>
+      </div>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='js/ui_modal.js') }}"></script>
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}
+    <div class="flash-msg" data-cat="{{ cat }}" data-msg="{{ msg|e }}" style="display:none"></div>
+  {% endfor %}
+  <script>
+    (function(){
+      try {
+        var nodes = document.querySelectorAll('.flash-msg');
+        if (!nodes || !nodes.length) return;
+        for (var i=0;i<nodes.length;i++){
+          var n = nodes[i];
+          var cat = n.getAttribute('data-cat');
+          var msg = n.getAttribute('data-msg');
+          if (cat === 'error' && msg && msg.toLowerCase().indexOf('contraseña') !== -1) {
+            if (typeof showModal === 'function') showModal('Error', msg);
+            else alert(msg);
+            break;
+          }
+        }
+      } catch(e){ console.error('flash modal error', e); }
+    })();
+  </script>
+</body>
+</html>

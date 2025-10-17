@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solicitar restablecer contraseña - EduQuiz</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/registro.css') }}">
+</head>
+<body>
+  <div class="contenedor">
+    <div class="panel-izquierdo">
+      <div class="formulario-contenedor">
+        <h1>Recuperar contraseña</h1>
+        <form method="post" action="{{ url_for('solicitar_restablecer') }}">
+          <div class="grupo-formulario">
+            <label for="email">Correo electrónico</label>
+            <input id="email" name="email" type="email" required placeholder="tu@dominio.com">
+          </div>
+          <button class="btn-primario" type="submit">Enviar instrucciones</button>
+        </form>
+        <div class="enlace-sesion">
+          <a href="{{ url_for('frm_login') }}">Volver al inicio de sesión</a>
+        </div>
+      </div>
+    </div>
+    <div class="panel-derecho">
+      <div class="panel-derecho-contenido">
+        <h2>Recupera el acceso</h2>
+        <p>Te enviaremos un enlace seguro para restablecer tu contraseña si el correo existe en nuestro sistema.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
