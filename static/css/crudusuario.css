@@ -1,26 +1,35 @@
-/* Variables para colores */
-campo
+/* ==================================== */
+/* 🔑 VARIABLES DE DISEÑO (MEJORADAS)  */
+/* ==================================== */
 :root {
-    --color-principal: #303030; /* Color oscuro para botones principales */
-    --color-fondo: #f5f5f5; /* Gris claro para el fondo */
-    --color-sidebar: #ffffff; /* Fondo blanco para el sidebar y contenido */
-    --color-texto: #4a4a4a;
-    --color-gris-claro: #e0e0e0;
-    --color-gris-deshabilitado: #cccccc;
-    --color-seleccion-menu: #e6f7ff; /* Fondo para el item de menú activo */
-    --color-borde: #dcdcdc;
+    --color-principal: #007bff; /* Azul vibrante (Primario) */
+    --color-principal-hover: #0056b3; 
+    --color-fondo: #f5f7fa; /* Fondo muy claro (casi blanco) */
+    --color-sidebar: #ffffff; /* Blanco limpio */
+    --color-texto: #333333; /* Gris oscuro para lectura */
+    --color-gris-claro: #e9ecef; /* Fondo de inputs/elementos pasivos */
+    --color-gris-deshabilitado: #adb5bd; /* Gris para texto/bordes deshabilitados */
+    --color-seleccion-menu: #e6f7ff; /* Fondo para el item de menú activo (azul muy claro) */
+    --color-borde: #dee2e6;
+    --color-accion-editar: #28a745; /* Verde para editar/guardar */
+    --color-accion-eliminar: #dc3545; /* Rojo para baja/inactivar */
+    --sombra-suave: 0 4px 12px rgba(0, 0, 0, 0.05); /* Sombra elegante */
 }
 
+/* ==================================== */
+/* ESTILOS BASE Y MAQUETACIÓN          */
+/* ==================================== */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: Arial, sans-serif; /* Fuente por defecto */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fuente más moderna */
 }
 
 body {
     background-color: var(--color-fondo);
     color: var(--color-texto);
+    line-height: 1.6;
 }
 
 .contenedor-principal {
@@ -30,22 +39,24 @@ body {
 
 /* --- Sidebar (Menú Lateral) --- */
 .sidebar {
-    width: 250px;
+    width: 260px; /* Un poco más ancho */
     background-color: var(--color-sidebar);
     padding: 20px 0;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08); /* Sombra más definida */
+    z-index: 10;
 }
 
 .logo {
     display: flex;
     align-items: center;
-    padding: 0 20px 30px 20px;
-    font-size: 1.2em;
-    font-weight: bold;
+    padding: 0 20px 40px 20px;
+    font-size: 1.3em;
+    font-weight: 700;
+    color: var(--color-principal);
 }
 
 .logo img {
-    margin-right: 10px;
+    margin-right: 12px;
 }
 
 .menu ul {
@@ -55,184 +66,103 @@ body {
 .menu li a {
     display: flex;
     align-items: center;
-    padding: 12px 20px;
+    padding: 14px 20px;
     text-decoration: none;
     color: var(--color-texto);
-    transition: background-color 0.2s;
+    transition: all 0.2s ease-in-out;
+    border-left: 3px solid transparent; /* Base para el indicador */
 }
 
 .menu li a:hover {
     background-color: var(--color-gris-claro);
+    color: var(--color-principal);
 }
 
 .menu li.activo a {
     background-color: var(--color-seleccion-menu);
     color: var(--color-principal);
-    font-weight: bold;
-    border-left: 3px solid var(--color-principal); /* Indicador visual */
+    font-weight: 600;
+    border-left-color: var(--color-principal);
 }
 
 .icono {
     margin-right: 15px;
-    font-size: 1.1em;
+    font-size: 1.2em;
 }
 
-/* --- Contenido Principal --- */
+/* --- Contenido Principal y Header --- */
 .contenido {
     flex-grow: 1;
     padding: 30px;
 }
 
-/* Header */
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    padding-bottom: 10px;
+    padding: 10px 0;
     border-bottom: 1px solid var(--color-borde);
 }
 
 .titulo {
-    font-size: 1.5em;
-    font-weight: 500;
+    font-size: 1.8em;
+    font-weight: 600;
 }
 
 .perfil-info {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 1.1em;
+    gap: 15px;
+    font-size: 1em;
+    padding: 5px 15px;
+    border-radius: 20px;
+    background-color: var(--color-sidebar);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
 .perfil-info .avatar {
-    border: 1px solid var(--color-borde);
+    border: 2px solid var(--color-principal);
 }
 
-/* --- Configuración del Perfil --- */
+/* ==================================== */
+/* SECCIÓN DE PESTAÑAS Y FORMULARIOS    */
+/* ==================================== */
+
 .perfil-configuracion {
     background-color: var(--color-sidebar);
     padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    box-shadow: var(--sombra-suave);
 }
 
 /* Pestañas */
 .tabs {
     display: flex;
-    border-bottom: 2px solid var(--color-gris-claro);
+    border-bottom: 1px solid var(--color-borde);
     margin-bottom: 30px;
 }
 
 .tab-button {
-    padding: 10px 20px;
+    padding: 12px 25px;
     border: none;
     background: none;
     cursor: pointer;
     font-size: 1em;
+    font-weight: 500;
     color: var(--color-texto);
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+    color: var(--color-principal);
 }
 
 .tab-button.activo {
-    font-weight: bold;
+    font-weight: 700;
     color: var(--color-principal);
     border-bottom-color: var(--color-principal);
-}
-
-/* Formulario */
-#form-perfil {
-    max-width: 600px;
-}
-
-.campo {
-    margin-bottom: 25px;
-}
-
-.campo label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 8px;
-}
-
-.campo input[type="text"],
-.campo input[type="email"],
- .campo input[type="password"]{
-    width: 100%;
-    padding: 10px 15px;
-    border: 1px solid var(--color-borde);
-    border-radius: 4px;
-    font-size: 1em;
-    outline: none;
-    transition: border-color 0.2s;
-}
-
-.campo input:focus {
-    border-color: var(--color-principal);
-}
-
-.input-con-icono {
-    display: flex;
-    align-items: center;
-    position: relative;
-}
-
-.input-con-icono input {
-    /* Oculta la flecha que indica edición */
-    padding-right: 40px; 
-}
-
-.editar-icono {
-    position: absolute;
-    right: 15px;
-    cursor: pointer;
-    font-size: 1.1em;
-}
-
-.input-deshabilitado {
-    background-color: var(--color-gris-claro);
-    color: var(--color-texto);
-    font-weight: bold;
-    pointer-events: none; /* Evita que se pueda interactuar */
-    border: 1px solid var(--color-gris-deshabilitado) !important;
-}
-
-/* Acciones (Botones) */
-.acciones {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 40px;
-    padding-top: 20px;
-    /* Esto simula la separación de la imagen de referencia */
-}
-
-.acciones button {
-    padding: 12px 25px;
-    border: none;
-    border-radius: 4px;
-    font-size: 1em;
-    cursor: pointer;
-    margin-left: 15px;
-    transition: background-color 0.2s;
-}
-
-.btn-secundario {
-    background-color: var(--color-gris-claro);
-    color: var(--color-texto);
-}
-
-.btn-secundario:hover {
-    background-color: #cacaca;
-}
-
-.btn-principal {
-    background-color: var(--color-principal);
-    color: white;
-}
-
-.btn-principal:hover {
-    background-color: #1a1a1a;
 }
 
 /* Ocultar contenido de pestañas no activas */
@@ -243,48 +173,137 @@ body {
 .tab-content.activo {
     display: block;
 }
-/* Variables y estilos base (SIN CAMBIOS RESPECTO A LA VERSIÓN ANTERIOR) */
-:root {
-    --color-principal: #303030;
-    --color-fondo: #f5f5f5;
-    --color-sidebar: #ffffff;
-    --color-texto: #4a4a4a;
-    --color-gris-claro: #e0e0e0;
-    --color-gris-deshabilitado: #cccccc;
-    --color-seleccion-menu: #e6f7ff;
-    --color-borde: #dcdcdc;
-    --color-accion-editar: #007bff;
-    --color-accion-eliminar: #dc3545;
+
+/* Formulario General */
+.campo {
+    margin-bottom: 20px;
 }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
+.campo label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
 }
 
-body {
-    background-color: var(--color-fondo);
+.campo input:not([type="checkbox"]),
+.campo select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--color-borde);
+    border-radius: 6px; /* Bordes más suaves */
+    font-size: 1em;
+    outline: none;
+    transition: all 0.3s;
+    background-color: var(--color-sidebar); /* Fondo claro para inputs */
+}
+
+.campo input:focus,
+.campo select:focus {
+    border-color: var(--color-principal);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Estilos de Campos Específicos */
+.input-con-icono {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.input-con-icono input {
+    padding-right: 40px; 
+}
+
+.editar-icono {
+    position: absolute;
+    right: 15px;
+    cursor: pointer;
+    color: var(--color-principal);
+    font-size: 1.1em;
+    transition: color 0.2s;
+}
+
+.editar-icono:hover {
+    color: var(--color-principal-hover);
+}
+
+/* Clases JS para campos deshabilitados (lectura) */
+.input-no-editable {
+    background-color: var(--color-gris-claro) !important;
+    color: var(--color-texto) !important;
+    opacity: 0.8;
+}
+
+/* Deshabilitado por defecto para Tipo de Usuario en Perfil */
+#tipo_usuario,
+#gestion-correo,
+#gestion-dni,
+#gestion-tipo_usuario {
+    background-color: var(--color-gris-claro);
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Acciones (Botones) */
+.acciones {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-gris-claro); /* Separador sutil */
+}
+
+.acciones button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 15px;
+    transition: all 0.3s ease;
+}
+
+.btn-secundario {
+    background-color: var(--color-gris-claro);
     color: var(--color-texto);
 }
 
-.contenedor-principal {
-    display: flex;
-    min-height: 100vh;
+.btn-secundario:hover {
+    background-color: #d1d6db;
 }
 
-/* --- Estilos Sidebar, Header, Pestañas, y Formulario Perfil (EXISTENTES) --- */
-/* ... (Se asume que los estilos anteriores están aquí) ... */
+.btn-principal {
+    background-color: var(--color-principal);
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 123, 255, 0.3);
+}
 
-/* --- NUEVOS ESTILOS PARA ADMINISTRACIÓN --- */
+.btn-principal:hover {
+    background-color: var(--color-principal-hover);
+    box-shadow: 0 6px 8px rgba(0, 123, 255, 0.4);
+}
+
+
+/* ==================================== */
+/* SECCIÓN DE ADMINISTRACIÓN            */
+/* ==================================== */
 
 .formulario-gestion {
-    background-color: #f9f9f9;
-    padding: 20px;
+    background-color: var(--color-gris-claro);
+    padding: 25px;
     border: 1px solid var(--color-borde);
-    border-radius: 4px;
+    border-radius: 8px;
     margin-bottom: 30px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.formulario-gestion h3 {
+    font-size: 1.3em;
+    margin-bottom: 20px;
+    color: var(--color-principal);
+    border-bottom: 1px dashed var(--color-borde);
+    padding-bottom: 10px;
 }
 
 .tabla-contenedor {
@@ -293,34 +312,54 @@ body {
 
 #tabla-usuarios {
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
+    border-collapse: separate; /* Para border-radius en celdas si se quisiera */
+    border-spacing: 0;
+    margin-top: 20px;
     font-size: 0.9em;
+    border: 1px solid var(--color-borde);
+    border-radius: 8px;
 }
 
 #tabla-usuarios th, #tabla-usuarios td {
-    border: 1px solid var(--color-gris-claro);
-    padding: 10px 12px;
+    padding: 12px 15px;
     text-align: left;
+    border-bottom: 1px solid var(--color-borde);
 }
 
 #tabla-usuarios th {
     background-color: var(--color-gris-claro);
-    font-weight: bold;
-    color: var(--color-principal);
+    font-weight: 600;
+    color: var(--color-texto);
+    text-transform: uppercase;
 }
 
-#tabla-usuarios tr:nth-child(even) {
-    background-color: #f9f9f9;
+#tabla-usuarios tbody tr:hover {
+    background-color: #f0f4f8; /* Un hover suave en las filas */
+}
+
+/* Estilo para la última fila y celdas */
+#tabla-usuarios tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Acciones en la tabla */
+.acciones-tabla {
+    white-space: nowrap; /* Evita que los botones se envuelvan */
 }
 
 .acciones-tabla button {
-    padding: 5px 10px;
-    margin-right: 5px;
+    padding: 8px 12px;
+    margin-right: 8px;
     border: none;
-    border-radius: 3px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 0.8em;
+    font-size: 0.85em;
+    font-weight: 500;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.acciones-tabla button:active {
+    transform: scale(0.98);
 }
 
 .btn-editar {
@@ -328,7 +367,44 @@ body {
     color: white;
 }
 
-.btn-eliminar {
+.btn-editar:hover {
+    background-color: #1e7e34;
+}
+
+.btn-dar-baja {
     background-color: var(--color-accion-eliminar);
     color: white;
+}
+.btn-dar-baja:hover {
+    background-color: #bd2130;
+}
+
+.btn-dar-alta {
+    background-color: #ffc107; /* Amarillo para reactivar */
+    color: var(--color-texto);
+}
+.btn-dar-alta:hover {
+    background-color: #e0a800;
+}
+
+/* Responsive básico para la tabla */
+@media (max-width: 900px) {
+    .contenedor-principal {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+        padding-bottom: 0;
+    }
+    .menu ul {
+        display: flex;
+        overflow-x: auto;
+    }
+    .menu li {
+        flex-shrink: 0;
+    }
+    .contenido {
+        padding: 20px;
+    }
 }

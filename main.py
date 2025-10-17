@@ -29,7 +29,7 @@ bcrypt = Bcrypt(app) # Inicializar Bcrypt con tu aplicación Flask
 def obtenerConexion():
     try:
         connection = pymysql.connect(host='localhost',
-                                     port=3339, 
+                                     port=3306, 
                                      user='root',
                                      password='',
                                      database='bd_eduquiz',
@@ -147,6 +147,79 @@ def send_verification_email(to_email: str, code: str):
         traceback.print_exc()
         # Re-lanzar para que los handlers existentes puedan reaccionar o capturarlo
         raise
+
+# OBTENER DATOS DEL USUARIO LOGEADO
+# ==============================================================================
+
+def obtener_datos_usuario_logueado(usuario_id):
+    """
+    Obtiene todos los datos no sensibles del usuario actualmente logueado 
+    utilizando su ID de sesión.
+    
+    :param usuario_id: El ID del usuario almacenado en la sesión de Flask.
+    :return: Un diccionario con los datos del usuario o None si no se encuentra.
+    """
+    conexion = obtenerConexion()
+    if not conexion:
+        return None
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # 🔑 CLAVE: La consulta es por un único ID usando el WHERE.
+                sql = """
+                    SELECT usuario_id, username, nombre, correo, tipo_usuario, 
+                           cant_monedas, dni, vigencia 
+                    FROM usuario
+                    WHERE usuario_id = %s
+                """
+                # IMPORTANTE: Usar %s y una tupla para evitar inyección SQL
+                cursor.execute(sql, (usuario_id,)) 
+                usuario = cursor.fetchone()  # Solo se necesita un registro
+                
+                if usuario:
+                    # Mapear el resultado de la base de datos a un diccionario
+                    user_dict = {
+                        'usuario_id': usuario.get('usuario_id'),
+                        'username': usuario.get('username'),
+                        'nombre': usuario.get('nombre'),
+                        'correo': usuario.get('correo'),
+                        'tipo_usuario': usuario.get('tipo_usuario'),
+                        'cant_monedas': usuario.get('cant_monedas'),
+                        'dni': usuario.get('dni'),
+                        # Convertir 1/0 de la BD a booleano de Python
+                        'vigencia': bool(usuario.get('vigencia')), 
+                    }
+                    return user_dict
+                else:
+                    return None  # Usuario no encontrado
+    except Exception as e:
+        print(f"Error al obtener datos del usuario ID {usuario_id}: {e}", file=sys.stderr)
+        return None
+
+# RUTA DATOS DEL USUARIO LOGEADO
+@app.route("/api/perfil", methods=["GET"])
+def api_obtener_perfil():
+    """
+    Ruta API que devuelve los datos del usuario logueado en formato JSON.
+    El frontend puede usar esta ruta vía Fetch/AJAX.
+    """
+    # 1. Verificar autenticación
+    if 'user_id' not in session:
+        # Devuelve un 401 Unauthorized si no hay sesión
+        return jsonify({"error": "No autenticado"}), 401
+
+    user_id = session['user_id']
+    
+    # 2. Obtener datos con la función existente
+    datos_usuario = obtener_datos_usuario_logueado(user_id) 
+
+    if not datos_usuario:
+        # Devuelve un 404 si el usuario no existe (aunque esté logueado)
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    # 3. Devolver los datos como JSON
+    return jsonify(datos_usuario), 200
 
 # --- FUNCIÓN PARA OBTENER TODOS LOS USUARIOS DE LA BD (NUEVA IMPLEMENTACIÓN) ---
 def obtener_todos_los_usuarios():
