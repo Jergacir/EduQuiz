@@ -914,6 +914,29 @@ def procesarregistro():
         flash("Las contraseñas no coinciden.", 'error')
         return redirect(url_for('frm_registro'))
 
+    # --- Validación de contraseña fuerte (servidor) ---
+    # Requisitos: mínimo 8 caracteres, al menos una mayúscula, una minúscula,
+    # al menos un dígito y al menos un carácter especial.
+    import re
+    pwd = contrasena_plana
+    pwd_errors = []
+    if len(pwd) < 8:
+        pwd_errors.append('al menos 8 caracteres')
+    if not re.search(r'[A-Z]', pwd):
+        pwd_errors.append('una letra mayúscula')
+    if not re.search(r'[a-z]', pwd):
+        pwd_errors.append('una letra minúscula')
+    if not re.search(r'\d', pwd):
+        pwd_errors.append('un número')
+    if not re.search(r'[!@#$%^&*()_+\-=[\]{};:\\"\\|,.<>\/?`~]', pwd):
+        pwd_errors.append('un carácter especial (ej: !@#$%)')
+
+    if pwd_errors:
+        # Construir mensaje legible para el usuario
+        detalles = ', '.join(pwd_errors)
+        flash(f"La contraseña es débil. Debe contener: {detalles}.", 'error')
+        return redirect(url_for('frm_registro'))
+
     # Ajustar dominio de correo y definir tipo_usuario para la DB
     tipo_usuario = None
     if tipo == "Docente":

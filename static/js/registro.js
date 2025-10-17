@@ -52,6 +52,20 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        // Validación de contraseña fuerte
+        const pwd = passwordInput.value;
+        const pwdErrors = [];
+        if (pwd.length < 8) pwdErrors.push('al menos 8 caracteres');
+        if (!/[A-Z]/.test(pwd)) pwdErrors.push('una letra mayúscula');
+        if (!/[a-z]/.test(pwd)) pwdErrors.push('una letra minúscula');
+        if (!/[0-9]/.test(pwd)) pwdErrors.push('un número');
+        if (!/[!@#\$%\^&\*\(\)\-_\+=\[\]{};:\"'\\|,.<>\/?]/.test(pwd)) pwdErrors.push('un carácter especial');
+        if (pwdErrors.length > 0) {
+            alert('La contraseña debe contener: ' + pwdErrors.join(', '));
+            passwordInput.focus();
+            return;
+        }
+
         if (confirmPasswordInput.value.trim() === '') {
             alert('Por favor, confirma tu contraseña.');
             confirmPasswordInput.focus();
