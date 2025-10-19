@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         .join("");
 
       card.innerHTML = `
-        <h3 class="question-number">Pregunta ${String(index + 1).padStart(2, "0")}</h3>
+        <h3 class="question-number">${pregunta.texto_pregunta || `Pregunta ${index + 1}`}</h3>
         <div class="question-content-placeholder">
           ${mediaHTML}
         </div>

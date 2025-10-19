@@ -26,14 +26,8 @@ CREATE TABLE IF NOT EXISTS `registro_temp` (
   PRIMARY KEY (`temp_id`)
 );
 
-¡Excelente idea! Hacer la tienda dinámica es el siguiente paso lógico.
 
-Aquí tienes el script SQL para crear las dos tablas que pediste, skins y accesorios, en tu base de datos de XAMPP (MySQL). El script también incluye algunos datos de ejemplo para que puedas empezar a probar de inmediato.
 
-📦 Script SQL para la Tienda
-Este código creará las tablas y las llenará con los ítems que tenías en tu diseño.
-
-SQL
 
 -- ##############################################
 -- TABLA PARA LAS APARIENCIAS (SKINS)
@@ -63,21 +57,8 @@ CREATE TABLE `accesorios` (
 );
 
 
---Insert opcionales
--- Insertando datos en la tabla 'skins'
-INSERT INTO `skins` (`nombre`, `url_imagen`, `precio`) VALUES
-('Avatar Dinosaurio', 'https://i.imgur.com/e2O5RUy.png', 100),
-('Avatar Astronauta', 'https://i.imgur.com/7g21MMa.png', 150),
-('Avatar Ninja', 'https://i.imgur.com/URL_AVATAR_NINJA.png', 250); -- Ejemplo adicional
-
--- Insertando datos en la tabla 'accesorios'
-INSERT INTO `accesorios` (`nombre`, `url_imagen`, `precio`) VALUES
-('Gorro kawai', 'https://i.imgur.com/lJ4xFwR.png', 50),
-('Lentes Hot', 'https://i.imgur.com/SQLJ21a.png', 200),
-('Zapatos cute', 'https://i.imgur.com/URL_POTENCIADOR_5050.png', 120); -- Ejemplo adicional
 
 
---Alter necesarios para dar de baja
 -- ##############################################
 -- 1. ALTER TABLE para la tabla USUARIO
 -- ##############################################
