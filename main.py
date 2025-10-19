@@ -99,20 +99,49 @@ def send_verification_email(to_email: str, code: str):
         f"Saludos,\nEquipo EduQuiz"
     )
 
-    # Mensaje HTML más bonito
+    # Mensaje HTML
     html_body = f"""
+    <!doctype html>
     <html>
-        <body style="font-family: Arial, sans-serif; color: #222;">
-            <p>Hola,</p>
-            <p>Gracias por registrarte en <strong>EduQuiz</strong>. Para completar tu registro, ingresa el siguiente <strong>código de verificación</strong> en la página de registro:</p>
-            <div style="margin:20px 0;">
-                <span style="display:inline-block;padding:14px 18px;border-radius:8px;background:#f4f4f4;font-size:20px;letter-spacing:4px">{code}</span>
-            </div>
-            <p>O pulsa el botón para verificar automáticamente:</p>
-            <p><a href="{verify_link}" style="background:#0a58ca;color:#ffffff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block">Verificar mi cuenta</a></p>
-            <p style="color:#666;font-size:14px">Si no solicitaste este código, puedes ignorar este correo.</p>
-            <hr style="border:none;border-top:1px solid #eee" />
-            <p style="font-size:13px;color:#999">EduQuiz — Tu camino al éxito académico</p>
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width,initial-scale=1" />
+            <title>Confirma tu cuenta — EduQuiz</title>
+        </head>
+        <body style="margin:0;padding:0;font-family: 'Segoe UI', Roboto, Arial, sans-serif;background:#f6f9fc;color:#111;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                    <td align="center" style="padding:20px 10px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 6px 18px rgba(20,30,50,0.08);">
+                            <tr style="background:linear-gradient(90deg,#0a58ca,#3b82f6);color:#fff;">
+                                <td style="padding:28px 30px;text-align:left;font-weight:700;font-size:20px;">EduQuiz</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:28px 30px;color:#2b3440;">
+                                    <h2 style="margin:0 0 10px 0;font-size:18px;color:#111;">¡Bienvenido a EduQuiz!</h2>
+                                    <p style="margin:0 0 18px 0;color:#55606a;line-height:1.45">Gracias por registrarte — solo falta un paso para activar tu cuenta. Ingresa el siguiente código en la página de registro o pulsa el botón para verificar automáticamente.</p>
+
+                                    <div style="margin:18px 0;text-align:center;">
+                                        <div style="display:inline-block;background:#f3f6fb;padding:14px 20px;border-radius:12px;font-size:22px;letter-spacing:6px;color:#0a58ca;font-weight:600;">{code}</div>
+                                    </div>
+
+                                    <!-- Botón estilo Outlook-friendly usando tabla -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 auto;" align="center">
+                                        <tr>
+                                            <td align="center" bgcolor="#0a58ca" style="border-radius:8px;">
+                                                <a href="{verify_link}" style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-weight:600;border-radius:8px;">Verificar mi cuenta</a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:18px 30px;background:#fbfdff;color:#94a3b8;font-size:13px;text-align:center;">EduQuiz — Tu camino al éxito académico</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
         </body>
     </html>
     """
@@ -179,15 +208,47 @@ def send_password_reset_email(to_email: str, token: str):
     )
 
     html_body = f"""
-    <html><body style='font-family:Arial,sans-serif;color:#222;'>
-      <p>Hola,</p>
-      <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Si no la solicitaste, ignora este correo.</p>
-      <p>Pulsa el siguiente botón para restablecer tu contraseña (válido por 1 hora):</p>
-      <p><a href="{reset_link}" style="background:#0a58ca;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">Restablecer contraseña</a></p>
-      <p style="color:#666;font-size:13px">Si no solicitaste este cambio, ignora este correo.</p>
-      <hr style="border:none;border-top:1px solid #eee" />
-      <p style="font-size:13px;color:#999">EduQuiz</p>
-    </body></html>
+    <!doctype html>
+    <html>
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width,initial-scale=1" />
+            <title>Restablece tu contraseña — EduQuiz</title>
+        </head>
+        <body style="margin:0;padding:0;font-family: 'Segoe UI', Roboto, Arial, sans-serif;background:#f6f9fc;color:#111;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                    <td align="center" style="padding:20px 10px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 6px 18px rgba(20,30,50,0.08);">
+                            <tr style="background:linear-gradient(90deg,#0a58ca,#3b82f6);color:#fff;">
+                                <td style="padding:20px 30px;font-weight:700;font-size:18px;">Restablecer contraseña — EduQuiz</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:24px 30px;color:#2b3440;">
+                                    <h2 style="margin:0 0 10px 0;font-size:18px;color:#111;">Reestablece tu contraseña</h2>
+                                    <p style="margin:0 0 12px 0;font-size:15px;">Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Si no la solicitaste, puedes ignorar este correo.</p>
+                                    <p style="margin:8px 0 20px 0;color:#55606a;">El enlace es válido por 1 hora.</p>
+
+                                    <div style="text-align:center;margin:14px 0;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" align="center">
+                                            <tr>
+                                                <td bgcolor="#0a58ca" style="border-radius:8px;">
+                                                    <a href="{reset_link}" style="display:inline-block;padding:12px 20px;color:#fff;text-decoration:none;font-weight:600;border-radius:8px;">Restablecer contraseña</a>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:16px 30px;background:#fbfdff;color:#94a3b8;font-size:13px;text-align:center;">Si no solicitaste esto, ignora el mensaje. — EduQuiz</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+    </html>
     """
 
     msg = EmailMessage()
@@ -668,6 +729,17 @@ def frm_login():
 @app.route("/registro")
 def frm_registro():
     return render_template('registro.html')
+
+
+@app.route('/verificar', methods=['GET'])
+def frm_verificar():
+    """Página para que el usuario ingrese el código de verificación que recibió por email.
+
+    Acepta un parámetro `email` en la query string para prellenar el campo.
+    """
+    email = request.args.get('email', '')
+    masked = mask_email(email) if email else ''
+    return render_template('verificar.html', email=email, email_masked=masked)
 
 @app.route("/home")
 @login_required
