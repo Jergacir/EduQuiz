@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import pymysql.cursors
 from functools import wraps
 from flask_bcrypt import Bcrypt
+from extensions import bcrypt as bcrypt_ext
 import sys
 from dotenv import load_dotenv
 import os
@@ -16,6 +17,20 @@ import hashlib
 from datetime import datetime, timedelta
 import string
 
+# Importar utilidades compartidas (mask_email, envía verificación)
+try:
+    from utils import mask_email, send_verification_email
+except Exception:
+    # Si utils no está disponible en tiempo de import (durante refactor), ignoramos
+    mask_email = lambda e: e
+    send_verification_email = None
+
+# Intentar importar el helper de restablecimiento (si existe)
+try:
+    from controllers.modificarcontrasena import send_password_reset_email
+except Exception:
+    send_password_reset_email = None
+
 load_dotenv()
 
 cloudinary.config(
@@ -26,399 +41,53 @@ cloudinary.config(
 
 app = Flask(__name__)
 app.secret_key = 'supersecreto123' # Importante para la autenticación
-#IMPORTANTE: cambiar el puerto porfavor
-bcrypt = Bcrypt(app) # Inicializar Bcrypt con tu aplicación Flask
+# Inicializar extensiones desde extensions.py
+bcrypt_ext.init_app(app)
+# para compatibilidad con el código existente, dejamos una referencia `bcrypt`
+bcrypt = bcrypt_ext
 
 # --- FUNCIÓN DE CONEXIÓN A LA BASE DE DATOS ---
 def obtenerConexion():
+    # Delegar la creación de conexión al módulo central `db.py` (dbmod)
     try:
-        connection = pymysql.connect(host='localhost',
-                                     port=3339, 
-                                     user='root',
-                                     password='',
-                                     database='bd_eduquiz',
-                                     cursorclass=pymysql.cursors.DictCursor)
-        return connection
+        import db as dbmod
+        return dbmod.obtenerConexion()
     except Exception as e:
-        # Se imprime el error en la salida de errores
-        print("Error al obtener la conexión: %s" % (repr(e)), file=sys.stderr)
+        # Si algo falla al importar o al obtener la conexión, registrarlo y devolver None
+        print(f"Error delegando obtenerConexion a dbmod: {e}", file=sys.stderr)
         return None
-
-# -----------------------
-# UTILIDADES EMAIL
-# -----------------------
-def mask_email(email: str) -> str:
-    """Devuelve un email parcialmente enmascarado para mostrar en la UI."""
-    try:
-        local, domain = email.split('@')
-        if len(local) <= 2:
-            masked_local = local[0] + '*'*(len(local)-1)
-        else:
-            masked_local = local[0] + '*'*(len(local)-2) + local[-1]
-        return f"{masked_local}@{domain}"
-    except Exception:
-        return email
-
-
-def send_verification_email(to_email: str, code: str):
-    """Envía un correo con el código de verificación usando SMTP.
-
-    Configura las variables de entorno:
-    - EMAIL_HOST: servidor SMTP (ej: smtp.gmail.com)
-    - EMAIL_PORT: puerto (ej: 587)
-    - EMAIL_USER: usuario
-    - EMAIL_PASS: contraseña o app password
-    """
-    host = os.environ.get('EMAIL_HOST')
-    port = int(os.environ.get('EMAIL_PORT', 587))
-    # EMAIL_USER se usa para autenticar contra el servidor SMTP
-    smtp_user = os.environ.get('EMAIL_USER')
-    smtp_pass = os.environ.get('EMAIL_PASS')
-    # EMAIL_FROM es la dirección que aparecerá en el encabezado From (debe estar verificada en el proveedor)
-    from_header = os.environ.get('EMAIL_FROM') or smtp_user
-    if not host or not smtp_user or not smtp_pass:
-        raise RuntimeError('Configuración SMTP incompleta. Ajusta EMAIL_HOST/EMAIL_USER/EMAIL_PASS')
-
-    subject = 'Confirma tu cuenta en EduQuiz'
-
-    # Construir enlace de verificación (si estamos en contexto de request, usar url_for)
-    try:
-        verify_link = url_for('frm_verificar', email=to_email, _external=True)
-    except Exception:
-        # Fallback: si no hay contexto de app, intentar usar APP_BASE_URL de .env
-        base = os.environ.get('APP_BASE_URL', '').rstrip('/')
-        verify_link = f"{base}/verificar?email={to_email}" if base else f"/verificar?email={to_email}"
-
-    # Mensaje de texto plano
-    text_body = (
-        f"Hola,\n\n"
-        f"Gracias por registrarte en EduQuiz. Para completar tu registro introduce el siguiente código de verificación:\n\n"
-        f"{code}\n\n"
-        f"También puedes verificar tu cuenta haciendo clic en el siguiente enlace:\n{verify_link}\n\n"
-        f"Si no solicitaste este correo, ignora este mensaje.\n\n"
-        f"Saludos,\nEquipo EduQuiz"
-    )
-
-    # Mensaje HTML
-    html_body = f"""
-    <!doctype html>
-    <html>
-        <head>
-            <meta charset="utf-8" />
-            <meta name="viewport" content="width=device-width,initial-scale=1" />
-            <title>Confirma tu cuenta — EduQuiz</title>
-        </head>
-        <body style="margin:0;padding:0;font-family: 'Segoe UI', Roboto, Arial, sans-serif;background:#f6f9fc;color:#111;">
-            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-                <tr>
-                    <td align="center" style="padding:20px 10px;">
-                        <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 6px 18px rgba(20,30,50,0.08);">
-                            <tr style="background:linear-gradient(90deg,#0a58ca,#3b82f6);color:#fff;">
-                                <td style="padding:28px 30px;text-align:left;font-weight:700;font-size:20px;">EduQuiz</td>
-                            </tr>
-                            <tr>
-                                <td style="padding:28px 30px;color:#2b3440;">
-                                    <h2 style="margin:0 0 10px 0;font-size:18px;color:#111;">¡Bienvenido a EduQuiz!</h2>
-                                    <p style="margin:0 0 18px 0;color:#55606a;line-height:1.45">Gracias por registrarte — solo falta un paso para activar tu cuenta. Ingresa el siguiente código en la página de registro o pulsa el botón para verificar automáticamente.</p>
-
-                                    <div style="margin:18px 0;text-align:center;">
-                                        <div style="display:inline-block;background:#f3f6fb;padding:14px 20px;border-radius:12px;font-size:22px;letter-spacing:6px;color:#0a58ca;font-weight:600;">{code}</div>
-                                    </div>
-
-                                    <!-- Botón estilo Outlook-friendly usando tabla -->
-                                    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 auto;" align="center">
-                                        <tr>
-                                            <td align="center" bgcolor="#0a58ca" style="border-radius:8px;">
-                                                <a href="{verify_link}" style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-weight:600;border-radius:8px;">Verificar mi cuenta</a>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="padding:18px 30px;background:#fbfdff;color:#94a3b8;font-size:13px;text-align:center;">EduQuiz — Tu camino al éxito académico</td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </body>
-    </html>
-    """
-
-    msg = EmailMessage()
-    # Usa EMAIL_FROM si está configurado en el entorno, sino el usuario SMTP
-    msg['From'] = from_header
-    msg['To'] = to_email
-    msg['Subject'] = subject
-    msg.set_content(text_body)
-    msg.add_alternative(html_body, subtype='html')
-
-    # DEBUG: imprimir configuración SMTP (sin exponer la contraseña)
-    print(f"[DEBUG] Enviando email SMTP -> host={host}, port={port}, smtp_user={smtp_user}, from_header={from_header}, to={to_email}")
-
-    # Opción para pruebas locales: si SKIP_TLS_VERIFY está activado, crear contexto sin verificación
-    skip_tls = os.environ.get('SKIP_TLS_VERIFY', '0') in ('1', 'true', 'True')
-    if skip_tls:
-        context = ssl._create_unverified_context()
-    else:
-        context = ssl.create_default_context()
-
-    try:
-        with smtplib.SMTP(host, port, timeout=20) as server:
-            server.set_debuglevel(1)
-            # STARTTLS con contexto
-            server.starttls(context=context)
-            # Autenticación con SMTP_USER
-            server.login(smtp_user, smtp_pass)
-            server.send_message(msg)
-
-        print("[DEBUG] Email enviado (o al menos enviado al servidor SMTP)")
-    except Exception as e:
-        # Mostrar traza completa para depuración
-        import traceback
-        traceback.print_exc()
-        # Re-lanzar para que los handlers existentes puedan reaccionar o capturarlo
-        raise
-
-
-def send_password_reset_email(to_email: str, token: str):
-    """Envía el email con el enlace para restablecer la contraseña."""
-    host = os.environ.get('EMAIL_HOST')
-    port = int(os.environ.get('EMAIL_PORT', 587))
-    smtp_user = os.environ.get('EMAIL_USER')
-    smtp_pass = os.environ.get('EMAIL_PASS')
-    from_header = os.environ.get('EMAIL_FROM') or smtp_user
-    if not host or not smtp_user or not smtp_pass:
-        raise RuntimeError('Configuración SMTP incompleta. Ajusta EMAIL_HOST/EMAIL_USER/EMAIL_PASS')
-
-    subject = 'Restablece tu contraseña en EduQuiz'
-    # Construir enlace de reset
-    try:
-        reset_link = url_for('frm_restablecer', token=token, _external=True)
-    except Exception:
-        base = os.environ.get('APP_BASE_URL', '').rstrip('/')
-        reset_link = f"{base}/restablecer?token={token}" if base else f"/restablecer?token={token}"
-
-    text_body = (
-        f"Hola,\n\n"
-        f"Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Si no la solicitaste, ignora este correo.\n\n"
-        f"Para restablecer tu contraseña, abre el siguiente enlace (válido por 1 hora):\n{reset_link}\n\n"
-        f"Si no solicitaste este cambio, puedes ignorar este correo.\n\nSaludos,\nEquipo EduQuiz"
-    )
-
-    html_body = f"""
-    <!doctype html>
-    <html>
-        <head>
-            <meta charset="utf-8" />
-            <meta name="viewport" content="width=device-width,initial-scale=1" />
-            <title>Restablece tu contraseña — EduQuiz</title>
-        </head>
-        <body style="margin:0;padding:0;font-family: 'Segoe UI', Roboto, Arial, sans-serif;background:#f6f9fc;color:#111;">
-            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-                <tr>
-                    <td align="center" style="padding:20px 10px;">
-                        <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 6px 18px rgba(20,30,50,0.08);">
-                            <tr style="background:linear-gradient(90deg,#0a58ca,#3b82f6);color:#fff;">
-                                <td style="padding:20px 30px;font-weight:700;font-size:18px;">Restablecer contraseña — EduQuiz</td>
-                            </tr>
-                            <tr>
-                                <td style="padding:24px 30px;color:#2b3440;">
-                                    <h2 style="margin:0 0 10px 0;font-size:18px;color:#111;">Reestablece tu contraseña</h2>
-                                    <p style="margin:0 0 12px 0;font-size:15px;">Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Si no la solicitaste, puedes ignorar este correo.</p>
-                                    <p style="margin:8px 0 20px 0;color:#55606a;">El enlace es válido por 1 hora.</p>
-
-                                    <div style="text-align:center;margin:14px 0;">
-                                        <table role="presentation" cellpadding="0" cellspacing="0" align="center">
-                                            <tr>
-                                                <td bgcolor="#0a58ca" style="border-radius:8px;">
-                                                    <a href="{reset_link}" style="display:inline-block;padding:12px 20px;color:#fff;text-decoration:none;font-weight:600;border-radius:8px;">Restablecer contraseña</a>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="padding:16px 30px;background:#fbfdff;color:#94a3b8;font-size:13px;text-align:center;">Si no solicitaste esto, ignora el mensaje. — EduQuiz</td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </body>
-    </html>
-    """
-
-    msg = EmailMessage()
-    msg['From'] = from_header
-    msg['To'] = to_email
-    msg['Subject'] = subject
-    msg.set_content(text_body)
-    msg.add_alternative(html_body, subtype='html')
-
-    skip_tls = os.environ.get('SKIP_TLS_VERIFY', '0') in ('1', 'true', 'True')
-    if skip_tls:
-        context = ssl._create_unverified_context()
-    else:
-        context = ssl.create_default_context()
-
-    with smtplib.SMTP(host, port, timeout=20) as server:
-        server.starttls(context=context)
-        server.login(smtp_user, smtp_pass)
-        server.send_message(msg)
 
 
 # ---------- ENDPOINTS PARA RECUPERACIÓN DE CONTRASEÑA ----------
+try:
+    from controllers.modificarcontrasena import (
+        frm_solicitar_restablecer as ctrl_frm_solicitar_restablecer,
+        solicitar_restablecer as ctrl_solicitar_restablecer,
+        frm_restablecer as ctrl_frm_restablecer,
+        restablecer_post as ctrl_restablecer_post,
+    )
+except Exception as e:
+    print(f"[DEBUG] No se pudo importar controllers.modificarcontrasena: {e}")
+
 
 @app.route('/solicitar_restablecer', methods=['GET'])
 def frm_solicitar_restablecer():
-    return render_template('solicitar_restablecer.html')
+    return ctrl_frm_solicitar_restablecer()
 
 
 @app.route('/solicitar_restablecer', methods=['POST'])
 def solicitar_restablecer():
-    email = request.form.get('email')
-    if not email:
-        flash('Ingresa un correo válido.', 'error')
-        return redirect(url_for('frm_solicitar_restablecer'))
-
-    conexion = obtenerConexion()
-    if not conexion:
-        flash('Error al conectar con la base de datos.', 'error')
-        return redirect(url_for('frm_solicitar_restablecer'))
-
-    try:
-        with conexion:
-            with conexion.cursor() as cursor:
-                sql = "SELECT usuario_id, correo FROM usuario WHERE correo=%s"
-                cursor.execute(sql, (email,))
-                user = cursor.fetchone()
-                if not user:
-                    # No revelar que el email no existe — comportarse como si se envió
-                    flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'reset_info')
-                    return render_template('solicitar_restablecer.html')
-
-                usuario_id = user['usuario_id']
-                # Generar token y guardarlo hasheado
-                token = secrets.token_urlsafe(32)
-                token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
-                expires_at = datetime.utcnow() + timedelta(hours=1)
-
-                # DEBUG: mostrar token en consola para pruebas locales (no en producción)
-                print(f"[DEBUG] Password reset token para {email}: {token}")
-
-                sql_insert = "INSERT INTO password_reset_tokens (usuario_id, token_hash, expires_at) VALUES (%s, %s, %s)"
-                cursor.execute(sql_insert, (usuario_id, token_hash, expires_at.strftime('%Y-%m-%d %H:%M:%S')))
-                conexion.commit()
-
-                # Enviar email
-                try:
-                    send_password_reset_email(email, token)
-                    flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'reset_info')
-                    return render_template('solicitar_restablecer.html')
-                except Exception as e:
-                    print(f"Error enviando email de restablecimiento: {e}")
-                    flash('No se pudo enviar el correo de restablecimiento. Contacta al administrador.', 'reset_warning')
-                    return render_template('solicitar_restablecer.html')
-
-    except Exception as e:
-        print(f"Error en solicitar_restablecer: {e}")
-        flash('Ocurrió un error. Intenta más tarde.', 'error')
-        return redirect(url_for('frm_solicitar_restablecer'))
+    return ctrl_solicitar_restablecer()
 
 
 @app.route('/restablecer', methods=['GET'])
 def frm_restablecer():
-    token = request.args.get('token')
-    if not token:
-        flash('Token inválido.', 'error')
-        return redirect(url_for('frm_login'))
-
-    # No revelar si el token es inválido; mostrar formulario si parece bueno
-    return render_template('restablecer.html', token=token)
+    return ctrl_frm_restablecer()
 
 
 @app.route('/restablecer', methods=['POST'])
 def restablecer_post():
-    token = request.form.get('token')
-    nueva = request.form.get('contrasena')
-    confirmar = request.form.get('confirmarContrasena')
-
-    if not token or not nueva or not confirmar:
-        flash('Faltan campos.', 'error')
-        return redirect(url_for('frm_login'))
-
-    if nueva != confirmar:
-        flash('Las contraseñas no coinciden.', 'error')
-        return redirect(url_for('frm_restablecer') + f"?token={token}")
-
-    # Validación de contraseña fuerte (reuse same rules)
-    import re
-    pwd = nueva
-    pwd_errors = []
-    if len(pwd) < 8:
-        pwd_errors.append('al menos 8 caracteres')
-    if not re.search(r'[A-Z]', pwd):
-        pwd_errors.append('una letra mayúscula')
-    if not re.search(r'[a-z]', pwd):
-        pwd_errors.append('una letra minúscula')
-    if not re.search(r'\d', pwd):
-        pwd_errors.append('un número')
-    if not re.search(r'[!@#$%^&*()_+\-=[\]{};:\\"\\|,.<>\/?`~]', pwd):
-        pwd_errors.append('un carácter especial (ej: !@#$%)')
-
-    if pwd_errors:
-        flash('La contraseña no cumple los requisitos: ' + ', '.join(pwd_errors), 'error')
-        return redirect(url_for('frm_restablecer') + f"?token={token}")
-
-    # Buscar token en la BD (hash) y validar expiración
-    conexion = obtenerConexion()
-    if not conexion:
-        flash('Error de conexión.', 'error')
-        return redirect(url_for('frm_login'))
-
-    try:
-        token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
-        with conexion:
-            with conexion.cursor() as cursor:
-                sql = "SELECT prt_id, usuario_id, expires_at FROM password_reset_tokens WHERE token_hash=%s"
-                cursor.execute(sql, (token_hash,))
-                row = cursor.fetchone()
-                if not row:
-                    flash('Token inválido o expirado.', 'error')
-                    return redirect(url_for('frm_login'))
-
-                expires = row['expires_at']
-                if isinstance(expires, str):
-                    expires_dt = datetime.strptime(expires, '%Y-%m-%d %H:%M:%S')
-                else:
-                    expires_dt = expires
-
-                if expires_dt < datetime.utcnow():
-                    flash('El token ha expirado.', 'error')
-                    return redirect(url_for('frm_login'))
-
-                usuario_id = row['usuario_id']
-                # Actualizar contraseña
-                hashed_bytes = bcrypt.generate_password_hash(nueva)
-                hashed = hashed_bytes.decode('utf-8')
-                sql_upd = "UPDATE usuario SET contrasena=%s WHERE usuario_id=%s"
-                cursor.execute(sql_upd, (hashed, usuario_id))
-
-                # Invalidate token (delete)
-                sql_del = "DELETE FROM password_reset_tokens WHERE prt_id=%s"
-                cursor.execute(sql_del, (row['prt_id'],))
-                conexion.commit()
-
-                flash('Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.', 'success')
-                return redirect(url_for('frm_login'))
-
-    except Exception as e:
-        print(f"Error en restablecer_post: {e}")
-        flash('Ocurrió un error procesando la solicitud.', 'error')
-        return redirect(url_for('frm_login'))
+    return ctrl_restablecer_post()
 
 # OBTENER DATOS DEL USUARIO LOGEADO
 # ==============================================================================
@@ -747,35 +416,6 @@ def frm_home():
     return render_template('home.html')
 
 # --- RUTA DE LA TIENDA ---
-@app.route("/tienda")
-@login_required
-def frm_tienda():
-    # Inicializamos las listas en caso de que haya un error
-    lista_skins = []
-    lista_accesorios = []
-
-    # 1. Obtenemos la conexión a la BD
-    conexion = obtenerConexion()
-    if conexion:
-        try:
-            with conexion.cursor() as cursor:
-                # 2. Consultamos todos los skins
-                sql_skins = "SELECT skin_id, nombre, url_imagen, precio FROM skins WHERE vigencia = 1  ORDER BY precio ASC"
-                cursor.execute(sql_skins)
-                lista_skins = cursor.fetchall()
-
-                # 3. Consultamos todos los accesorios
-                sql_accesorios = "SELECT accesorio_id, nombre, url_imagen, precio FROM accesorios WHERE vigencia = 1 ORDER BY precio ASC"
-                cursor.execute(sql_accesorios)
-                lista_accesorios = cursor.fetchall()
-        except Exception as e:
-            print(f"Error al consultar la tienda: {e}")
-        finally:
-            # La conexión se cierra automáticamente gracias al 'with'
-            pass
-
-    # 4. Pasamos las listas a la plantilla HTML
-    return render_template('tienda.html', skins=lista_skins, accesorios=lista_accesorios)
 
 # --- RUTA DE PARTIDAS (PARA EL PROFESOR) ---
 @app.route('/partidas_profesor')
@@ -802,21 +442,9 @@ def frm_crear_partida():
 
 # --- NUEVAS RUTAS DE PARTIDAS ---
 
-# 1. Ruta para mostrar el formulario de unirse a partida
-@app.route('/partidas')
-@login_required
-def frm_partidas():
-    # 'logged_in_user' ya es accesible en el template gracias al @app.context_processor
-    return render_template('partidas.html')
+    
 
-# 2. Ruta de PLACEHOLDER para jugar (necesaria para el redirect de la API)
-@app.route('/jugar/<string:codigo_partida>')
-@login_required
-def frm_jugar(codigo_partida):
-    # Por ahora, solo redirige a un home o una página de espera.
-    # Esta ruta será la vista principal del juego en vivo.
-    flash(f"Te has unido a la partida con código: {codigo_partida}. (Vista de juego por implementar)", 'success')
-    return redirect(url_for('frm_home'))
+
 
 # --- RUTAS API PARA CRUD DE TIENDA (Skins y Accesorios) ---
 
@@ -994,59 +622,8 @@ def obtener_item_por_id(tabla, id_item, columna_id):
         print(f"Error al obtener ítem por ID de {tabla}: {e}", file=sys.stderr)
         return None
 
-# --- LÓGICA DE PARTIDAS: Validar y unir usuario a partida ---
-def validar_y_unir(codigo_partida, usuario_id):
-    """
-    Intenta buscar la partida, valida su estado ('espera'), verifica el cupo
-    y asocia el usuario a ella.
+    
 
-    Retorna True si la unión es exitosa o el usuario ya estaba unido, False en caso contrario.
-    """
-    conexion = obtenerConexion()
-    if not conexion:
-        print("Error: No se pudo conectar a la BD.")
-        return False
-
-    try:
-        with conexion:
-            with conexion.cursor() as cursor:
-                # 1. Buscar la partida y validar estado/cupo (asumiendo tabla 'partida')
-                sql_partida = "SELECT partida_id, estado, max_jugadores FROM partida WHERE codigo_partida = %s"
-                cursor.execute(sql_partida, (codigo_partida,))
-                partida = cursor.fetchone()
-
-                if not partida or partida.get('estado') != 'espera':
-                    print(f"Error: Partida '{codigo_partida}' no encontrada o no está en estado de espera.")
-                    return False
-
-                partida_id = partida['partida_id']
-                max_jugadores = partida['max_jugadores']
-
-                # 2. Contar jugadores actuales y verificar si el usuario ya está (asumiendo tabla 'participante_partida')
-                sql_contar = "SELECT COUNT(*) AS total_jugadores, SUM(CASE WHEN usuario_id = %s THEN 1 ELSE 0 END) AS usuario_existe FROM participante_partida WHERE partida_id = %s"
-                cursor.execute(sql_contar, (usuario_id, partida_id))
-                resultado_conteo = cursor.fetchone()
-
-                # Si ya está dentro, se considera éxito (no necesitamos volver a insertarlo)
-                if resultado_conteo['usuario_existe'] > 0:
-                    print(f"Advertencia: Usuario {usuario_id} ya está en la partida {codigo_partida}.")
-                    return True
-
-                # Verificar cupo
-                if resultado_conteo['total_jugadores'] >= max_jugadores:
-                    print(f"Error: La partida '{codigo_partida}' está llena. (Max: {max_jugadores})")
-                    return False
-
-                # 3. Asociar el usuario a la partida
-                sql_unir = "INSERT INTO participante_partida (partida_id, usuario_id) VALUES (%s, %s)"
-                cursor.execute(sql_unir, (partida_id, usuario_id))
-                conexion.commit()
-                print(f"Éxito: Usuario {usuario_id} unido a partida {codigo_partida}.")
-                return True
-
-    except Exception as e:
-        print(f"Error en validar_y_unir: {e}", file=sys.stderr)
-        return False
 
 # ... Esto es para el CRUD de accesorio
 
@@ -1278,33 +855,30 @@ def obtener_skin_api(skin_id):
         return jsonify({'success': False, 'message': 'Accesorio no encontrado.'}), 404
 # -----------------------------------
 
-# --- NUEVA RUTA API PARA UNIRSE A LA PARTIDA (POST) ---
-@app.route('/api/partida/unirse', methods=['POST'])
-@login_required # Solo usuarios logueados pueden intentar unirse
-def api_unirse_partida():
-    data = request.get_json()
-    codigo_partida = data.get('codigo')
-    usuario_id = data.get('usuario_id') # Viene del data-usuario-id en la vista
 
-    if not codigo_partida or not usuario_id:
-        return jsonify({"success": False, "message": "Faltan el código de partida o el ID de usuario."}), 400
+# ------------------------------------------------------------------
+# Registrar blueprints modulares (controllers)
+# ------------------------------------------------------------------
+try:
+    # Imports locales para evitar ciclos al migrar gradualmente
+    from controllers.tienda import tienda_bp
+    from controllers.usuarios import usuarios_bp
+    from controllers.cuestionarios import cuestionarios_bp
+    from controllers.auth import auth_bp
+    from controllers.partidas import partidas_bp
 
-    # Asegúrate de que usuario_id sea un entero si tu BD lo espera como INT
-    try:
-        usuario_id = int(usuario_id)
-    except ValueError:
-        return jsonify({"success": False, "message": "ID de usuario inválido."}), 400
+    app.register_blueprint(tienda_bp)
+    app.register_blueprint(usuarios_bp)
+    app.register_blueprint(cuestionarios_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(partidas_bp)
+except Exception as e:
+    # Si hay algún error al registrar (por ejemplo durante la refactorización), lo registramos
+    print(f"[DEBUG] No se pudieron registrar todos los blueprints: {e}")
 
-    if validar_y_unir(codigo_partida, usuario_id):
-        # La función url_for se encargará de crear la URL dinámica /jugar/CODIGO
-        return jsonify({
-            "success": True,
-            "message": "¡Te has unido a la partida!",
-            "redirect_url": url_for('frm_jugar', codigo_partida=codigo_partida)
-        }), 200
-    else:
-        # Este mensaje ya incluye el caso de "partida llena" o "código inválido"
-        return jsonify({"success": False, "message": "Código de partida inválido o partida llena."}), 400
+
+# --- BLOQUE api_unirse_partida MIGRADO ---
+# Migrado a controllers/partidas.partidas_bp
 # -----------------------------------
 
 # RUTA HTML PARA EL CRUD DE USUARIOS
@@ -1506,406 +1080,7 @@ def listar_usuarios_api():
         print(f"Error al obtener usuarios: {e}", file=sys.stderr)
         return jsonify({'error': 'Error interno del servidor al obtener datos'}), 500
 
-# Registrar GESTORES/ADMINISTRADORES
-# ==================================
-@app.route("/api/register-gestor", methods=['POST'])
-def register_gestor_api():
-    """
-    Registra un usuario de tipo 'G' (Gestor) de forma segura,
-    permitiendo al usuario de la API decidir el valor del campo 'verificado'.
-    """
-    data = request.get_json()
-
-    # Se mantiene la validación de campos obligatorios
-    required_fields = ['username', 'nombre', 'contrasena', 'correo', 'dni']
-    if not data or any(key not in data for key in required_fields):
-        return jsonify({"success": False, "message": "Faltan campos obligatorios: username, nombre, contrasena, correo, dni."}), 400
-
-    username = data['username']
-    nombre = data['nombre']
-    contrasena_plana = data['contrasena']
-    correo = data['correo']
-    dni = data['dni']
-
-    # 🔑 Nuevo: Leer el campo 'verificado'. Usar 0 (False) si no está presente o es inválido.
-    verificado_raw = data.get('verificado', 0)
-
-    # Validar y convertir 'verificado' a 1 o 0
-    # Aceptamos '1', '0', 1, 0. Si no es 1, asumimos 0.
-    verificado = 1 if str(verificado_raw) == '1' else 0
-
-    # Validaciones básicas
-    if len(dni) != 8 or not dni.isdigit():
-        return jsonify({"success": False, "message": "DNI inválido. Debe contener 8 dígitos."}), 400
-
-    # 1. Cifrar la contraseña
-    try:
-        hashed_password_bytes = bcrypt.generate_password_hash(contrasena_plana)
-        contrasena_cifrada = hashed_password_bytes.decode('utf-8')
-    except Exception:
-        return jsonify({"success": False, "message": "Error al cifrar la contraseña."}), 500
-
-    conexion = obtenerConexion()
-    if not conexion:
-        return jsonify({"success": False, "message": "Error de conexión a la base de datos."}), 500
-
-    try:
-        with conexion:
-            with conexion.cursor() as cursor:
-                # 2. Validar unicidad (correo/dni)
-                sql_check = "SELECT usuario_id FROM usuario WHERE correo=%s OR dni=%s"
-                cursor.execute(sql_check, (correo, dni))
-                if cursor.fetchone():
-                    return jsonify({"success": False, "message": "El DNI o correo ya está registrado."}), 409
-
-                # 3. Insertar nuevo usuario GESTOR ('G') - AHORA CON 'verificado'
-                sql = """INSERT INTO usuario
-                             (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verificado)
-                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
-
-                tipo_usuario = 'G'
-
-                # LA TUPLA DE VALORES AHORA INCLUYE 'verificado'
-                cursor.execute(sql, (username, nombre, contrasena_cifrada, correo, dni, tipo_usuario, 0, verificado))
-                conexion.commit()
-
-        return jsonify({"success": True, "message": f"Gestor '{nombre}' ({username}) creado exitosamente. Verificado: {verificado}"}), 201
-
-    except pymysql.err.IntegrityError:
-        return jsonify({"success": False, "message": "Error de integridad: El usuario ya existe o hay un problema con los datos."}), 409
-    except Exception as e:
-        print(f"Error en el registro de gestor (API): {e}")
-        return jsonify({"success": False, "message": "Ocurrió un error en el sistema."}), 500
-
-# --- RUTA API PARA INACTIVAR USUARIO - Eliminación lógica(CONSUMIDA POR crudusuario.js) ---
-@app.route('/api/usuarios/<int:usuario_id>', methods=['DELETE'])
-def eliminar_usuario_api(usuario_id):
-    """
-    Ruta API para inactivar (soft delete) un usuario por su ID.
-    Mantiene el método DELETE para compatibilidad con el frontend,
-    pero en la base de datos cambia el estado de 'vigente' a 0 (No Vigente).
-    Requiere que el usuario logueado sea un Gestor ('G').
-    """
-    import sys  # Necesario para el print de error en stderr
-
-    # 1. Verificar autenticación
-    if 'user_id' not in session:
-        return jsonify({'error': 'No autenticado.'}), 401
-
-    user_id_logueado = session['user_id']
-
-    # 2. Verificar Permiso de Gestor ('G')
-    conexion = obtenerConexion()
-    if not conexion:
-        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
-
-    try:
-        with conexion:
-            with conexion.cursor() as cursor:
-                # Consulta para verificar el rol del usuario logueado
-                sql_check_role = "SELECT tipo_usuario FROM usuario WHERE usuario_id=%s"
-                cursor.execute(sql_check_role, (user_id_logueado,))
-                user_role_data = cursor.fetchone()
-
-                if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
-                    return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
-
-                # 3. Restricción de auto-inactivación
-                if usuario_id == user_id_logueado:
-                    return jsonify({'error': 'No puedes inactivar tu propia cuenta de Gestor a través de esta interfaz.'}), 403
-
-                # 4. Ejecutar la INACTIVACIÓN (Soft Delete)
-                # Cambiamos el estado de 'vigente' a 0 (No Vigente).
-                # Reemplazamos la consulta DELETE por UPDATE.
-                sql_update_vigencia = "UPDATE usuario SET vigencia = 0 WHERE usuario_id=%s AND vigencia = 1"
-
-                cursor.execute(sql_update_vigencia, (usuario_id,))
-                filas_afectadas = cursor.rowcount
-
-                conexion.commit()
-
-                if filas_afectadas == 0:
-                    # Retorna 404 si el usuario no existe O si ya estaba inactivo (vigente=0)
-                    return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado o ya estaba inactivo.'}), 404
-
-                return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} inactivado exitosamente (vigente = 0).'}), 200
-
-    except Exception as e:
-        print(f"Error al inactivar usuario: {e}", file=sys.stderr)
-        return jsonify({'error': 'Error interno del servidor al inactivar datos.'}), 500
-
-
-# --- NUEVA RUTA API PARA ACTIVAR USUARIO (DAR DE ALTA) ---
-@app.route('/api/usuarios/<int:usuario_id>/activar', methods=['PUT'])
-def activar_usuario_api(usuario_id):
-    """
-    Ruta API para activar (dar de alta) un usuario por su ID.
-    En la base de datos cambia el estado de 'vigente' a 1 (Vigente).
-    Requiere que el usuario logueado sea un Gestor ('G').
-    """
-    import sys
-
-    # 1. Verificar autenticación
-    if 'user_id' not in session:
-        return jsonify({'error': 'No autenticado.'}), 401
-
-    user_id_logueado = session['user_id']
-
-    # 2. Verificar Permiso de Gestor ('G')
-    conexion = obtenerConexion()
-    if not conexion:
-        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
-
-    try:
-        with conexion:
-            with conexion.cursor() as cursor:
-                # Consulta para verificar el rol del usuario logueado
-                sql_check_role = "SELECT tipo_usuario FROM usuario WHERE usuario_id=%s"
-                cursor.execute(sql_check_role, (user_id_logueado,))
-                user_role_data = cursor.fetchone()
-
-                if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
-                    return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
-
-                # 3. Restricción de auto-activación
-                if usuario_id == user_id_logueado:
-                    return jsonify({'error': 'No puedes activar/desactivar tu propia cuenta de Gestor a través de esta interfaz.'}), 403
-
-                # 4. Ejecutar la ACTIVACIÓN (Dar de alta)
-                # Cambiamos el estado de 'vigente' a 1 (Vigente).
-                sql_update_vigencia = "UPDATE usuario SET vigencia = 1 WHERE usuario_id=%s AND vigencia = 0"
-
-                cursor.execute(sql_update_vigencia, (usuario_id,))
-                filas_afectadas = cursor.rowcount
-
-                conexion.commit()
-
-                if filas_afectadas == 0:
-                    # Retorna 404 si el usuario no existe O si ya estaba activo (vigente=1)
-                    return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado o ya estaba activo.'}), 404
-
-                return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} activado exitosamente (vigente = 1).'}), 200
-
-    except Exception as e:
-        print(f"Error al activar usuario: {e}", file=sys.stderr)
-        return jsonify({'error': 'Error interno del servidor al activar datos.'}), 500
-
-
-
-@app.route('/baja_cuenta', methods=['POST'])
-def dar_baja_cuenta():
-    """
-    Ruta para que el usuario logueado marque su propia cuenta como NO VIGENTE (soft delete).
-    Luego, cierra la sesión.
-    """
-    if 'user_id' not in session:
-        # Si no hay sesión, simplemente redirige al login.
-        flash('Debes iniciar sesión para realizar esta acción.', 'error')
-        return redirect(url_for('frm_login'))
-
-    user_id_a_inactivar = session['user_id']
-    conexion = obtenerConexion()
-
-    if not conexion:
-        flash('Error de conexión a la base de datos. Intente más tarde.', 'error')
-        return redirect(url_for('crud_usuarios')) # O a una página de error
-
-    try:
-        with conexion:
-            with conexion.cursor() as cursor:
-                # 1. Ejecutar la INACTIVACIÓN (Soft Delete)
-                # La consulta usa el ID de la SESIÓN por seguridad.
-                # Se asegura de que solo se actualice si ya está vigente (vigencia = 1).
-                sql_update_vigencia = "UPDATE usuario SET vigencia = 0 WHERE usuario_id=%s AND vigencia = 1"
-                cursor.execute(sql_update_vigencia, (user_id_a_inactivar,))
-                filas_afectadas = cursor.rowcount
-                conexion.commit()
-
-                if filas_afectadas == 0:
-                    flash('Tu cuenta no pudo ser dada de baja. Es posible que ya esté inactiva.', 'warning')
-                    return redirect(url_for('crud_usuarios'))
-
-        # 2. Baja exitosa. Preparamos el mensaje y cerramos la sesión.
-        flash('Tu cuenta ha sido dada de baja exitosamente. ¡Lamentamos verte partir!', 'success')
-
-        # 3. Ejecutar el logout para limpiar la sesión y redirigir a la página de login
-        # Asegúrate de que tu función 'logout' retorne un redirect de Flask.
-        return logout()
-
-    except Exception as e:
-        import sys
-        print(f"Error al dar de baja la propia cuenta: {e}", file=sys.stderr)
-        flash('Ocurrió un error interno al procesar la baja de la cuenta.', 'error')
-        return redirect(url_for('crud_usuarios'))
-
-
-
-
-# --- RUTA API PARA MODIFICAR USUARIO (EDICIÓN) ---
-# ==============================================================================
-@app.route('/api/usuarios/<int:usuario_id>', methods=['PUT'])
-def modificar_usuario_api(usuario_id):
-    """
-    Ruta API para modificar los datos de un usuario por su ID.
-    Solo permite modificar: nombre, username y vigencia.
-    Requiere que el usuario logueado sea un Gestor ('G').
-    """
-    import sys
-
-    # 1. Verificar autenticación
-    if 'user_id' not in session:
-        return jsonify({'error': 'No autenticado.'}), 401
-
-    user_id_logueado = session['user_id']
-    data = request.get_json()
-
-    # 2. Verificar datos mínimos
-    if not data:
-        return jsonify({'error': 'Datos de actualización incompletos.'}), 400
-
-    # Campos requeridos para la actualización
-    nombre = data.get('nombre')
-    username = data.get('username')
-    vigencia = data.get('vigencia') # Recibido como booleano (true/false) o 1/0
-
-    # Solo requerimos los campos que se van a modificar
-    if nombre is None or username is None or vigencia is None:
-         return jsonify({'error': 'Faltan campos obligatorios para la modificación (nombre, username, vigencia).'}), 400
-
-    # Conversión de vigencia a formato de base de datos (0 o 1)
-    vigencia_db = 1 if vigencia in (True, 1, 'true', '1') else 0
-
-    conexion = obtenerConexion()
-    if not conexion:
-        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
-
-    try:
-        with conexion:
-            with conexion.cursor() as cursor:
-                # 3. Verificar Permiso de Gestor ('G')
-                sql_check_role = "SELECT tipo_usuario FROM usuario WHERE usuario_id=%s"
-                cursor.execute(sql_check_role, (user_id_logueado,))
-                user_role_data = cursor.fetchone()
-
-                if not user_role_data or user_role_data.get('tipo_usuario') != 'G':
-                    return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
-
-                # 4. Restricción de auto-modificación (Opcional, pero buena práctica)
-                # Impedir que un gestor se cambie a sí mismo la vigencia o username
-                if usuario_id == user_id_logueado and vigencia_db == 0:
-                    return jsonify({'error': 'No puedes desactivar tu propia cuenta de Gestor a través de esta interfaz de administración.'}), 403
-
-                # 5. Ejecutar la ACTUALIZACIÓN
-                sql_update = """
-                    UPDATE usuario
-                    SET nombre = %s, username = %s, vigencia = %s
-                    WHERE usuario_id = %s
-                """
-
-                # Prepara los parámetros para la ejecución
-                params = (nombre, username, vigencia_db, usuario_id)
-
-                cursor.execute(sql_update, params)
-                filas_afectadas = cursor.rowcount
-
-                conexion.commit()
-
-                if filas_afectadas == 0:
-                    # Esto podría significar que el ID no existe o no hubo cambios
-                    # Para ser más explícitos, puedes hacer un SELECT previo
-                    return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado o no se realizaron cambios.'}), 404
-
-                return jsonify({'success': True, 'message': f'Usuario con ID {usuario_id} actualizado exitosamente.'}), 200
-
-    except pymysql.err.IntegrityError as e:
-        # 6. Manejar errores de unicidad (ej: username ya existe)
-        error_code = e.args[0]
-        if error_code == 1062: # Código de error para Duplicate entry
-             return jsonify({'error': 'El nombre de usuario o algún otro campo único ya existe.'}), 409
-        print(f"Error de integridad en DB: {e}", file=sys.stderr)
-        return jsonify({'error': 'Error de datos en la base de datos.'}), 400
-
-    except Exception as e:
-        print(f"Error al modificar usuario: {e}", file=sys.stderr)
-        return jsonify({'error': 'Error interno del servidor al actualizar datos.'}), 500
-
-# RUTA API PARA CREAR UN NUEVO USUARIO DESDE LA ADMINISTRACIÓN (Gestor)
-# ==============================================================================
-@app.route("/api/usuarios", methods=['POST'])
-def crear_usuario_api():
-    """
-    Ruta API para crear un nuevo usuario (A, P, G, E) desde el panel de gestión.
-    Se corrige para incluir la validación e inserción del campo DNI.
-    """
-    # 1. VERIFICACIÓN DE PERMISOS (¡CLAVE!)
-    if 'user_id' not in session:
-        return jsonify({'error': 'No autenticado.'}), 401
-
-    # --- LÓGICA DE VERIFICACIÓN DE ROL FALTANTE AQUÍ ---
-    # *EJEMPLO* de cómo se haría la verificación de rol:
-    # if obtener_rol_usuario(session['user_id']) != 'G':
-    #     return jsonify({'error': 'Acceso prohibido. No tienes permisos de gestor.'}), 403
-
-    data = request.get_json()
-
-    # 2. VALIDACIÓN DE CAMPOS OBLIGATORIOS (AHORA INCLUYE 'dni')
-    required_fields = ['username', 'nombre', 'contrasena', 'correo', 'tipo_usuario', 'dni']
-    if not data or any(key not in data or not data[key] for key in required_fields):
-        # El DNI se requiere, ya que el formulario de gestión lo requiere o tu DB lo requiere.
-        return jsonify({"success": False, "error": "Faltan campos obligatorios: nombre, username, contrasena, correo, tipo_usuario, DNI."}), 400
-
-    username = data['username']
-    nombre = data['nombre']
-    contrasena_plana = data['contrasena']
-    correo = data['correo']
-    tipo_usuario = data['tipo_usuario'].upper()
-    dni = data['dni'] # <--- AHORA LEEMOS EL DNI DEL JSON
-
-    # 3. VALIDACIÓN ADICIONAL DEL DNI Y TIPO DE USUARIO
-    if len(dni) != 8 or not dni.isdigit():
-         return jsonify({"success": False, "error": "DNI inválido. Debe contener 8 dígitos."}), 400
-
-    if tipo_usuario not in ['A', 'P', 'G', 'E']:
-         return jsonify({"success": False, "error": "Tipo de usuario inválido (solo A, P, G, E permitidos)."}), 400
-
-
-    # 4. CIFRADO DE CONTRASEÑA
-    try:
-        hashed_password_bytes = bcrypt.generate_password_hash(contrasena_plana)
-        contrasena_cifrada = hashed_password_bytes.decode('utf-8')
-    except Exception:
-        return jsonify({"success": False, "error": "Error al cifrar la contraseña."}), 500
-
-    # 5. CONEXIÓN E INSERCIÓN
-    conexion = obtenerConexion()
-    if not conexion:
-        return jsonify({"success": False, "error": "Error de conexión a la base de datos."}), 500
-
-    try:
-        with conexion:
-            with conexion.cursor() as cursor:
-                # 6. VALIDACIÓN DE UNICIDAD (Correo, DNI y/o Username)
-                # Tu registro normal valida por Correo Y DNI. Mantenemos esa lógica.
-                sql_check = "SELECT usuario_id FROM usuario WHERE correo=%s OR dni=%s OR username=%s"
-                cursor.execute(sql_check, (correo, dni, username))
-                if cursor.fetchone():
-                    return jsonify({"success": False, "error": "El DNI, correo o username ya está registrado."}), 409
-
-                # 7. Insertar nuevo usuario (AHORA INCLUYE DNI)
-                sql = """INSERT INTO usuario
-                             (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas)
-                             VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-
-                # LA TUPLA DE VALORES DEBE COINCIDIR CON LA CONSULTA
-                cursor.execute(sql, (username, nombre, contrasena_cifrada, correo, dni, tipo_usuario, 0))
-                conexion.commit()
-
-        return jsonify({"success": True, "message": f"Usuario '{username}' creado exitosamente."}), 201
-
-    except Exception as e:
-        # Imprime el error real en tu terminal de Flask para la depuración
-        print(f"Error al crear usuario (API): {e}")
-        return jsonify({"success": False, "error": "Ocurrió un error en el sistema."}), 500
+    
 
 
 # Ruta para procesar el Login (CON VERIFICACIÓN BCrypt y VIGENCIA)

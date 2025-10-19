@@ -25,17 +25,17 @@
             <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item active">
                 <i class="icon-cuestionarios"></i> Cuestionarios
             </a>
-            <a href="" class="nav-item">
+            <a href="{{ url_for('tienda.tienda_index') }}" class="nav-item">
                 <i class="icon-tienda"></i> Tienda
             </a>
-            <a href="" class="nav-item">
+            <a href="{{ url_for('partidas.frm_partidas') }}" class="nav-item">
                 <i class="icon-partida"></i> Unirme a una partida
             </a>
             <hr>
-            <a href="" class="nav-item">
+            <a href="{{ url_for('crud_usuarios') }}" class="nav-item">
                 <i class="icon-configuracion"></i> Configuración
             </a>
-            <a href="" class="nav-item">
+            <a href="{{ url_for('logout') }}" class="nav-item">
                 <i class="icon-cerrar-sesion"></i> Cerrar Sesión
             </a>
         </nav>
@@ -51,7 +51,7 @@
 
             <div class="user-profile-widget">
                 <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
-                <a href="" class="profile-link">
+                <a href="{{ url_for('frm_home') }}" class="profile-link">
                     <img src="/static/img/avatar.png" alt="Avatar" class="avatar">
                     <span class="username">Mi Perfil</span>
                 </a>

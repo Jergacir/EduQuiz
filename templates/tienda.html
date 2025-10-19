@@ -18,12 +18,12 @@
             </div>
             <nav class="menu">
                 <ul>
-                    <li><a href="{{ url_for('frm_home') }}"><i class="icono">🏠</i> Inicio</a></li>
-                    <li><a href="cuestionarios.html"><i class="icono">❓</i> Cuestionarios</a></li>
-                    <li class="activo"><a href="{{ url_for('frm_tienda') }}"><i class="icono">🛍️</i> Tienda</a></li>
-                    <li><a href="partidas.html"><i class="icono">🎮</i> Partidas</a></li>
-                    <li><a href="{{ url_for('crud_usuarios') }}"><i class="icono">⚙️</i> Configuración</a></li>
-                    <li><a href="#"><i class="icono">➡️</i> Cerrar Sesión</a></li>
+                    <li><a href="{{ url_for('frm_home') }}"><i class="icono"></i> Inicio</a></li>
+                    <li><a href="{{ url_for('frm_cuestionarios') }}"><i class="icono"></i> Cuestionarios</a></li>
+                    <li class="activo"><a href="{{ url_for('tienda.tienda_index') }}"><i class="icono"></i> Tienda</a></li>
+                    <li><a href="{{ url_for('partidas.frm_partidas') }}"><i class="icono"></i> Partidas</a></li>
+                    <li><a href="{{ url_for('crud_usuarios') }}"><i class="icono"></i> Configuración</a></li>
+                    <li><a href="{{ url_for('logout') }}"><i class="icono"></i> Cerrar Sesión</a></li>
                 </ul>
             </nav>
         </aside>
@@ -39,7 +39,6 @@
                     <span>Mi Perfil</span>
                 </div>
             </header>
-
             <div class="tienda-contenido">
 
                 {% if logged_in_user and logged_in_user.get('tipo_usuario') == 'G' %}

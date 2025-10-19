@@ -6,15 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unirme a Partida - EduQuiz</title>
 
-    <link rel="stylesheet" href="../static/css/home.css">
-    <link rel="stylesheet" href="../static/css/crearQuizz.css"> 
-    <link rel="stylesheet" href="../static/css/partidas.css"> </head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/crearQuizz.css') }}"> 
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/partidas.css') }}"> </head>
 
 <body data-usuario-id="{{ logged_in_user.usuario_id }}">
 
     <aside class="sidebar">
         <div class="logo">
-            <img src="/static/img/logo.png" alt="EduQuiz Logo">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="EduQuiz Logo">
             EduQuiz
         </div>
         <nav class="nav-menu">
@@ -24,18 +24,18 @@
             <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item">
                 <i class="icon-cuestionarios"></i> Cuestionarios
             </a>
-            <a href="" class="nav-item">
+            <a href="{{ url_for('tienda.tienda_index') }}" class="nav-item">
                 <i class="icon-tienda"></i> Tienda
             </a>
-            <a href="{{ url_for('frm_partidas') }}" class="nav-item active">
+            <a href="{{ url_for('partidas.frm_partidas') }}" class="nav-item active">
                 <i class="icon-partida"></i> Unirme a una partida
             </a>
             
             <hr>
-            <a href="" class="nav-item">
+            <a href="{{ url_for('crud_usuarios') }}" class="nav-item">
                 <i class="icon-configuracion"></i> Configuración
             </a>
-            <a href="" class="nav-item">
+            <a href="{{ url_for('logout') }}" class="nav-item">
                 <i class="icon-cerrar-sesion"></i> Cerrar Sesión
             </a>
             </nav>
@@ -49,8 +49,8 @@
             </div>
             <div class="user-profile-widget">
                 <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
-                <a href="" class="profile-link">
-                    <img src="/static/img/avatar.png" alt="Avatar" class="avatar">
+                <a href="{{ url_for('crud_usuarios') }}" class="profile-link">
+                    <img src="{{ url_for('static', filename='img/avatar.png') }}" alt="Avatar" class="avatar">
                     <span class="username">Mi Perfil</span>
                 </a>
             </div>
@@ -74,7 +74,7 @@
         </main>
     </div>
 
-    <script src="../static/js/unirse_partida.js"></script>
+    <script src="{{ url_for('static', filename='js/unirse_partida.js') }}"></script>
 </body>
 
 </html>

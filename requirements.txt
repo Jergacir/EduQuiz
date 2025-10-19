@@ -1,5 +1,6 @@
 Flask
-pymysql
-flask-bcrypt
+Flask-Bcrypt
 python-dotenv
+cloudinary
 requests
+PyMySQL==1.1.0

@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const usuarioId = document.body.dataset.usuarioId;
+    const usuarioIdRaw = document.body.dataset.usuarioId;
+    const usuarioId = usuarioIdRaw ? parseInt(usuarioIdRaw, 10) : null;
     // --- Referencias ---
     const titleInput = document.querySelector(".title-input");
     const btnGuardar = document.querySelector(".btn-primary");
@@ -256,6 +257,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Crear 3 preguntas vacías iniciales
     cuestionario.preguntas = [crearPreguntaBase(), crearPreguntaBase(), crearPreguntaBase()];
+
+    // Si no hay usuario logueado, bloquear guardado y avisar
+    if (!usuarioId) {
+        btnGuardar.disabled = true;
+        btnGuardar.classList.add("disabled");
+        btnGuardar.title = "Debes iniciar sesión para guardar el cuestionario";
+        // Opcional: mostrar aviso visible en la UI
+        const aviso = document.createElement('div');
+        aviso.className = 'notice warning';
+        aviso.textContent = 'Debes iniciar sesión para crear y guardar cuestionarios.';
+        document.querySelector('.edit-header').appendChild(aviso);
+    }
 
     // Validación título
     titleInput.value = "";

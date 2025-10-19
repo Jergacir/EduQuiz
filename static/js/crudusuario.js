@@ -267,7 +267,10 @@ async function manejarGuardarPerfil(event) {
  */
 async function obtenerYRenderizarUsuarios() {
     try {
-        const response = await fetch('/api/usuarios'); // Llama a la ruta de la API
+        // Leer parámetros de UI (si están definidos) o usar valores por defecto
+        const page = window.currentUsuariosPage || 1;
+        const per_page = window.usuariosPerPage || 20;
+        const response = await fetch(`/api/usuarios?page=${page}&per_page=${per_page}`); // Llama a la ruta de la API
         
         if (response.status === 401) {
              console.error("Error 401: Sesión expirada o no iniciada.");
@@ -284,8 +287,27 @@ async function obtenerYRenderizarUsuarios() {
             throw new Error(`Error al obtener usuarios: ${response.statusText}`);
         }
         
-        listaUsuarios = await response.json(); 
+        const payload = await response.json();
+        // Si la API devuelve el formato paginado
+        if (payload && payload.users) {
+            listaUsuarios = payload.users;
+            // Guardar metadatos
+            window.currentUsuariosPage = payload.page || 1;
+            window.usuariosPerPage = payload.per_page || per_page;
+            window.usuariosTotal = payload.total || 0;
+            window.usuariosTotalPages = payload.total_pages || 1;
+        } else if (Array.isArray(payload)) {
+            // Compatibilidad: API antigua devolvía una lista
+            listaUsuarios = payload;
+            window.currentUsuariosPage = 1;
+            window.usuariosPerPage = listaUsuarios.length;
+            window.usuariosTotal = listaUsuarios.length;
+            window.usuariosTotalPages = 1;
+        } else {
+            listaUsuarios = [];
+        }
         renderizarTablaUsuarios();
+        renderizarPaginacion();
 
     } catch (error) {
         console.error("Fallo al cargar la lista de usuarios desde la API:", error);
@@ -410,6 +432,42 @@ function cargarParaEdicion(id) {
 
 
     formGestion.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Renderiza controles de paginación simples
+function renderizarPaginacion() {
+    const container = document.getElementById('paginacion-usuarios');
+    if (!container) return;
+
+    const page = window.currentUsuariosPage || 1;
+    const total_pages = window.usuariosTotalPages || 1;
+
+    container.innerHTML = '';
+
+    const prev = document.createElement('button');
+    prev.textContent = 'Anterior';
+    prev.disabled = page <= 1;
+    prev.onclick = async () => {
+        if (page <= 1) return;
+        window.currentUsuariosPage = page - 1;
+        await obtenerYRenderizarUsuarios();
+    };
+
+    const next = document.createElement('button');
+    next.textContent = 'Siguiente';
+    next.disabled = page >= total_pages;
+    next.onclick = async () => {
+        if (page >= total_pages) return;
+        window.currentUsuariosPage = page + 1;
+        await obtenerYRenderizarUsuarios();
+    };
+
+    const info = document.createElement('span');
+    info.textContent = ` Página ${page} de ${total_pages} `;
+
+    container.appendChild(prev);
+    container.appendChild(info);
+    container.appendChild(next);
 }
 
 /**

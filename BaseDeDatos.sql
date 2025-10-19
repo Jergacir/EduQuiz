@@ -118,6 +118,7 @@ CREATE TABLE `cuestionario` (
   `tiempo_limite_pregunta` INT(11) NOT NULL,
   `usuario_id` INT(11) NOT NULL, -- Creador del cuestionario (FK a usuario)
   `url_img_cuestionario` VARCHAR(250),
+  `codigo_visualizacion` VARCHAR(12) DEFAULT NULL,
   PRIMARY KEY (`cuestionario_id`),
   FOREIGN KEY (`usuario_id`) REFERENCES `usuario`(`usuario_id`) 
     ON DELETE CASCADE ON UPDATE CASCADE

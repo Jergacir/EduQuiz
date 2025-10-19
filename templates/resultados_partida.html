@@ -25,10 +25,10 @@
             <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item">
                 <i class="icon-cuestionarios"></i> Cuestionarios
             </a>
-            <a href="{{ url_for('frm_tienda') }}" class="nav-item">
+            <a href="{{ url_for('tienda.tienda_index') }}" class="nav-item">
                 <i class="icon-tienda"></i> Tienda
             </a>
-            <a href="{{ url_for('frm_partidas_profesor') }}" class="nav-item active">
+            <a href="{{ url_for('partidas.frm_partidas_profesor') }}" class="nav-item active">
                 <i class="icon-partida"></i> Partidas
             </a>
             <hr>
@@ -60,7 +60,7 @@
 
             <div class="resultados-header">
                 <div class="partida-meta">
-                    <a href="{{ url_for('frm_partidas_profesor') }}" class="btn-back">
+                    <a href="{{ url_for('partidas.frm_partidas_profesor') }}" class="btn-back">
                         <i class="icon-arrow-left"></i> Volver a Partidas
                     </a>
                     <h1>{{ partida_info.nombre_cuestionario }} 
