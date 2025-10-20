@@ -2,4 +2,28 @@
 venv/
 env/
 .venv/
+
+# Entornos de entorno/variables de entorno
+# Descomenta si usas un fichero .env local
 #.env
+
+# Byte-compiled / cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+
+# Testing
+.pytest_cache/
+
+# Editor/IDE
+.vscode/
+/.idea/
+
+# Distribuciones
+dist/
+build/
+*.egg-info/
+
+# Logs
+*.log
