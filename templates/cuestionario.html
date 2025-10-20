@@ -12,7 +12,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-
+    <link rel="stylesheet" href="../static/css/configuracionpartida.css">
     <link rel="stylesheet" href="/static/css/global.css">
     <link rel="stylesheet" href="/static/css/miscuestionarios.css">
 </head>
@@ -38,7 +38,7 @@
             </a>
             <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-link active">
                 <i class="fa-regular fa-file nav-icon"></i> Cuestionarios
-                
+
             </a>
             <a href="{{ url_for('tienda.tienda_index') }}" class="nav-link">
                 <i class="fas fa-store nav-icon"></i> Tienda
@@ -108,7 +108,8 @@
                 </div>
 
                 <!-- Botón de Acción Principal (Crear Cuestionario) -->
-                <a href="{{ url_for('cuestionarios.frm_editarcuestionarios') }}" id="add-quiz-button" class="main-action-button">
+                <a href="{{ url_for('cuestionarios.frm_editarcuestionarios') }}" id="add-quiz-button"
+                    class="main-action-button">
                     <i class="fas fa-plus"></i>
                     Crear Cuestionario
                 </a>
@@ -174,6 +175,88 @@
             <div class="modal-buttons">
                 <button id="cancelCode" class="btn-cancel">Cancelar</button>
                 <button id="verifyCode" class="btn-confirm primary">Verificar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE Configuración de partida -->
+    <div id="configuracionPartidaModal" class="modal hidden">
+        <div class="modal-content large-modal">
+            <button class="close-modal-btn" id="closeConfigModal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="modal-title">Configuración</h2>
+            <p class="modal-subtitle">Configura tu partida a tu gusto</p>
+
+            <div class="config-grid">
+
+                <div class="quiz-info-config">
+                    <div class="quiz-image-preview">
+                        <img id="configQuizImage" src="/static/img/default_quiz.png" alt="Cuestionario">
+                        <span id="configNumPreguntas" class="quiz-questions-badge">10 preguntas</span>
+                    </div>
+                    <h3 id="configQuizTitle" class="quiz-title-config">Título del cuestionario</h3>
+                    <p id="configQuizDescription" class="quiz-description-config">Descripción</p>
+                </div>
+
+                <div class="quiz-options-config">
+
+                    <div class="option-group">
+                        <h4 class="group-title">Generalidades</h4>
+                        <label class="config-checkbox">
+                            Orden de Preguntas al azar
+                            <input type="checkbox" id="checkPreguntasAzar" checked>
+                            <span class="checkmark"></span>
+                        </label>
+                        <label class="config-checkbox">
+                            Orden de Respuestas al azar
+                            <input type="checkbox" id="checkRespuestasAzar" checked>
+                            <span class="checkmark"></span>
+                        </label>
+                        <label class="config-checkbox">
+                            Añadir música
+                            <input type="checkbox" id="checkAnadirMusica" checked>
+                            <span class="checkmark"></span>
+                        </label>
+                    </div>
+
+                    <div class="option-group">
+                        <h4 class="group-title">Modalidad</h4>
+                        <select id="modalidadSelect" class="modalidad-select">
+                            <option value="grupal" selected>Grupal</option>
+                            <option value="individual">Individual</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group group-grupal">
+                        <label for="numGrupos">N° Grupos:</label>
+                        <input type="number" id="numGrupos" value="4" min="2" max="10">
+                    </div>
+
+                    <div class="option-group">
+                        <label class="config-checkbox">
+                            Generar QR
+                            <input type="checkbox" id="checkGenerarQR" checked>
+                            <span class="checkmark"></span>
+                        </label>
+                        <label class="config-checkbox">
+                            Generar Pin Automático
+                            <input type="checkbox" id="checkPinAutomatico" checked>
+                            <span class="checkmark"></span>
+                        </label>
+                    </div>
+
+                    <div class="pin-display">
+                        <div class="pin-box">7</div>
+                        <div class="pin-box">4</div>
+                        <div class="pin-box">8</div>
+                        <div class="pin-box">9</div>
+                        <div class="pin-box">5</div>
+                        <div class="pin-box">6</div>
+                    </div>
+
+                    <button id="iniciarPartidaBtn" class="btn-empezar">Empezar</button>
+                </div>
             </div>
         </div>
     </div>
