@@ -2,165 +2,18 @@
 /* 1. LAYOUT PRINCIPAL (Dashboard Grid) */
 /* ======================================= */
 
-body {
-    /* ❌ Desactivamos el centrado de la página y el fondo grande */
-    font-family: 'Arial', sans-serif; /* Usamos una fuente estándar y clara */
-    margin: 0;
-    padding: 0;
-    display: flex; /* Usamos flex para el layout sidebar + main-container */
-    min-height: 100vh;
-    background-color: #f0f2f5; /* Color de fondo general (gris muy claro) */
-    color: #333;
-}
+
 
 /* El main-container ocupará el resto del espacio junto al sidebar */
 .main-container {
     flex-grow: 1; 
     display: flex;
     flex-direction: column; /* Para que header y main content estén apilados */
-}
-
-/* ======================================= */
-/* 2. BARRA LATERAL (Sidebar) */
-/* ======================================= */
-
-.sidebar {
-    width: 250px; /* Ancho fijo de la barra lateral */
-    background-color: #ffffff; /* Fondo blanco */
-    border-right: 1px solid #e0e0e0;
-    padding: 20px;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
-    display: flex;
-    flex-direction: column;
-    /* Para que la barra lateral ocupe toda la altura */
-    position: sticky; 
-    top: 0;
-    height: 100vh;
-}
-
-.logo {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #1a1a1a;
-    margin-bottom: 30px;
-    display: flex;
-    align-items: center;
-}
-
-.logo img {
-    width: 30px;
-    margin-right: 10px;
-}
-
-.nav-menu {
-    display: flex;
-    flex-direction: column;
-}
-
-.nav-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 15px;
-    margin: 4px 0;
-    text-decoration: none;
-    color: #555;
-    border-radius: 8px;
-    transition: background-color 0.2s, color 0.2s;
-    font-size: 1.05rem;
-}
-
-.nav-item i {
-    margin-right: 15px;
-    font-size: 1.2rem;
-    /* Nota: Los íconos (icon-inicio, etc.) necesitan una librería de íconos o deben ser SVGs/imágenes */
-}
-
-.nav-item:hover {
-    background-color: #f0f2f5;
-    color: #1a1a1a;
-}
-
-.nav-item.active {
-    background-color: #d1fae5; /* Fondo suave para el ítem activo */
-    color: #059669; /* Verde más oscuro para el texto activo */
-    font-weight: bold;
-}
-
-hr {
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 15px 0;
+    margin-left: 256px;
 }
 
 
-/* ======================================= */
-/* 3. BARRA SUPERIOR (Header) */
-/* ======================================= */
 
-.top-header {
-    background-color: #ffffff;
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #e0e0e0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.search-bar {
-    display: flex;
-    align-items: center;
-    background-color: #f0f2f5;
-    border-radius: 20px;
-    padding: 5px 15px;
-    width: 400px;
-}
-
-.search-bar input {
-    border: none;
-    background: none;
-    outline: none;
-    flex-grow: 1;
-    padding: 8px 0;
-    font-size: 1rem;
-}
-
-.search-bar i {
-    color: #999;
-    margin-right: 10px;
-}
-
-.user-profile-widget {
-    display: flex;
-    align-items: center;
-}
-
-.coins {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #fbb03b; /* Color similar al icono de moneda */
-    margin-right: 25px;
-}
-
-.profile-link {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    color: #333;
-}
-
-.avatar {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-right: 10px;
-    border: 2px solid #059669;
-}
-
-.username {
-    font-weight: 600;
-}
 
 
 /* ======================================= */
@@ -168,7 +21,6 @@ hr {
 /* ======================================= */
 
 .content-area {
-    padding: 30px;
     flex-grow: 1;
 }
 
@@ -202,6 +54,7 @@ hr {
     /* Muestra 4 columnas de tarjetas de ancho similar */
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
     gap: 25px;
+    padding: 0;
 }
 
 .quiz-card {
@@ -263,7 +116,7 @@ hr {
     width: calc(100% - 30px); /* Ancho completo menos el padding */
     padding: 10px;
     margin: 5px 15px 0;
-    background-color: #059669; /* Verde similar al wireframe */
+    background-color: #0D9488; /* Verde similar al wireframe */
     color: white;
     border: none;
     border-radius: 8px;
@@ -274,7 +127,7 @@ hr {
 }
 
 .btn-get:hover {
-    background-color: #047857;
+    background-color: #0D9488;
 }
 
 /* ======================================= */
@@ -294,7 +147,7 @@ hr {
 .welcome-area h2 {
     font-size: 1.3rem;
     margin-top: 0;
-    color: #059669;
+    color: #0D9488;
 }
 
 .welcome-area p {
@@ -307,7 +160,6 @@ hr {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 20px;
-    padding: 10px;
 }
 
 .quiz-card {
@@ -384,7 +236,7 @@ hr {
         /* Estilos generales para esta página */
         /* ------------------------------------- */
         .btn-create {
-            background-color: #059669;
+            background-color: #0D9488;
             color: white;
             padding: 12px 25px;
             border-radius: 8px;

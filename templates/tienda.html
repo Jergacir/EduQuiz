@@ -5,42 +5,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tienda - EduQuiz</title>
-    <link rel="stylesheet" href="../static/css/crudusuario.css">
     <link rel="stylesheet" href="../static/css/tienda.css">
+        <link rel="stylesheet" href="/static/css/global.css">
+        <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+        <link rel="icon" href="/static/img/icono.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body>
+    <!-- Botón de menú para móvil -->
+    <button id="menu-button" class="menu-button lg:hidden">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar de Navegación -->
+    <aside id="sidebar" class="sidebar">
+        <div class="logo-container">
+            <img src="/static/img/logo.png" alt="Logo de EduQuiz" class="logo-image">
+        </div>
+
+        <!-- Navegación -->
+
+        <nav>
+            <a href="{{ url_for('pages.frm_home') }}" class="nav-link">
+                <i class="fas fa-home nav-icon"></i> Inicio
+            </a>
+            <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-link">
+                <i class="fa-regular fa-file nav-icon"></i> Cuestionarios
+                
+            </a>
+            <a href="{{ url_for('tienda.tienda_index') }}" class="nav-link active">
+                <i class="fas fa-store nav-icon"></i> Tienda
+            </a>
+
+            {% if logged_in_user.tipo_usuario == 'P' %}
+            <a href="{{ url_for('partidas.frm_partidas_profesor') }}" class="nav-link">
+                <i class="fa-solid fa-gamepad nav-icon"></i> Partidas
+            </a>
+            {% else %}
+            <a href="{{ url_for('partidas.frm_partidas') }}" class="nav-link">
+                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Unirme a una partida
+            </a>
+            {% endif %}
+        </nav>
+
+        <!-- Configuración y Cerrar Sesión (Parte inferior) -->
+        <div class="sidebar-bottom">
+            <a href="{{ url_for('usuarios.usuarios_index') }}" class="nav-link">
+                <i class="fas fa-cog nav-icon"></i> Configuración
+            </a>
+            <a href="{{ url_for('auth.logout') }}" id="logout-button" class="nav-link logout-btn">
+                <i class="fas fa-sign-out-alt nav-icon"></i> Cerrar Sesión
+            </a>
+        </div>
+    </aside>
+
+    <!-- Overlay para móvil -->
+    <div id="sidebar-overlay" class="overlay"></div>
+
+
     <div class="contenedor-principal">
-        <aside class="sidebar">
-            <div class="logo">
-                <img src="../static/img/logo.png" alt="EduQuiz Logo" style="width: 30px; height: 30px;">
-                <span>EduQuiz</span>
-            </div>
-            <nav class="menu">
-                <ul>
-                    <li><a href="{{ url_for('pages.frm_home') }}"><i class="icono"></i> Inicio</a></li>
-                    <li><a href="{{ url_for('cuestionarios.frm_cuestionarios') }}"><i class="icono"></i> Cuestionarios</a></li>
-                    <li class="activo"><a href="{{ url_for('tienda.tienda_index') }}"><i class="icono"></i> Tienda</a></li>
-                    <li><a href="{{ url_for('partidas.frm_partidas') }}"><i class="icono"></i> Partidas</a></li>
-                    <li><a href="{{ url_for('usuarios.usuarios_index') }}"><i class="icono"></i> Configuración</a></li>
-                    <li><a href="{{ url_for('auth.logout') }}"><i class="icono"></i> Cerrar Sesión</a></li>
-                </ul>
-            </nav>
-        </aside>
+        
 
         <main class="contenido">
-            <header class="header">
-                <div class="titulo">Tienda</div>
-                <div class="perfil-info">
-                    <span id="cant_monedas">10000</span>
-                    <i class="icono">🪙</i>
-                    <img src="{{ url_for('static', filename='img/default.png') }}" alt="Avatar" class="avatar"
-                        style="width: 30px; height: 30px; border-radius: 50%;">
-                    <span>Mi Perfil</span>
+            
+            <div class="tienda-contenido">
+                 <header class="header">
+                            <h1>Tienda</h1>
+
+                <!-- Búsqueda, Créditos y Perfil -->
+                <div class="credits-profile-container">
+                    <!-- Créditos y Perfil (Estilo del wireframe) -->
+                    <div class="credits-box">
+                        <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
+                        <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
+                    </div>
+                    <div class="profile-box">
+                        <img src="/static/img/avatar.jpeg" class="profile-img">
+                        <span class="profile-text" style="display: none;">Mi Perfil</span>
+                    </div>
                 </div>
             </header>
-            <div class="tienda-contenido">
-
                 {% if logged_in_user and logged_in_user.get('tipo_usuario') == 'G' %}
                 <div class="crud-botones">
                     <button id="btn-crud-accesorios" type="button">CRUD de Accesorios</button>

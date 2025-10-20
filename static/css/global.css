@@ -111,8 +111,7 @@ a {
 /* Contenido Principal y Responsive */
 .main-content {
     flex-grow: 1;
-    padding: 16px;
-    padding-top: 64px;
+    padding: 30px;
 }
 
 .overlay {
@@ -137,7 +136,7 @@ a {
 
     .main-content {
         margin-left: var(--sidebar-width);
-        padding: 16px;
+        padding: 30px;
     }
 }
 

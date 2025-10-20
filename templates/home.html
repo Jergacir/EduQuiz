@@ -6,13 +6,18 @@
     <title>Inicio - EduQuiz</title> 
     
     <link rel="stylesheet" href="../static/css/home.css">
+        <link rel="stylesheet" href="/static/css/global.css">
+        <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+        <link rel="icon" href="/static/img/icono.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
         /* Estilos para el botón de Gestor */
         .btn-gestor {
             display: inline-block;
             padding: 12px 30px;
-            background-color: #10b981; /* Verde esmeralda */
+            background-color: #0D9488; /* Verde esmeralda */
             color: white;
             text-decoration: none;
             border-radius: 8px;
@@ -24,7 +29,7 @@
             margin-bottom: 20px;
         }
         .btn-gestor:hover {
-            background-color: #059669;
+            background-color: #0D9488;
             transform: translateY(-2px);
         }
         
@@ -41,11 +46,7 @@
         .alert.warning { background-color: #fffbeb; color: #92400e; border: 1px solid #fcd34d; }
         
         /* Estilos para la bienvenida/área de gestor */
-        .welcome-area {
-            padding: 20px 0;
-            border-bottom: 1px solid #eee;
-            margin-bottom: 30px;
-        }
+       
         .welcome-area h1 {
             margin-top: 0;
         }
@@ -53,55 +54,78 @@
 </head>
 <body>
     
-    <aside class="sidebar">
-        <div class="logo">
-            <img src="/static/img/logo.png" alt="EduQuiz Logo"> 
-            EduQuiz
+  <!-- Botón de menú para móvil -->
+    <button id="menu-button" class="menu-button lg:hidden">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar de Navegación -->
+    <aside id="sidebar" class="sidebar">
+        <div class="logo-container">
+            <img src="/static/img/logo.png" alt="Logo de EduQuiz" class="logo-image">
         </div>
-        <nav class="nav-menu">
-            <a href="{{ url_for('pages.frm_home') }}" class="nav-item active">
-                <i class="icon-inicio"></i> Inicio
+
+        <!-- Navegación -->
+
+        <nav>
+            <a href="{{ url_for('pages.frm_home') }}" class="nav-link  active">
+                <i class="fas fa-home nav-icon"></i> Inicio
             </a>
-            <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-item">
-                <i class="icon-cuestionarios"></i> Cuestionarios
+            <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-link">
+                <i class="fa-regular fa-file nav-icon"></i> Cuestionarios
+                
             </a>
-            <a href="{{ url_for('pages.frm_home') }}" class="nav-item">
-                <i class="icon-tienda"></i> Tienda
+            <a href="{{ url_for('tienda.tienda_index') }}" class="nav-link">
+                <i class="fas fa-store nav-icon"></i> Tienda
             </a>
-            <a href="{{ url_for('partidas.frm_partidas') }}" class="nav-item">
-                <i class="icon-partida"></i> Unirme a una partida
+
+            {% if logged_in_user.tipo_usuario == 'P' %}
+            <a href="{{ url_for('partidas.frm_partidas_profesor') }}" class="nav-link">
+                <i class="fa-solid fa-gamepad nav-icon"></i> Partidas
             </a>
-            <hr>
-            <a href="" class="nav-item">
-                <i class="icon-configuracion"></i> Configuración
+            {% else %}
+            <a href="{{ url_for('partidas.frm_partidas') }}" class="nav-link">
+                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Unirme a una partida
             </a>
-            <!-- 🔑 ENLACE DE CERRAR SESIÓN MODIFICADO -->
-            <a href="{{ url_for('auth.logout') }}" class="nav-item" id="btn-cerrar-sesion">
-                <i class="icon-cerrar-sesion"></i> Cerrar Sesión
+            {% endif %}
+        </nav>
+
+        <!-- Configuración y Cerrar Sesión (Parte inferior) -->
+        <div class="sidebar-bottom">
+            <a href="{{ url_for('usuarios.usuarios_index') }}" class="nav-link">
+                <i class="fas fa-cog nav-icon"></i> Configuración
             </a>
-            </nav>
+            <a href="{{ url_for('auth.logout') }}" id="logout-button" class="nav-link logout-btn">
+                <i class="fas fa-sign-out-alt nav-icon"></i> Cerrar Sesión
+            </a>
+        </div>
     </aside>
 
-    <div class="main-container">
+    <!-- Overlay para móvil -->
+    <div id="sidebar-overlay" class="overlay"></div>
 
-        <header class="top-header">
-            <div class="search-bar">
-                <input type="text" placeholder="Buscar cuestionarios">
-                <i class="icon-search"></i>
-            </div>
-            
-            <div class="user-profile-widget">
-                <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
-                <a href="" class="profile-link">
-                    <img src="/static/img/avatar.png" alt="Avatar" class="avatar">
-                    <span class="username">Mi Perfil</span>
-                </a>
-            </div>
-        </header>
+    <div class="main-content">
+        <header class="header">
+                            <h1>Inicio</h1>
+
+                <!-- Búsqueda, Créditos y Perfil -->
+                <div class="credits-profile-container">
+                    <!-- Créditos y Perfil (Estilo del wireframe) -->
+                    <div class="credits-box">
+                        <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
+                        <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
+                    </div>
+                    <div class="profile-box">
+                        <img src="/static/img/avatar.jpeg" class="profile-img">
+                        <span class="profile-text" style="display: none;">Mi Perfil</span>
+                    </div>
+                </div>
+            </header>
+
+       
 
         <main class="content-area">
             
-            <h1>Inicio</h1>
 
             <div class="welcome-area">
                 {% if logged_in_user.tipo_usuario == 'G' %}
@@ -152,5 +176,7 @@
         </main>
     </div>
     <script src="../static/js/home.js"></script>
+        <script src="/static/js/global.js"></script>
+
 </body>
 </html>
