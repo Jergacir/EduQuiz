@@ -1,122 +1,56 @@
-// ======================================================
-// SCRIPT PARA RESULTADOS DE PARTIDA (EDUQUIZ)
-// ======================================================
-
 document.addEventListener("DOMContentLoaded", () => {
-    animarEstadisticas();
-    configurarExportacionCSV();
+    animarTarjetas();
+    configurarExportacion();
 });
 
-// ======================================================
-// 🟢 ANIMACIÓN DE ENTRADA DE LAS TARJETAS DE ESTADÍSTICAS
-// ======================================================
+// ====================== ANIMACIONES ======================
+function animarTarjetas() {
+    const analisis = document.querySelectorAll(".analysis-card");
+    const ranking = document.querySelectorAll(".ranking-item");
 
-function animarEstadisticas() {
-    const cards = document.querySelectorAll(".analysis-card");
-
-    cards.forEach((card, index) => {
+    analisis.forEach((card, i) => {
         card.style.opacity = "0";
         card.style.transform = "translateY(20px)";
-
         setTimeout(() => {
             card.style.transition = "all 0.6s ease";
             card.style.opacity = "1";
             card.style.transform = "translateY(0)";
-        }, 200 * index); // animación escalonada
+        }, i * 150);
+    });
+
+    ranking.forEach((item, i) => {
+        item.style.opacity = "0";
+        item.style.transform = "translateX(-20px)";
+        setTimeout(() => {
+            item.style.transition = "all 0.5s ease";
+            item.style.opacity = "1";
+            item.style.transform = "translateX(0)";
+        }, i * 100 + 500);
     });
 }
 
-// ======================================================
-// 💾 EXPORTAR RESULTADOS DE LA TABLA A CSV
-// ======================================================
+// ====================== EXPORTACIÓN ======================
+function configurarExportacion() {
+    const btn = document.querySelector(".exportar-btn");
+    if (!btn) return;
 
-function configurarExportacionCSV() {
-    const btnExportar = document.querySelector(".btn-primary");
-    if (btnExportar) {
-        btnExportar.addEventListener("click", exportarResultadosCSV);
-    }
-}
-
-function exportarResultadosCSV() {
-    const tabla = document.querySelector(".ranking-table");
-    if (!tabla) {
-        alert("No se encontró la tabla de resultados.");
-        return;
-    }
-
-    let csvContent = "";
-    const filas = tabla.querySelectorAll("tr");
-
-    filas.forEach((fila) => {
-        const columnas = fila.querySelectorAll("th, td");
-        const filaCSV = Array.from(columnas)
-            .map((col) => `"${col.innerText.replace(/"/g, '""')}"`)
-            .join(",");
-        csvContent += filaCSV + "\n";
+    btn.addEventListener("click", () => {
+        setTimeout(() => {
+            mostrarToast("✅ Exportando resultados...");
+        }, 300);
     });
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    const partidaId = document.body.getAttribute("data-partida-id") || "partida";
-    link.setAttribute("href", url);
-    link.setAttribute("download", `resultados_${partidaId}.csv`);
-    link.style.display = "none";
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    mostrarNotificacion("✅ Resultados exportados correctamente");
 }
 
-// ======================================================
-// ✨ FUNCIÓN DE NOTIFICACIÓN VISUAL (LIGERA Y BONITA)
-// ======================================================
+// ====================== TOAST ======================
+function mostrarToast(msg) {
+    const toast = document.createElement("div");
+    toast.classList.add("eduquiz-toast");
+    toast.innerText = msg;
+    document.body.appendChild(toast);
 
-function mostrarNotificacion(mensaje) {
-    const notif = document.createElement("div");
-    notif.classList.add("eduquiz-toast");
-    notif.innerText = mensaje;
-
-    document.body.appendChild(notif);
-
+    setTimeout(() => toast.classList.add("visible"), 100);
     setTimeout(() => {
-        notif.classList.add("visible");
-    }, 100);
-
-    setTimeout(() => {
-        notif.classList.remove("visible");
-        setTimeout(() => notif.remove(), 400);
+        toast.classList.remove("visible");
+        setTimeout(() => toast.remove(), 400);
     }, 3000);
 }
-
-// ======================================================
-// 🎨 ESTILOS INLINE PARA EL TOAST (NO REQUIERE CSS EXTRA)
-// ======================================================
-
-const estiloToast = document.createElement("style");
-estiloToast.innerHTML = `
-.eduquiz-toast {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    background: #2D3047;
-    color: #fff;
-    padding: 12px 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.4s ease;
-    font-weight: 600;
-    z-index: 9999;
-}
-
-.eduquiz-toast.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-`;
-document.head.appendChild(estiloToast);

@@ -2,155 +2,112 @@
 /* ESTILOS ESPECÍFICOS PARA LA VISTA DE PARTIDAS (PROFESOR) */
 /* ======================================================= */
 
-.main-container {
-    background-color: #f8f8f8; /* Fondo general de la zona principal, un gris muy claro */
-}
+/*
+* NOTA: La mayoría de estilos de fondo, cabecera y barra lateral
+* provienen de global.css y miscuestionarios.css.
+* Este archivo se enfoca en la tabla y sus elementos.
+*/
 
-.content-area.partidas-profesor-area {
-    background-color: white; /* Aseguramos que el área principal de contenido sea blanca */
-    padding: 30px 40px; /* Ajusta el padding para que coincida con el wireframe */
-    min-height: calc(100vh - 80px); /* Altura mínima para que siempre ocupe la pantalla */
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); /* Sombra sutil si es necesario, o eliminar */
-}
+/* --- Nuevos estilos para la cabecera y descripción --- */
 
-.partidas-header-actions {
+.header-content {
+    /* Contenedor del título y subtítulo */
     display: flex;
-    flex-direction: column; /* Apila los elementos */
-    margin-bottom: 30px;
+    flex-direction: column; /* Apila el h1 y el p */
+}
+
+.header-content h1 {
+    /* Estilo del título */
+    margin-bottom: 5px; /* Pequeño espacio entre título y descripción */
 }
 
 .section-description {
-    color: #666;
+    /* Estilo del nuevo texto descriptivo */
+    color: #666; /* Gris para la descripción */
     font-size: 0.95rem;
-    margin-bottom: 20px; /* Espacio debajo de la descripción */
+    margin-bottom: 20px; /* Espacio debajo de la descripción antes de la barra de acciones */
+    font-weight: 500;
 }
 
-.search-and-create {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px; /* Espacio entre la barra de búsqueda y el botón */
-}
-
-.search-input-container {
-    flex-grow: 1; /* Permite que el input de búsqueda ocupe el espacio disponible */
-    position: relative;
-    display: flex;
-    align-items: center;
-    background-color: #f0f0f0; /* Fondo gris claro del input */
-    border-radius: 8px;
-    padding: 8px 15px;
-}
-
-.search-input-container i {
-    color: #888;
-    margin-right: 10px;
-}
-
-.search-partida-input {
-    border: none;
-    background: transparent;
-    outline: none;
-    flex-grow: 1;
-    font-size: 1rem;
-    color: #333;
-    padding: 5px 0; /* Padding interno para el texto */
-}
-
-.search-partida-input::placeholder {
-    color: #aaa;
-}
-
-.btn-nueva-partida {
-    background-color: #2D3047; /* Color oscuro como en el wireframe */
-    color: white;
-    padding: 12px 25px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 1.05rem;
-    display: flex;
-    align-items: center;
-    transition: background-color 0.2s;
-    white-space: nowrap; /* Evita que el texto se rompa */
-}
-
-.btn-nueva-partida:hover {
-    background-color: #1a1c2a;
-}
-.btn-nueva-partida i {
-    font-size: 1.2rem;
-    margin-right: 8px;
-}
-
-.recent-partidas-title {
-    font-size: 1.5rem;
-    color: #40446C;
-    margin-top: 40px; /* Espacio superior */
-    margin-bottom: 20px; /* Espacio inferior */
-    font-weight: 600;
-}
-
-/* --- ESTILOS DE LA TABLA --- */
+/* --- Estilos de la Tabla Mejorados --- */
 
 .table-responsive {
-    overflow-x: auto; /* Para tablas que pueden ser muy anchas en pantallas pequeñas */
-    border-radius: 10px; /* Bordes redondeados para el contenedor de la tabla */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Sombra sutil para la tabla */
-    background-color: white; /* Asegurar fondo blanco para la tabla */
+    /* Contenedor para manejar el desbordamiento de la tabla en pantallas pequeñas */
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 20px;
+    background-color: white;
+    border-radius: 12px;
+    /* Sombra más marcada para darle más presencia */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
 }
 
 .partidas-table {
     width: 100%;
-    border-collapse: separate; /* Permite border-spacing y border-radius */
-    border-spacing: 0; /* Elimina espacio entre celdas */
-    min-width: 700px; /* Para asegurar que no se vea muy pequeña en ciertos anchos */
+    border-collapse: collapse;
+    min-width: 800px; 
 }
 
+/* Estilo del Encabezado de la Tabla - Usando un color más fuerte */
 .partidas-table thead th {
-    background-color: #f7f7f7; /* Fondo gris claro del encabezado de la tabla */
-    color: #40446C; /* Color de texto más oscuro */
+    /* Usar un color que combine con el diseño, por ejemplo, un verde oscuro */
+    background-color: #2c3e50; /* Un azul oscuro o verde oscuro, se ve elegante y contrasta */
+    color: white; /* Letras blancas para contraste */
     padding: 15px 20px;
     text-align: left;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.95rem;
-    border-bottom: 2px solid #eee; /* Separador del encabezado */
+    border-bottom: 3px solid #34495e; /* Borde más oscuro */
+    letter-spacing: 0.5px; /* Un poco de espacio para que se vea más profesional */
 }
 
 /* Bordes redondeados en el encabezado */
-.partidas-table thead tr th:first-child { border-top-left-radius: 10px; }
-.partidas-table thead tr th:last-child { border-top-right-radius: 10px; }
+.partidas-table thead tr th:first-child { border-top-left-radius: 12px; }
+.partidas-table thead tr th:last-child { border-top-right-radius: 12px; }
 
+/* Estilo de las Filas del Cuerpo de la Tabla */
+.partidas-table tbody td {
+    padding: 15px 20px;
+    color: #34495e; /* Un gris-azul oscuro para el texto */
+    font-size: 0.9rem;
+    border-bottom: 1px solid #ecf0f1; /* Línea separadora muy sutil */
+    vertical-align: middle;
+}
 
-.partidas-table tbody tr {
-    background-color: #ffffff; /* Fondo blanco para las filas de datos */
-    border-bottom: 1px solid #eee; /* Línea separadora entre filas */
-    transition: background-color 0.1s ease;
+/* Filas Alternas para un mejor contraste y aspecto */
+.partidas-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9; /* Gris muy claro para filas pares */
+}
+
+.partidas-table tbody tr:last-child td {
+    border-bottom: none; /* Elimina la línea de la última fila */
 }
 
 .partidas-table tbody tr:hover {
-    background-color: #f9f9f9; /* Efecto hover suave */
+    /* Resaltar la fila al pasar el mouse con el color primario, pero más claro */
+    background-color: #e6f7f5; /* Un tono muy claro del teal/verde azulado */
 }
 
-.partidas-table tbody td {
-    padding: 15px 20px;
-    color: #555;
-    font-size: 0.9rem;
-}
 
-/* Estilo para el botón "Ver Resultados" */
+/* Estilo del Botón de Acción dentro de la Tabla (Se mantiene bien) */
 .btn-ver-resultados {
-    background-color: #2D3047; /* Color oscuro principal */
+    background-color: var(--color-primary-teal); /* Teal/Verde primario */
     color: white;
-    padding: 8px 15px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
     font-size: 0.85rem;
-    font-weight: 500;
-    transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s, transform 0.1s;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra para que destaque */
 }
 
 .btn-ver-resultados:hover {
-    background-color: #1a1c2a;
+    background-color: #047870; /* Teal-700 */
+    transform: translateY(-1px);
 }
