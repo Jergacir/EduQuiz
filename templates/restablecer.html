@@ -11,7 +11,7 @@
     <div class="panel-izquierdo">
       <div class="formulario-contenedor">
         <h1>Restablecer contraseña</h1>
-        <form method="post" action="{{ url_for('restablecer_post') }}">
+  <form method="post" action="{{ url_for('modificarcontrasena.restablecer_post') }}">
           <input type="hidden" name="token" value="{{ token }}">
           <div class="grupo-formulario campo-contrasena">
             <label for="contrasena">Nueva contraseña</label>
@@ -24,7 +24,7 @@
           <button class="btn-primario" type="submit">Restablecer contraseña</button>
         </form>
         <div class="enlace-sesion">
-          <a href="{{ url_for('frm_login') }}">Volver al inicio de sesión</a>
+          <a href="{{ url_for('auth.frm_login') }}">Volver al inicio de sesión</a>
         </div>
       </div>
     </div>

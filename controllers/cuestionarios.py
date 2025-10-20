@@ -219,3 +219,37 @@ def obtener_cuestionario_completo(cuestionario_id):
     except Exception as e:
         print(f'Error al obtener cuestionario completo: {e}', file=sys.stderr)
         return jsonify({'error': str(e)}), 500
+
+
+@cuestionarios_bp.route('/verificar_codigo/<int:cuestionario_id>', methods=['POST'])
+def verificar_codigo(cuestionario_id):
+    """Verifica que el código enviado coincide con el código_visualizacion del cuestionario.
+
+    Devuelve JSON {'valido': True|False} o un objeto error en caso de fallo.
+    """
+    data = request.get_json(silent=True)
+    if not data or 'codigo' not in data:
+        return jsonify({'error': 'Falta el campo "codigo" en el cuerpo'}), 400
+
+    codigo = str(data.get('codigo', '')).strip().upper()
+
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'No se pudo conectar a la base de datos'}), 500
+
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute('SELECT codigo_visualizacion FROM cuestionario WHERE cuestionario_id=%s AND estado=1', (cuestionario_id,))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({'error': 'Cuestionario no encontrado'}), 404
+
+            actual = row.get('codigo_visualizacion')
+            valido = False
+            if actual is not None:
+                valido = str(actual).strip().upper() == codigo
+
+        return jsonify({'valido': bool(valido)})
+    except Exception as e:
+        print(f"Error verificar_codigo: {e}", file=sys.stderr)
+        return jsonify({'error': str(e)}), 500

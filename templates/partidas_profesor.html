@@ -19,10 +19,10 @@
             EduQuiz
         </div>
         <nav class="nav-menu">
-            <a href="{{ url_for('frm_home') }}" class="nav-item">
+            <a href="{{ url_for('pages.frm_home') }}" class="nav-item">
                 <i class="icon-inicio"></i> Inicio
             </a>
-            <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item">
+            <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-item">
                 <i class="icon-cuestionarios"></i> Cuestionarios
             </a>
             <a href="{{ url_for('tienda.tienda_index') }}" class="nav-item">
@@ -64,7 +64,7 @@
                         <i class="icon-search"></i>
                         <input type="text" placeholder="Buscar partida" class="search-partida-input">
                     </div>
-                    <a href="{{ url_for('frm_crear_partida') }}" class="btn-nueva-partida">
+                    <a href="{{ url_for('partidas.frm_crear_partida') }}" class="btn-nueva-partida">
                         <i class="icon-plus"></i> Nueva partida
                     </a>
                 </div>
@@ -93,7 +93,7 @@
                             <td>{{ partida.jugadores }}</td>
                             <td>{{ partida.preguntas }}</td>
                             <td>
-                                <a href="{{ url_for('frm_resultados_partida', partida_id=partida.partida_id) }}"
+                                <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=partida.partida_id) }}"
                                     class="btn-ver-resultados">
                                     Ver Resultados
                                 </a>
@@ -107,7 +107,7 @@
                             <td>25</td>
                             <td>10</td>
                             <td>
-                                <a href="{{ url_for('frm_resultados_partida', partida_id=1) }}"
+                                <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=1) }}"
                                     class="btn-ver-resultados">Ver Resultados</a>
                             </td>
                         </tr>

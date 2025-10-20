@@ -18,12 +18,12 @@
             </div>
             <nav class="menu">
                 <ul>
-                    <li><a href="{{ url_for('frm_home') }}"><i class="icono"></i> Inicio</a></li>
-                    <li><a href="{{ url_for('frm_cuestionarios') }}"><i class="icono"></i> Cuestionarios</a></li>
+                    <li><a href="{{ url_for('pages.frm_home') }}"><i class="icono"></i> Inicio</a></li>
+                    <li><a href="{{ url_for('cuestionarios.frm_cuestionarios') }}"><i class="icono"></i> Cuestionarios</a></li>
                     <li class="activo"><a href="{{ url_for('tienda.tienda_index') }}"><i class="icono"></i> Tienda</a></li>
                     <li><a href="{{ url_for('partidas.frm_partidas') }}"><i class="icono"></i> Partidas</a></li>
-                    <li><a href="{{ url_for('crud_usuarios') }}"><i class="icono"></i> Configuración</a></li>
-                    <li><a href="{{ url_for('logout') }}"><i class="icono"></i> Cerrar Sesión</a></li>
+                    <li><a href="{{ url_for('usuarios.usuarios_index') }}"><i class="icono"></i> Configuración</a></li>
+                    <li><a href="{{ url_for('auth.logout') }}"><i class="icono"></i> Cerrar Sesión</a></li>
                 </ul>
             </nav>
         </aside>

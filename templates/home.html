@@ -59,13 +59,13 @@
             EduQuiz
         </div>
         <nav class="nav-menu">
-            <a href="{{ url_for('frm_home') }}" class="nav-item active">
+            <a href="{{ url_for('pages.frm_home') }}" class="nav-item active">
                 <i class="icon-inicio"></i> Inicio
             </a>
-            <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item">
+            <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-item">
                 <i class="icon-cuestionarios"></i> Cuestionarios
             </a>
-            <a href="{{ url_for('frm_home') }}" class="nav-item">
+            <a href="{{ url_for('pages.frm_home') }}" class="nav-item">
                 <i class="icon-tienda"></i> Tienda
             </a>
             <a href="{{ url_for('partidas.frm_partidas') }}" class="nav-item">
@@ -76,7 +76,7 @@
                 <i class="icon-configuracion"></i> Configuración
             </a>
             <!-- 🔑 ENLACE DE CERRAR SESIÓN MODIFICADO -->
-            <a href="{{ url_for('logout') }}" class="nav-item" id="btn-cerrar-sesion">
+            <a href="{{ url_for('auth.logout') }}" class="nav-item" id="btn-cerrar-sesion">
                 <i class="icon-cerrar-sesion"></i> Cerrar Sesión
             </a>
             </nav>
@@ -108,7 +108,7 @@
                 <div class="gestor-area">
                     <h2>¡Hola Gestor, {{ logged_in_user.nombre }}!</h2>
                     <p>Tienes acceso a la administración del sistema. **Rol: {{ logged_in_user.tipo_usuario }}** | Monedas Ganadas: {{ logged_in_user.cant_monedas }} 💰</p>
-                    <a href="{{ url_for('crud_usuarios') }}" class="btn-gestor">
+                    <a href="{{ url_for('usuarios.usuarios_index') }}" class="btn-gestor">
                         Administrar Usuarios (CRUD)
                     </a>
                 </div>

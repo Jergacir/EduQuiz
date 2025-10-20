@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 import os
 import smtplib
 import ssl
@@ -9,6 +9,9 @@ from datetime import datetime, timedelta
 import re
 import sys
 import db as dbmod
+
+
+modificarcontrasena_bp = Blueprint('modificarcontrasena', __name__, template_folder='../../templates')
 
 
 def send_password_reset_email(to_email: str, token: str):
@@ -28,7 +31,7 @@ def send_password_reset_email(to_email: str, token: str):
     # Construir enlace de reset (url_for se resuelve en contexto de request en main)
     try:
         from flask import url_for
-        reset_link = url_for('frm_restablecer', token=token, _external=True)
+        reset_link = url_for('modificarcontrasena.frm_restablecer', token=token, _external=True)
     except Exception:
         base = os.environ.get('APP_BASE_URL', '').rstrip('/')
         reset_link = f"{base}/restablecer?token={token}" if base else f"/restablecer?token={token}"
@@ -104,20 +107,22 @@ def send_password_reset_email(to_email: str, token: str):
         server.send_message(msg)
 
 
+@modificarcontrasena_bp.route('/solicitar_restablecer', methods=['GET'], endpoint='frm_solicitar_restablecer')
 def frm_solicitar_restablecer():
     return render_template('solicitar_restablecer.html')
 
 
+@modificarcontrasena_bp.route('/solicitar_restablecer', methods=['POST'], endpoint='solicitar_restablecer')
 def solicitar_restablecer():
     email = request.form.get('email')
     if not email:
         flash('Ingresa un correo válido.', 'error')
-        return redirect(url_for('frm_solicitar_restablecer'))
+        return redirect(url_for('modificarcontrasena.frm_solicitar_restablecer'))
 
     conexion = dbmod.obtenerConexion()
     if not conexion:
         flash('Error al conectar con la base de datos.', 'error')
-        return redirect(url_for('frm_solicitar_restablecer'))
+        return redirect(url_for('modificarcontrasena.frm_solicitar_restablecer'))
 
     try:
         with conexion:
@@ -128,7 +133,7 @@ def solicitar_restablecer():
                 if not user:
                     # No revelar que el email no existe — comportarse como si se envió
                     flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'reset_info')
-                    return redirect(url_for('frm_solicitar_restablecer'))
+                    return redirect(url_for('modificarcontrasena.frm_solicitar_restablecer'))
 
                 usuario_id = user['usuario_id']
                 # Generar token y guardarlo hasheado
@@ -147,26 +152,28 @@ def solicitar_restablecer():
                 try:
                     send_password_reset_email(email, token)
                     flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'reset_info')
-                    return redirect(url_for('frm_solicitar_restablecer'))
+                    return redirect(url_for('modificarcontrasena.frm_solicitar_restablecer'))
                 except Exception as e:
                     print(f"Error enviando email de restablecimiento: {e}")
                     flash('No se pudo enviar el correo de restablecimiento. Contacta al administrador.', 'reset_warning')
-                    return redirect(url_for('frm_solicitar_restablecer'))
+                    return redirect(url_for('modificarcontrasena.frm_solicitar_restablecer'))
 
     except Exception as e:
         print(f"Error en solicitar_restablecer (controller): {e}")
         flash('Ocurrió un error. Intenta más tarde.', 'error')
-        return redirect(url_for('frm_solicitar_restablecer'))
+        return redirect(url_for('modificarcontrasena.frm_solicitar_restablecer'))
 
 
+@modificarcontrasena_bp.route('/restablecer', methods=['GET'], endpoint='frm_restablecer')
 def frm_restablecer():
     token = request.args.get('token')
     if not token:
         flash('Token inválido.', 'error')
-        return redirect(url_for('frm_login'))
+        return redirect(url_for('auth.frm_login'))
     return render_template('restablecer.html', token=token)
 
 
+@modificarcontrasena_bp.route('/restablecer', methods=['POST'], endpoint='restablecer_post')
 def restablecer_post():
     token = request.form.get('token')
     nueva = request.form.get('contrasena')
@@ -174,11 +181,11 @@ def restablecer_post():
 
     if not token or not nueva or not confirmar:
         flash('Faltan campos.', 'error')
-        return redirect(url_for('frm_restablecer') + f"?token={token}")
+        return redirect(url_for('modificarcontrasena.frm_restablecer') + f"?token={token}")
 
     if nueva != confirmar:
         flash('Las contraseñas no coinciden.', 'error')
-        return redirect(url_for('frm_restablecer') + f"?token={token}")
+        return redirect(url_for('modificarcontrasena.frm_restablecer') + f"?token={token}")
 
     # Validación de contraseña fuerte
     pwd = nueva
@@ -196,12 +203,12 @@ def restablecer_post():
 
     if pwd_errors:
         flash('La contraseña no cumple los requisitos: ' + ', '.join(pwd_errors), 'error')
-        return redirect(url_for('frm_restablecer') + f"?token={token}")
+        return redirect(url_for('modificarcontrasena.frm_restablecer') + f"?token={token}")
 
     conexion = dbmod.obtenerConexion()
     if not conexion:
         flash('Error de conexión.', 'error')
-        return redirect(url_for('frm_login'))
+        return redirect(url_for('auth.frm_login'))
 
     try:
         token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
@@ -212,7 +219,7 @@ def restablecer_post():
                 row = cursor.fetchone()
                 if not row:
                     flash('Token inválido o expirado.', 'error')
-                    return redirect(url_for('frm_login'))
+                    return redirect(url_for('auth.frm_login'))
 
                 expires = row['expires_at']
                 if isinstance(expires, str):
@@ -223,7 +230,7 @@ def restablecer_post():
 
                 if expires_dt < datetime.utcnow():
                     flash('El token ha expirado.', 'error')
-                    return redirect(url_for('frm_login'))
+                    return redirect(url_for('auth.frm_login'))
 
                 usuario_id = row['usuario_id']
                 # Actualizar contraseña usando bcrypt desde extensions
@@ -233,7 +240,7 @@ def restablecer_post():
                     hashed = hashed_bytes.decode('utf-8')
                 except Exception:
                     flash('Error al cifrar la contraseña.', 'error')
-                    return redirect(url_for('frm_login'))
+                    return redirect(url_for('auth.frm_login'))
 
                 sql_upd = "UPDATE usuario SET contrasena=%s WHERE usuario_id=%s"
                 cursor.execute(sql_upd, (hashed, usuario_id))
@@ -243,9 +250,9 @@ def restablecer_post():
                 conexion.commit()
 
                 flash('Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.', 'success')
-                return redirect(url_for('frm_login'))
+                return redirect(url_for('auth.frm_login'))
 
     except Exception as e:
         print(f"Error en restablecer_post (controller): {e}", file=sys.stderr)
         flash('Ocurrió un error procesando la solicitud.', 'error')
-        return redirect(url_for('frm_login'))
+        return redirect(url_for('auth.frm_login'))

@@ -27,7 +27,7 @@
             </div>
             <div class="formulario-contenedor">
                 <h1>¡Regístrate en EduQuiz!</h1>
-                <form action="{{ url_for('procesarregistro') }}" method="post">
+                <form action="{{ url_for('auth.procesarregistro') }}" method="post">
                     {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         <div class="flash-messages">
@@ -77,7 +77,7 @@
                     <!-- Botón -->
                     <button type="submit" class="btn-primario">CONTINUAR</button>
                 </form>
-                <p class="enlace-sesion">¿Ya tienes una cuenta? <a href="{{ url_for('frm_login') }}">Inicia Sesión</a></p>
+                <p class="enlace-sesion">¿Ya tienes una cuenta? <a href="{{ url_for('auth.frm_login') }}">Inicia Sesión</a></p>
             </div>
         </div>
         

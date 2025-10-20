@@ -19,10 +19,10 @@
             EduQuiz
         </div>
         <nav class="nav-menu">
-            <a href="{{ url_for('frm_home') }}" class="nav-item">
+            <a href="{{ url_for('pages.frm_home') }}" class="nav-item">
                 <i class="icon-inicio"></i> Inicio
             </a>
-            <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item">
+            <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-item">
                 <i class="icon-cuestionarios"></i> Cuestionarios
             </a>
             <a href="{{ url_for('tienda.tienda_index') }}" class="nav-item">
@@ -116,7 +116,7 @@
             </div>
 
             <div class="export-button-container">
-                <a href="{{ url_for('frm_exportar_resultados', partida_id=partida_id) }}" class="btn-primary btn-exportar">
+                <a href="{{ url_for('partidas.frm_exportar_resultados', partida_id=partida_id) }}" class="btn-primary btn-exportar">
                     <i class="icon-download"></i> Exportar Resultados
                 </a>
             </div>

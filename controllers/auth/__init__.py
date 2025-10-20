@@ -1,17 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash
+"""
+controllers.auth package shim
 
-auth_bp = Blueprint('auth', __name__, template_folder='../../templates')
+This file delegates imports to the sibling module file controllers/auth.py
+so that `import controllers.auth` yields the full implementation (including
+routes like procesarlogin) even if Python prefers the package path.
+"""
 
-@auth_bp.route('/login')
-def frm_login():
-    return render_template('login.html')
-
-@auth_bp.route('/registro')
-def frm_registro():
-    return render_template('registro.html')
-
-@auth_bp.route('/logout')
-def logout():
-    # Esta es una versión de placeholder; la lógica real vive en main.py hasta migrarla
-    flash('Sesión cerrada (placeholder).', 'success')
-    return redirect(url_for('auth.frm_login'))
+# Delegate everything from the module implementation file.
+from controllers.auth import *  # noqa: F401,F403
