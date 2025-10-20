@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esperando a que inicie la partida...</title>
+    <link rel="stylesheet" href="../static/css/salaespera.css">
+</head>
+
+<body data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}"
+    data-codigo-partida="{{ codigo_partida }}">
+    <div class="contenedor-juego">
+        <button id="btnSalir" class="btn-salir">Salir de la partida</button>
+        {% if logged_in_user.tipo_usuario == 'A' %}
+        {% if tipo_partida == 'G' %}
+        <h1>Esperando a que inicie la partida...</h1>
+        <div class="grupos-contenedor">
+
+            <div class="tarjeta-grupo">
+                <div class="encabezado-grupo">Grupo 01</div>
+                <div class="lista-usuarios">
+                    <div class="usuario"><img src="avatar-lider.png" class="lider"
+                            alt="Líder"><span>nombre_usuario</span></div>
+                    <div class="usuario"><img src="avatar.png" alt="Avatar"><span>nombre_usuario</span></div>
+                    <div class="usuario"><img src="avatar.png" alt="Avatar"><span>nombre_usuario</span></div>
+                    <div class="usuario"><img src="avatar.png" alt="Avatar"><span>nombre_usuario</span></div>
+                </div>
+                <button class="boton-unirse"><span class="icono-mas">+</span> Unirse al equipo</button>
+            </div>
+
+            <div class="tarjeta-grupo">
+                <div class="encabezado-grupo">Grupo 02</div>
+                <div class="lista-usuarios">
+                    <div class="usuario"><img src="avatar.png" alt="Avatar"><span>nombre_usuario</span></div>
+                    <div class="usuario"><img src="avatar-lider.png" class="lider"
+                            alt="Líder"><span>nombre_usuario</span></div>
+                    <div class="usuario"><img src="avatar.png" alt="Avatar"><span>nombre_usuario</span></div>
+                    <div class="usuario"><img src="avatar.png" alt="Avatar"><span>nombre_usuario</span></div>
+                </div>
+                <button class="boton-unirse"><span class="icono-mas">+</span> Unirse al equipo</button>
+            </div>
+
+            <div class="tarjeta-grupo">
+                <div class="encabezado-grupo">Grupo 03</div>
+                <div class="lista-usuarios">
+                    <div class="usuario"><img src="avatar.png" alt="Avatar"><span>nombre_usuario</span></div>
+                    <div class="usuario"><img src="avatar.png" alt="Avatar"><span>nombre_usuario</span></div>
+                    <div class="usuario"><img src="avatar-lider.png" class="lider"
+                            alt="Líder"><span>nombre_usuario</span></div>
+                    <div class="usuario"><img src="avatar.png" alt="Avatar"><span>nombre_usuario</span></div>
+                </div>
+                <button class="boton-unirse"><span class="icono-mas">+</span> Unirse al equipo</button>
+            </div>
+
+        </div>
+
+        {% elif tipo_partida == 'I' %}
+        <h1>Esperando a que inicie la partida...</h1>
+        <div class="tarjeta-usuario">
+            <div class="icono-placeholder"></div>
+            <span class="nombre-usuario">nombre_Usuario</span>
+        </div>
+        <p class="mensaje-confirmacion">¡Te has unido! ¿Ves tu nombre en pantalla?</p>
+
+        {% else %}
+        <h1>Esperando configuración de partida...</h1>
+        <p>El tipo de partida no está definido correctamente.</p>
+
+        {% endif %}
+
+        {% else %}
+        <h1>Panel de Control de Partida</h1>
+        <p>Aquí se mostrarían las opciones del profesor para iniciar, configurar o ver el estado de la partida.</p>
+        {% endif %}
+
+    </div>
+
+    <div id="modalGrupos" class="modal-grupos hidden">
+        <div class="modal-content">
+            <h2>Elige un grupo</h2>
+            <div class="grupos-lista">
+                <!-- Los grupos se rellenarán dinámicamente desde JS -->
+            </div>
+            <button id="cerrarModalGrupos">Cerrar</button>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io();  // Esto se conecta al mismo host:puerto
+    </script>
+    <script src="../static/js/salaespera.js"></script>
+</body>
+
+</html>

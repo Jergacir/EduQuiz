@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificar Cuenta - EduQuiz</title>
+    <link rel="icon" href="/static/img/icono.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../static/css/verificar.css">
     <link rel="stylesheet" href="../static/css/carrusel.css">
 </head>
@@ -30,7 +32,7 @@
                 <h1>¡Verifica tu email!</h1>
                 <p>Hemos enviado un código de verificación al correo <strong>{{ email_masked }}</strong></p>
 
-                <form action="{{ url_for('procesar_verificacion') }}" method="post" id="form-verificar">
+                <form action="{{ url_for('auth.procesar_verificacion') }}" method="post" id="form-verificar">
                     <input type="hidden" name="email" value="{{ email }}">
                     <!-- Hidden codigo field que se enviará al backend -->
                     <input type="hidden" name="codigo" id="codigo-hidden" value="">

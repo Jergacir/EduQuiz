@@ -10,12 +10,12 @@ import sys
 from dotenv import load_dotenv
 from flask import Flask
 from functools import wraps
-
+from flask_socketio import SocketIO
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET', 'supersecreto123')
-
+socketio = SocketIO(app, cors_allowed_origins="*")  # CORS para testing
 
 def _init_extensions(app):
     try:
@@ -136,6 +136,5 @@ def inject_user_data():
         print(f"[main] inject_user_data error: {e}", file=sys.stderr)
         return {'logged_in_user': default_user}
 
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)

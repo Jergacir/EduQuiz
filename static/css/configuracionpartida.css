@@ -1,0 +1,293 @@
+/* --- Estilos del Modal de Configuración de Partida --- */
+
+/* Contenedor principal del modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Fondo oscuro semitransparente */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content.large-modal {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    width: 800px; /* Ancho para el modal grande de configuración */
+    max-width: 90%;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+}
+
+.close-modal-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #f00;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.modal-subtitle {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr; /* Izquierda más pequeña, derecha más grande */
+    gap: 30px;
+    align-items: flex-start;
+}
+
+/* --- Columna Izquierda: Previsualización del Cuestionario --- */
+.quiz-info-config {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-right: 20px;
+    border-right: 1px solid #eee;
+}
+
+.quiz-image-preview {
+    width: 100%;
+    max-width: 200px; /* Tamaño del contenedor de imagen */
+    aspect-ratio: 16/9;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 15px;
+    background-color: #f0f0f0; /* Color de fondo si no hay imagen */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #aaa;
+}
+
+.quiz-image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.quiz-image-preview .quiz-questions-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+}
+
+.quiz-title-config {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.quiz-description-config {
+    font-size: 14px;
+    color: #999;
+}
+
+/* --- Columna Derecha: Opciones --- */
+.quiz-options-config {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.option-group {
+    padding: 10px 0;
+}
+
+.group-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+/* Estilos de Checkbox */
+.config-checkbox {
+    display: block;
+    position: relative;
+    padding-left: 35px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.config-checkbox input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    width: 20px;
+    background-color: #eee;
+    border-radius: 4px;
+}
+
+.config-checkbox:hover input ~ .checkmark {
+    background-color: #ccc;
+}
+
+.config-checkbox input:checked ~ .checkmark {
+    background-color: #4CAF50; /* Color verde */
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.config-checkbox input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.config-checkbox .checkmark:after {
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+/* Selector de Modalidad (Grupal/Individual) */
+.modalidad-selector {
+    background: #f0f0f0;
+    padding: 10px 15px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Campo N° Grupos */
+.group-grupal {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.group-grupal label {
+    font-weight: 600;
+    color: #333;
+}
+
+.group-grupal input {
+    width: 60px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+}
+
+/* Display del PIN */
+.pin-display {
+    display: flex;
+    justify-content: space-between;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.pin-box {
+    width: 40px;
+    height: 50px;
+    background-color: #eee;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: #555;
+}
+
+/* Botón Empezar */
+.btn-empezar {
+    background-color: #2c3e50; /* Color oscuro */
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 20px;
+    transition: background-color 0.3s;
+}
+
+.btn-empezar:hover {
+    background-color: #34495e;
+}
+
+/* Ocultar el ícono de la X roja en el modal de configuración, para usar el botón personalizado */
+#configuracionPartidaModal .modal-content {
+    padding-top: 50px; /* Ajuste para el botón de cerrar */
+}
+
+.modalidad-select {
+    width: 100%;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.modalidad-select:hover {
+    border-color: #888;
+}

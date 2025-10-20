@@ -1,0 +1,281 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #6dd5ed, #2193b0); /* Fondo degradado bonito */
+    color: #333;
+    overflow: auto;
+}
+
+.container {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    padding: 40px 30px;
+    max-width: 1200px;
+    width: 90%;
+    text-align: center;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    margin: 40px 0;
+}
+
+/* Header Card */
+.header-card {
+    background-color: #f0f4f8;
+    border-radius: 10px;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.header-card p {
+    margin: 0;
+    font-size: 1.1em;
+    color: #555;
+    flex-basis: 100%; /* Ocupa todo el ancho en móviles */
+    text-align: center;
+}
+
+.code-section {
+    display: flex;
+    align-items: center;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 1.8em;
+    font-weight: 700;
+    color: #007bff;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+    flex-grow: 1;
+    justify-content: center;
+    min-width: 200px; /* Asegura un ancho mínimo */
+}
+
+.game-code {
+    margin-right: 10px;
+}
+
+.copy-icon {
+    cursor: pointer;
+    color: #888;
+    font-size: 0.8em;
+    transition: color 0.2s ease-in-out;
+}
+
+.copy-icon:hover {
+    color: #007bff;
+}
+
+.qr-code {
+    width: 80px;
+    height: 80px;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.start-game-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 25px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+    flex-shrink: 0;
+}
+
+.start-game-button:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+}
+
+.waiting-message {
+    font-size: 1.8em;
+    color: #444;
+    margin-top: 20px;
+    margin-bottom: 30px;
+    font-weight: 600;
+}
+
+/* Participants Container */
+.participants-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+/* Individual Layout */
+.individual-layout .participant-card {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    min-width: 250px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease;
+}
+
+.individual-layout .participant-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Group Layout */
+.group-layout {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    gap: 30px;
+}
+
+.group-column {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    width: 30%; /* Ajustar para 3 columnas */
+    min-width: 280px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.group-title {
+    font-size: 1.4em;
+    color: #007bff;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-weight: 700;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+}
+
+.participant-card {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    position: relative;
+    transition: background-color 0.2s ease;
+}
+
+.participant-card:hover {
+    background-color: #f0f4f8;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #007bff;
+}
+
+.username {
+    font-weight: 500;
+    color: #555;
+    font-size: 1em;
+}
+
+.flag-icon {
+    position: relative;
+}
+
+.flag-icon .fas.fa-flag {
+    position: absolute;
+    left: -5px; /* Ajusta la posición para que quede a la izquierda del avatar */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #28a745; /* Color para la bandera de líder */
+    font-size: 1.2em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .header-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+    }
+
+    .header-card p {
+        flex-basis: auto;
+    }
+
+    .code-section {
+        width: auto;
+        flex-basis: auto;
+    }
+
+    .qr-code {
+        order: 1; /* Mueve el QR después del código */
+    }
+
+    .start-game-button {
+        order: 2; /* Mueve el botón al final */
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .group-layout {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .group-column {
+        width: 90%;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    .header-card {
+        padding: 15px;
+    }
+
+    .waiting-message {
+        font-size: 1.5em;
+    }
+
+    .code-section {
+        font-size: 1.5em;
+        padding: 8px 12px;
+    }
+
+    .start-game-button {
+        font-size: 1em;
+        padding: 10px 20px;
+    }
+
+    .individual-layout .participant-card {
+        min-width: unset;
+        width: 90%;
+    }
+}
