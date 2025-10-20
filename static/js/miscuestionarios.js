@@ -31,42 +31,47 @@ document.addEventListener("DOMContentLoaded", async () => {
     card.classList.add("quiz-card", "professor");
 
     card.innerHTML = `
-            <div class="quiz-badge">${
-              cuestionario.num_preguntas || 0
-            } preguntas</div>
+            <div class="quiz-badge">${cuestionario.num_preguntas || 0
+      } preguntas</div>
                     <div class="quiz-image-placeholder"><i class="fas fa-image"></i></div>
                     <div class="quiz-content">
-                        <h3 title="${cuestionario.nombre_cuestionario}">${
-      cuestionario.nombre_cuestionario || "Cuestionario sin Título"
-    }</h3>
+                        <h3 title="${cuestionario.nombre_cuestionario}">${cuestionario.nombre_cuestionario || "Cuestionario sin Título"
+      }</h3>
                         <p>${cuestionario.descripcion || "Sin descripción"}</p>
-                         ${
-                           cuestionario.codigo_visualizacion
-                             ? `
+                         ${cuestionario.codigo_visualizacion
+        ? `
             <p class="quiz-code">
                 Código de visualización: 
                 <strong>${cuestionario.codigo_visualizacion}</strong>
             </p>
         `
-                             : ""
-                         }
+        : ""
+      }
                         <div class="quiz-actions" style="gap:10px">
                             <div class="div-edit-btn" style="width: 100%; display: flex; background-color: var(--color-primary-teal); padding: 5px; border-radius: 12px; justify-content: center; align-items: center;">
-                                <a href="/editar_cuestionario/${
-                                  cuestionario.cuestionario_id
-                                }" class="edit-btn"><i class="fas fa-edit" style="margin-right:4px"></i> Editar</a>
+                                <a href="/editar_cuestionario/${cuestionario.cuestionario_id
+      }" class="edit-btn"><i class="fas fa-edit" style="margin-right:4px"></i> Editar</a>
                             </div>
                             <div class="action-icons">
-                                <button title="Jugar" class="action-icon-btn play"><i class="fa-solid fa-gamepad"></i></button>
-                                <button data-id="${
-                                  cuestionario.cuestionario_id
-                                }" title="Clonar" class="action-icon-btn clone clone-quiz-btn"><i class="fas fa-copy"></i></button>
+                                <button title="Jugar" class="action-icon-btn play btn-jugar"><i class="fa-solid fa-gamepad"></i></button>
+                                <button data-id="${cuestionario.cuestionario_id
+      }" title="Clonar" class="action-icon-btn clone clone-quiz-btn"><i class="fas fa-copy"></i></button>
                                 <button title="Eliminar" class="action-icon-btn play"><i class="fa-solid fa-trash icon-delete"></i></button>
                                 
                             </div>
                         </div>
                     </div>
         `;
+    // 1. Obtener el ícono de Jugar
+    const playIcon = card.querySelector(".btn-jugar");
+
+    if (playIcon) {
+      // 2. Adjuntar el evento para abrir el modal de configuración
+      playIcon.addEventListener("click", () => {
+        // Pasamos el objeto cuestionario completo para cargar la info en el modal
+        abrirModalConfiguracion(cuestionario);
+      });
+    }
     return card;
   }
 
@@ -75,19 +80,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     card.classList.add("quiz-card", "student");
 
     card.innerHTML = `
-        <div class="quiz-badge">${
-          cuestionario.num_preguntas || 0
-        } preguntas</div>
+        <div class="quiz-badge">${cuestionario.num_preguntas || 0
+      } preguntas</div>
                     <div class="quiz-image-placeholder"><i class="fas fa-image"></i></div>
                     <div class="quiz-content">
-                        <h3 title="${cuestionario.nombre_cuestionario}">${
-      cuestionario.nombre_cuestionario || "Cuestionario sin Título"
-    }</h3>
+                        <h3 title="${cuestionario.nombre_cuestionario}">${cuestionario.nombre_cuestionario || "Cuestionario sin Título"
+      }</h3>
                         <p>${cuestionario.descripcion || "Sin descripción"}</p>
                         <div class="quiz-actions">
-                            <button class="btn-visualize" style="width: 100%; display: flex; background-color: var(--color-primary-teal); padding: 5px; border-radius: 12px; justify-content: center; align-items: center;border:none;" data-id="${
-                              cuestionario.cuestionario_id
-                            }">
+                            <button class="btn-visualize" style="width: 100%; display: flex; background-color: var(--color-primary-teal); padding: 5px; border-radius: 12px; justify-content: center; align-items: center;border:none;" data-id="${cuestionario.cuestionario_id
+      }">
                 <i class="fa-solid fa-eye" style="margin-right:4px"></i> Visualizar
             </button>
                         </div>
@@ -331,4 +333,252 @@ document.addEventListener("DOMContentLoaded", async () => {
   }, 150);
 
   quizSearchInput.addEventListener("input", handleSearch);
+
+
+
+
+
+  // ******************************************************
+  // --- LÓGICA DEL MODAL DE CONFIGURACIÓN DE PARTIDA ---
+  // ******************************************************
+
+  const configModal = document.getElementById("configuracionPartidaModal");
+  const closeConfigBtn = document.getElementById("closeConfigModal");
+  const iniciarPartidaBtn = document.getElementById("iniciarPartidaBtn");
+
+  // Elementos dinámicos del modal
+  const configQuizImage = document.getElementById("configQuizImage");
+  const configNumPreguntas = document.getElementById("configNumPreguntas");
+  const configQuizTitle = document.getElementById("configQuizTitle");
+  const configQuizDescription = document.getElementById("configQuizDescription");
+  let cuestionarioAConfigurar = null;
+
+  // Función para abrir y cargar datos del modal
+  // --- Nueva versión de abrirModalConfiguracion ---
+  async function abrirModalConfiguracion(cuestionario) {
+    try {
+      // Obtener el cuestionario completo desde tu endpoint Flask
+      const res = await fetch(`/api/cuestionario_completo/${cuestionario.cuestionario_id}`);
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        console.error("Error al obtener cuestionario completo:", data.error);
+        alert("No se pudo cargar el cuestionario completo.");
+        return;
+      }
+
+      // Guardar el cuestionario completo para usarlo al iniciar la partida
+      cuestionarioAConfigurar = data;
+
+      // Cargar la información básica en el modal
+      configQuizImage.src = data.url_img_cuestionario || '/static/img/default_quiz.png';
+      configNumPreguntas.textContent = `${data.preguntas?.length || 0} preguntas`;
+      configQuizTitle.textContent = data.nombre_cuestionario;
+      configQuizDescription.textContent = data.descripcion || 'Sin descripción.';
+
+      // Mostrar PIN automático si aplica
+      const pinDisplay = document.querySelector('.pin-display');
+      const pinAutomatico = document.getElementById('checkPinAutomatico').checked;
+      pinDisplay.style.display = pinAutomatico ? 'flex' : 'none';
+
+      // Mostrar modal
+      configModal.classList.remove("hidden");
+
+    } catch (err) {
+      console.error("Error en abrirModalConfiguracion:", err);
+      alert("Error al conectar con el servidor.");
+    }
+  }
+
+  // Cerrar modal
+  closeConfigBtn.addEventListener("click", () => {
+    configModal.classList.add("hidden");
+    cuestionarioAConfigurar = null;
+  });
+
+  // Lógica para iniciar la partida (Enviar configuración al backend)
+  iniciarPartidaBtn.addEventListener("click", async () => {
+    if (!cuestionarioAConfigurar) return;
+    const modalidadSelect = document.getElementById("modalidadSelect").value;
+    let tipo_partida = modalidadSelect === "grupal" ? "G" : "I";
+    // 1. Recoger las opciones de configuración
+    const configuracion = {
+      cuestionario_id: cuestionarioAConfigurar.cuestionario_id,
+      orden_preguntas_azar: document.getElementById("checkPreguntasAzar").checked,
+      orden_respuestas_azar: document.getElementById("checkRespuestasAzar").checked,
+      anadir_musica: document.getElementById("checkAnadirMusica").checked,
+      modalidad: tipo_partida,
+      num_grupos: document.getElementById("numGrupos").value,
+      generar_qr: document.getElementById("checkGenerarQR").checked,
+      pin_automatico: document.getElementById("checkPinAutomatico").checked,
+      pin: Array.from(document.querySelectorAll('.pin-box'))
+        .map(b => b.textContent)
+        .join('')
+    };
+
+    console.log("Configuración a enviar:", configuracion);
+
+    // === ALEATORIZACIÓN LOCAL ===
+    console.log("🔹 Cuestionario ORIGINAL:", cuestionarioAConfigurar);
+
+    let cuestionarioFinal = JSON.parse(JSON.stringify(cuestionarioAConfigurar));
+
+    // Si está activado el orden de preguntas al azar
+    if (configuracion.orden_preguntas_azar && Array.isArray(cuestionarioFinal.preguntas)) {
+      cuestionarioFinal.preguntas = cuestionarioFinal.preguntas.sort(() => Math.random() - 0.5);
+      console.log("🔀 Preguntas ALEATORIZADAS:", cuestionarioFinal.preguntas.map(p => p.titulo || p.texto || p.id));
+    } else {
+      console.log("⚠️ Orden de preguntas al azar DESACTIVADO");
+    }
+
+    // Si está activado el orden de respuestas al azar
+    if (configuracion.orden_respuestas_azar && Array.isArray(cuestionarioFinal.preguntas)) {
+      cuestionarioFinal.preguntas.forEach((p, i) => {
+        if (Array.isArray(p.respuestas)) {
+          const antes = p.respuestas.map(r => r.texto || r.id);
+          p.respuestas = p.respuestas.sort(() => Math.random() - 0.5);
+          const despues = p.respuestas.map(r => r.texto || r.id);
+          console.log(`🎲 Respuestas pregunta ${i + 1}:`);
+          console.log("Antes:", antes);
+          console.log("Después:", despues);
+        }
+      });
+    } else {
+      console.log("⚠️ Orden de respuestas al azar DESACTIVADO");
+    }
+
+    // Guardar para la partida
+    sessionStorage.setItem("cuestionario_actual", JSON.stringify(cuestionarioFinal));
+    console.log("✅ Cuestionario aleatorizado guardado en sessionStorage:", cuestionarioFinal);
+
+    try {
+      // Ejemplo de endpoint, DEBES AJUSTARLO a tu lógica de creación de partida
+      const res = await fetch(`/api/partidas/crear`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(configuracion)
+      });
+
+      const data = await res.json();
+
+      if (data.status === "ok") {
+        alert(`Partida creada con PIN: ${data.codigo_partida}`);
+
+        // 🕒 Pequeña pausa para asegurar que localStorage se guarde bien
+        setTimeout(() => {
+          window.location.href = `/previapartida/${data.codigo_partida}`;
+        }, 300);
+      } else {
+        alert("Error al crear la partida: " + (data.mensaje || "desconocido"));
+      }
+
+    } catch (error) {
+      console.error("Error al iniciar la partida:", error);
+      alert("Ocurrió un error en la conexión al crear la partida.");
+    }
+
+    // Cierra el modal después de intentar crear la partida
+    configModal.classList.add("hidden");
+  });
+
+  // --- Lógica del PIN Automático ---
+  const pinCheckbox = document.getElementById('checkPinAutomatico');
+  const pinDisplay = document.querySelector('.pin-display');
+
+  // Función para generar un PIN de 6 dígitos numéricos
+  function generarPin() {
+    let pin = "";
+    for (let i = 0; i < 6; i++) {
+      pin += Math.floor(Math.random() * 10); // genera un número entre 0-9
+    }
+    return pin;
+  }
+
+  // Función para mostrar un PIN en los .pin-box
+  function mostrarPin(pin) {
+    const pinBoxes = pinDisplay.querySelectorAll('.pin-box');
+    pinBoxes.forEach((box, idx) => {
+      box.textContent = pin[idx] || "";
+    });
+  }
+
+  // --- Evento al cambiar el checkbox ---
+  pinCheckbox.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      // Si se activa, generar nuevo PIN
+      const nuevoPin = generarPin();
+      mostrarPin(nuevoPin);
+      pinDisplay.style.display = 'flex';
+    } else {
+      // Si se desactiva, ocultar o limpiar
+      pinDisplay.style.display = 'none';
+      const pinBoxes = pinDisplay.querySelectorAll('.pin-box');
+      pinBoxes.forEach(box => box.textContent = '');
+    }
+  });
+
+  // --- Generar PIN inicial si está marcado por defecto ---
+  if (pinCheckbox.checked) {
+    mostrarPin(generarPin());
+  }
+
+
+
+  // --- Lógica del combo "Modalidad" ---
+  const modalidadSelect = document.getElementById("modalidadSelect");
+  const groupGrupal = document.querySelector(".group-grupal");
+
+  // Mostrar/ocultar campo de número de grupos según modalidad
+  modalidadSelect.addEventListener("change", (e) => {
+    const valor = e.target.value;
+    if (valor === "grupal") {
+      groupGrupal.style.display = "block";
+    } else {
+      groupGrupal.style.display = "none";
+    }
+  });
+
+  // -----------------------------------------------------
+  // Lógica de música aleatoria 
+  // -----------------------------------------------------
+  const canciones = [
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1760924674/Los_Enanitos_Verdes_-_Tu_C%C3%A1rcel_Lyrics_ej9cyc.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1760925062/Bad_Bunny_-_Neverita_Video_Oficial_Un_Verano_Sin_Ti_oxyfy0.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1760925147/Soda_Stereo_-_De_M%C3%BAsica_Ligera_Official_Video_m1i83y.mp3"
+  ];
+
+  function reproducirMusicaAleatoria() {
+    const randomIndex = Math.floor(Math.random() * canciones.length);
+    const url = canciones[randomIndex];
+    const musica = new Audio(url);
+    musica.loop = true;
+    musica.volume = 0.4;
+    musica.play();
+
+    console.log("🎧 Reproduciendo:", url);
+
+    // ✅ Guardar en localStorage
+    localStorage.setItem("musicaActiva", "true");
+    localStorage.setItem("cancionActual", url);
+
+    return musica;
+  }
+
+  let musicaActual = null;
+  const checkAnadirMusica = document.getElementById("checkAnadirMusica");
+
+  checkAnadirMusica.addEventListener("change", () => {
+    if (checkAnadirMusica.checked) {
+      musicaActual = reproducirMusicaAleatoria();
+    } else {
+      if (musicaActual) {
+        musicaActual.pause();
+        musicaActual = null;
+      }
+      localStorage.setItem("musicaActiva", "false");
+    }
+  });
+
+
+
 });
