@@ -11,6 +11,84 @@ def usuarios_index():
     return render_template('crudUsuario.html')
 
 
+
+@usuarios_bp.route('/api/perfil', methods=['GET'])
+def obtener_perfil_api():
+    """Devuelve los datos del usuario logueado en formato JSON para la sección de perfil."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autenticado.'}), 401
+
+    user_id = session['user_id']
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
+
+    try:
+        with conexion.cursor() as cursor:
+            sql = "SELECT usuario_id, username, nombre, correo, tipo_usuario, cant_monedas, dni, vigencia FROM usuario WHERE usuario_id=%s"
+            cursor.execute(sql, (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({'error': 'Usuario no encontrado.'}), 404
+
+            # Normalizar tipos para la respuesta
+            if 'vigencia' in row:
+                row['vigencia'] = int(bool(row.get('vigencia')))
+            if 'cant_monedas' in row and row.get('cant_monedas') is None:
+                row['cant_monedas'] = 0
+
+            return jsonify(row)
+    except Exception as e:
+        print(f"Error obtener perfil: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error interno al obtener perfil.'}), 500
+
+
+@usuarios_bp.route('/api/perfil', methods=['PUT'])
+def actualizar_perfil_api():
+    """Actualiza nombre, username y correo del usuario logueado.
+
+    El front-end envía JSON con { nombre, username, correo }.
+    """
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autenticado.'}), 401
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'error': 'Cuerpo JSON vacío.'}), 400
+
+    nombre = data.get('nombre')
+    username = data.get('username')
+    correo = data.get('correo')
+
+    if not nombre or not username or not correo:
+        return jsonify({'error': 'Faltan campos requeridos.'}), 400
+
+    user_id = session['user_id']
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # Verificar unicidad de correo/username en otros usuarios
+                cursor.execute('SELECT usuario_id FROM usuario WHERE (correo=%s OR username=%s) AND usuario_id<>%s', (correo, username, user_id))
+                if cursor.fetchone():
+                    return jsonify({'error': 'El correo o username ya está en uso por otro usuario.'}), 409
+
+                cursor.execute('UPDATE usuario SET nombre=%s, username=%s, correo=%s WHERE usuario_id=%s', (nombre, username, correo, user_id))
+                conexion.commit()
+
+        return jsonify({'message': 'Perfil actualizado correctamente.'})
+    except Exception as e:
+        print(f"Error actualizar perfil: {e}", file=sys.stderr)
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
+        return jsonify({'error': 'Error interno al actualizar perfil.'}), 500
+
+
 @usuarios_bp.route('/api/usuarios', methods=['GET'])
 def listar_usuarios_api():
     # 1. Verificar autenticación

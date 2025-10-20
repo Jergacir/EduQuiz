@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuestionarios - EduQuiz</title>
+
+    <link rel="stylesheet" href="../static/css/home.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+
+</head>
+
+<body data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="/static/img/logo.png" alt="EduQuiz Logo">
+            EduQuiz
+        </div>
+        <nav class="nav-menu">
+            <a href="{{ url_for('frm_home') }}" class="nav-item">
+                <i class="icon-inicio"></i> Inicio
+            </a>
+            <a href="{{ url_for('frm_cuestionarios') }}" class="nav-item active">
+                <i class="icon-cuestionarios"></i> Cuestionarios
+            </a>
+            <a href="{{ url_for('tienda.tienda_index') }}" class="nav-item">
+                <i class="icon-tienda"></i> Tienda
+            </a>
+            <a href="{{ url_for('partidas.frm_partidas') }}" class="nav-item">
+                <i class="icon-partida"></i> Unirme a una partida
+            </a>
+            <hr>
+            <a href="{{ url_for('crud_usuarios') }}" class="nav-item">
+                <i class="icon-configuracion"></i> Configuración
+            </a>
+            <a href="{{ url_for('logout') }}" class="nav-item">
+                <i class="icon-cerrar-sesion"></i> Cerrar Sesión
+            </a>
+        </nav>
+    </aside>
+
+    <div class="main-container">
+
+        <header class="top-header">
+            <div class="search-bar">
+                <input type="text" placeholder="Buscar cuestionarios">
+                <i class="icon-search"></i>
+            </div>
+
+            <div class="user-profile-widget">
+                <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
+                <a href="{{ url_for('crud_usuarios') }}" class="profile-link">
+                    <img src="/static/img/avatar.png" alt="Avatar" class="avatar">
+                    <span class="username">Mi Perfil</span>
+                </a>
+            </div>
+        </header>
+
+        <main class="content-area">
+
+            {% if logged_in_user.tipo_usuario == 'P' %}
+            <div class="header-content">
+                <h1>Mis Cuestionarios</h1>
+                <a href="{{ url_for('frm_editarcuestionarios') }}" class="btn-create">
+                    <i class="icon-plus"></i> Crear Cuestionario
+                </a>
+            </div>
+
+            <section class="quiz-section">
+                <h2>Privados</h2>
+                <div class="quiz-grid" id="privados-container">
+                    <!-- Se llenará con JS -->
+                </div>
+            </section>
+
+            <section class="quiz-section">
+                <h2>Públicos</h2>
+                <div class="quiz-grid" id="publicos-container">
+                    <!-- Se llenará con JS -->
+                </div>
+            </section>
+
+            {% else %}
+            <h1>Cuestionarios de la Comunidad</h1>
+            <section class="quiz-section">
+                <h2>Cuestionarios guardados</h2>
+                <div class="quiz-grid" id="comunidad-container">
+                    <!-- Se llenará con JS -->
+                </div>
+            </section>
+            {% endif %}
+
+        </main>
+    </div>
+
+    <!-- MODAL DE CONFIRMACIÓN -->
+    <div id="confirmDeleteModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>¿Eliminar cuestionario?</h3>
+            <p>Esta acción lo eliminará lógicamente del sistema. ¿Deseas continuar?</p>
+            <div class="modal-buttons">
+                <button id="cancelDelete" class="btn-cancel">Cancelar</button>
+                <button id="confirmDelete" class="btn-confirm">Eliminar</button>
+            </div>
+        </div>
+    </div>
+    <!-- MODAL DE CÓDIGO DE VISUALIZACIÓN -->
+    <div id="visualizarModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Ingresar código de visualización</h3>
+            <p>Introduce los 6 dígitos del código para ver el cuestionario:</p>
+
+            <div class="code-inputs">
+                <input type="text" maxlength="1" class="code-box">
+                <input type="text" maxlength="1" class="code-box">
+                <input type="text" maxlength="1" class="code-box">
+                <input type="text" maxlength="1" class="code-box">
+                <input type="text" maxlength="1" class="code-box">
+                <input type="text" maxlength="1" class="code-box">
+            </div>
+
+            <p id="code-error" class="error-text hidden">Código incorrecto. Inténtalo de nuevo.</p>
+
+            <div class="modal-buttons">
+                <button id="cancelCode" class="btn-cancel">Cancelar</button>
+                <button id="verifyCode" class="btn-confirm">Verificar</button>
+            </div>
+        </div>
+    </div>
+    <script src="../static/js/menucuestionario.js"> </script>
+
+</body>
+
+</html>
