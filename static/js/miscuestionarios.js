@@ -102,38 +102,75 @@ document.addEventListener("DOMContentLoaded", async () => {
     return card;
   }
 
-  // --- Renderizado según tipo ---
-  if (tipoUsuario === "P") {
-    const cuestionarios = await fetchCuestionariosProfesor();
+  // --- Almacenamiento y render dinámico con filtrado en tiempo real ---
+  let allCuestionarios = [];
 
-    privadosContainer.innerHTML = "";
-    publicosContainer.innerHTML = "";
+  function renderAll(filter = "") {
+    const q = (filter || "").toLowerCase().trim();
 
-    cuestionarios.forEach((c) => {
-      const card = crearCardProfesor(c);
-      if (c.publico) {
-        publicosContainer.appendChild(card);
-      } else {
+    if (tipoUsuario === "P") {
+      const privados = allCuestionarios.filter(
+        (c) => !(c.publico) && (c.nombre_cuestionario || "").toLowerCase().includes(q)
+      );
+      const publicos = allCuestionarios.filter(
+        (c) => c.publico && (c.nombre_cuestionario || "").toLowerCase().includes(q)
+      );
+
+      privadosContainer.innerHTML = "";
+      publicosContainer.innerHTML = "";
+
+      privados.forEach((c) => {
+        const card = crearCardProfesor(c);
         privadosContainer.appendChild(card);
+        const deleteIcon = card.querySelector(".icon-delete");
+        if (deleteIcon) deleteIcon.addEventListener("click", () => abrirModalConfirmacion(c.cuestionario_id, card));
+      });
+
+      publicos.forEach((c) => {
+        const card = crearCardProfesor(c);
+        publicosContainer.appendChild(card);
+        const deleteIcon = card.querySelector(".icon-delete");
+        if (deleteIcon) deleteIcon.addEventListener("click", () => abrirModalConfirmacion(c.cuestionario_id, card));
+      });
+
+      // Mostrar mensaje cuando no hay resultados
+      const totalRenderedP = privados.length + publicos.length;
+      const noQuizzesEl = document.getElementById('no-quizzes');
+      if (noQuizzesEl) {
+        if (totalRenderedP === 0) {
+          noQuizzesEl.style.display = 'block';
+        } else {
+          noQuizzesEl.style.display = 'none';
+        }
       }
 
-      // Evento de eliminar
-      const deleteIcon = card.querySelector(".icon-delete");
-      if (deleteIcon) {
-        deleteIcon.addEventListener("click", () => {
-          abrirModalConfirmacion(c.cuestionario_id, card);
-        });
+    } else if (tipoUsuario === "A") {
+      const filtered = allCuestionarios.filter((c) => (c.nombre_cuestionario || "").toLowerCase().includes(q));
+      comunidadContainer.innerHTML = "";
+      filtered.forEach((c) => {
+        const card = crearCardAlumno(c);
+        comunidadContainer.appendChild(card);
+      });
+      // Mostrar mensaje cuando no hay resultados
+      const noQuizzesEl2 = document.getElementById('no-quizzes');
+      if (noQuizzesEl2) {
+        if (filtered.length === 0) {
+          noQuizzesEl2.style.display = 'block';
+        } else {
+          noQuizzesEl2.style.display = 'none';
+        }
       }
-    });
-  } else if (tipoUsuario === "A") {
-    const cuestionarios = await fetchCuestionariosAlumnos();
-
-    comunidadContainer.innerHTML = "";
-    cuestionarios.forEach((c) => {
-      const card = crearCardAlumno(c);
-      comunidadContainer.appendChild(card);
-    });
+    }
   }
+
+  // Inicializar datos y render inicial
+  if (tipoUsuario === "P") {
+    allCuestionarios = await fetchCuestionariosProfesor();
+  } else {
+    allCuestionarios = await fetchCuestionariosAlumnos();
+  }
+
+  renderAll("");
 
   // --- Modal de confirmación ---
   const modal = document.getElementById("confirmDeleteModal");
@@ -280,7 +317,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Búsqueda en tiempo real
-  quizSearchInput.addEventListener("input", (e) => {
-    //Implementar la lógica de búsqueda 
-  });
+  // debounce simple
+  function debounce(func, wait = 200) {
+    let t;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => func(...args), wait);
+    };
+  }
+
+  const handleSearch = debounce((e) => {
+    renderAll(e.target.value || "");
+  }, 150);
+
+  quizSearchInput.addEventListener("input", handleSearch);
 });
