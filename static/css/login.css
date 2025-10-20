@@ -1,5 +1,8 @@
+*{
+    font-family: 'Lexend', sans-serif;    
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     margin: 0;
     padding: 0;
     display: flex;
@@ -70,11 +73,12 @@ body {
 
 .logo {
     align-self: flex-end;
-    margin-bottom: 20px;
+    /* margin-bottom: 20px; */
 }
 
 .logo img {
-    width: 100px;
+    height: 80px;
+    width: auto;
 }
 
 .form-container {
@@ -153,8 +157,7 @@ p.subtitle {
 }
 
 .link {
-    color: #007bff;
-    text-decoration: none;
+    color: #F97316;
 }
 
 .link:hover {
@@ -164,7 +167,7 @@ p.subtitle {
 .btn-primary {
     width: 100%;
     padding: 12px;
-    background-color: #000;
+    background-color: #0D9488;
     color: #fff;
     border: none;
     border-radius: 4px;
@@ -175,7 +178,7 @@ p.subtitle {
 }
 
 .btn-primary:hover {
-    background-color: #333;
+    background-color: #0a5851;
 }
 
 .signup-link {
@@ -186,4 +189,15 @@ p.subtitle {
 
 .signup-link .link {
     font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .left-panel{
+        display: none;
+    }
+
+    .logo{
+        margin: auto;
+        margin-bottom: 10px;
+    }
 }

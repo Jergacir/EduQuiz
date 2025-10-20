@@ -1,5 +1,9 @@
+* {
+    font-family: 'Lexend', sans-serif;
+    box-sizing: border-box;
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     margin: 0;
     padding: 0;
     display: flex;
@@ -37,9 +41,10 @@ body {
 .contenido-principal {
     text-align: center;
     z-index: 2;
-    background-color:  rgba(255, 255, 255, 0.9);
+    background-color: rgb(204 245 249 / 80%);
     padding: 0 40px 30px 40px;
     border-radius: 10px;
+    margin: 15px;
 }
 
 .contenido-principal h1 {
@@ -50,9 +55,9 @@ body {
 }
 
 .contenido-principal p {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: #4a4a4a;
-    max-width: 500px;
+    max-width: 600px;
     margin: 0 auto 40px;
     line-height: 1.6;
 }
@@ -76,7 +81,7 @@ body {
 }
 
 .boton-primario {
-    background-color: #000;
+    background-color: #0D9488;
     color: #fff;
 }
 
@@ -91,4 +96,14 @@ body {
 
 .boton-secundario:hover {
     background-color: #e0e2e5;
+}
+
+@media (max-width: 400px) {
+    .contenido-principal h1 {
+        font-size: 2.5rem;
+    }
+
+    .contenido-principal p {
+        font-size: 0.9rem;
+    }
 }
