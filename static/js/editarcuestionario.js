@@ -259,14 +259,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         const descripcionInputModal = document.getElementById("descripcionCuestionario");
         cuestionario.descripcion = data.descripcion || "";
         if (descripcionInputModal) descripcionInputModal.value = cuestionario.descripcion;
-        cuestionario.preguntas = data.preguntas.map(p => ({
-            texto: p.texto_pregunta,
-            respuestas: p.respuestas.map(r => r.texto_respuesta),
-            correcta: p.correcta,
-            tiempo: (p.tiempo_limite || 30) + "s",
-            puntos: p.puntos || "standard",
-            imagen: p.media_url || null
-        }));
+        cuestionario.preguntas = data.preguntas.map(p => {
+            const respuestas = p.respuestas.map(r => r.texto_respuesta);
+            const correctaIndex = p.respuestas.findIndex(r => r.estado_respuesta === 1);
+
+            return {
+                texto: p.texto_pregunta,
+                respuestas,
+                correcta: correctaIndex >= 0 ? correctaIndex : 0, // si no hay ninguna marcada, usa la primera
+                tiempo: (p.tiempo_limite || 30) + "s",
+                puntos: p.puntos || "standard",
+                imagen: p.media_url || null
+            };
+        });
         cuestionario.url_img_cuestionario = data.url_img_cuestionario || null;
 
 

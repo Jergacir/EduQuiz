@@ -1,0 +1,235 @@
+/* ================================================= */
+        /* == ESTILOS CSS COMBINADOS ======================= */
+        /* ================================================= */
+
+        /* Variables de color aproximadas */
+        :root {
+            --color-fondo-principal: #D0D0D0; /* Gris claro */
+            --color-fondo-tarjeta: #FFFFFF; /* Blanco para tarjetas */
+            --color-texto-principal: #333333; /* Gris oscuro para texto */
+            --color-encabezado-tarjeta: #E0E0E0; /* Gris muy claro para encabezados */
+            --color-boton-fondo: #000000; /* Negro para el botón */
+            --color-boton-texto: #FFFFFF; /* Blanco para el texto del botón */
+            --color-linea: #666666; /* Gris para las líneas divisorias */
+            --color-texto-secundario: #666666; /* Gris más claro para mensaje individual */
+        }
+
+        /* Estilos Generales y del Body */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--color-fondo-principal);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: var(--color-texto-principal);
+            position: relative; 
+            overflow: hidden; 
+        }
+
+        /* Estilo general para la X de fondo */
+        .contenedor-juego::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(to bottom right, transparent calc(50% - 1px), var(--color-linea) calc(50% - 1px), var(--color-linea) calc(50% + 1px), transparent calc(50% + 1px)),
+                linear-gradient(to top right, transparent calc(50% - 1px), var(--color-linea) calc(50% - 1px), var(--color-linea) calc(50% + 1px), transparent calc(50% + 1px));
+            z-index: 1; 
+            pointer-events: none; 
+            opacity: 0.3; 
+        }
+
+        .contenedor-juego {
+            text-align: center;
+            width: 90%;
+            max-width: 1200px;
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 50px;
+        }
+
+        /* ================================================= */
+        /* == ESTILOS GRUPALES ============================= */
+        /* ================================================= */
+
+        .grupos-contenedor {
+            display: flex;
+            justify-content: space-between;
+            gap: 30px;
+        }
+
+        .tarjeta-grupo {
+            flex-basis: 30%; 
+            background-color: var(--color-fondo-tarjeta);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .encabezado-grupo {
+            background-color: var(--color-encabezado-tarjeta);
+            padding: 10px 20px;
+            font-weight: bold;
+            margin-bottom: 10px; 
+        }
+
+        .lista-usuarios {
+            padding: 0 20px;
+            margin-bottom: 20px;
+        }
+
+        .usuario {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .usuario img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%; 
+            margin-right: 10px;
+            /* Usar un color de fondo si no hay imagen real para simular el avatar */
+            background-color: #E0A060; 
+        }
+        
+        /* Icono de bandera (asumimos un estilo para diferenciar si es líder) */
+        .usuario img.lider {
+            border: 2px solid gold; 
+        }
+
+        .boton-unirse {
+            width: 100%;
+            background-color: var(--color-boton-fondo);
+            color: var(--color-boton-texto);
+            border: none;
+            padding: 10px 0;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .icono-mas {
+            font-size: 1.2em;
+            margin-right: 5px;
+        }
+        
+        /* ================================================= */
+        /* == ESTILOS INDIVIDUALES ========================= */
+        /* ================================================= */
+
+        .tarjeta-usuario {
+            background-color: var(--color-fondo-tarjeta);
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 15px 30px;
+            display: inline-flex; /* Para que la tarjeta no ocupe todo el ancho */
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            white-space: nowrap; 
+        }
+
+        .icono-placeholder {
+            width: 30px;
+            height: 30px;
+            background-color: #E0E0E0; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 24px; 
+            color: var(--color-texto-secundario);
+            border-radius: 5px;
+            /* Simula un icono de montaña o imagen */
+            overflow: hidden;
+        }
+
+        .icono-placeholder::before {
+             content: "🖼️"; /* Ícono de imagen */
+             font-size: 18px;
+        }
+        
+        .nombre-usuario {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .mensaje-confirmacion {
+            font-size: 0.9em;
+            color: var(--color-texto-secundario);
+        }
+
+
+        /* Botón salir estilo moderno */
+.btn-salir {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #e74c3c; /* rojo fuerte */
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    margin-top: 20px;
+}
+
+.btn-salir:hover {
+    background-color: #c0392b;
+    transform: scale(1.05);
+}
+
+.btn-salir:active {
+    transform: scale(0.95);
+}
+
+
+/* salaespera.css */
+.modal-grupos {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-grupos.hidden { display: none; }
+
+.modal-grupos .modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+}
+
+.modal-grupos .grupo-btn {
+    display: block;
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}

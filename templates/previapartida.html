@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previa de Partida</title>
+    <link rel="stylesheet" href="../static/css/previapartida.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body data-logged-user='{{ logged_in_user | tojson | default("null") }}'
+    data-is-group-game='{{ (partida.tipo_partida == "G") | tojson | default(false) if partida else "false" }}'>
+    <div class="container">
+        <div class="header-card">
+            <p>Únete en esta emocionante partida con este código</p>
+            <div class="code-section">
+                <span class="game-code">{{ codigo_partida }}</span>
+                <i class="far fa-copy copy-icon" onclick="copyCode()"></i>
+            </div>
+            <img src="qr-code.png" alt="Código QR" class="qr-code">
+            <button class="start-game-button">Iniciar Partida</button>
+        </div>
+
+        <h2 class="waiting-message">Esperando participantes</h2>
+
+        <div id="individual-view" class="participants-container individual-layout">
+
+        </div>
+
+        <div id="group-view" class="participants-container group-layout" style="display: none;">
+            <div class="group-column">
+                <h3 class="group-title">Grupo 01</h3>
+                
+            </div>
+
+            <div class="group-column">
+                <h3 class="group-title">Grupo 02</h3>
+                <div class="participant-card">
+                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
+                    <span class="username">nombre_usuario</span>
+                </div>
+                <div class="participant-card flag-icon">
+                    <i class="fas fa-flag"></i>
+                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
+                    <span class="username">nombre_usuario</span>
+                </div>
+                <div class="participant-card">
+                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
+                    <span class="username">nombre_usuario</span>
+                </div>
+                <div class="participant-card">
+                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
+                    <span class="username">nombre_usuario</span>
+                </div>
+            </div>
+
+            <div class="group-column">
+                <h3 class="group-title">Grupo 03</h3>
+                <div class="participant-card">
+                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
+                    <span class="username">nombre_usuario</span>
+                </div>
+                <div class="participant-card flag-icon">
+                    <i class="fas fa-flag"></i>
+                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
+                    <span class="username">nombre_usuario</span>
+                </div>
+                <div class="participant-card">
+                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
+                    <span class="username">nombre_usuario</span>
+                </div>
+                <div class="participant-card">
+                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
+                    <span class="username">nombre_usuario</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io();  // Esto se conecta al mismo host:puerto
+    </script>
+    <script src="../static/js/previapartida.js"></script>
+
+</body>
+
+</html>

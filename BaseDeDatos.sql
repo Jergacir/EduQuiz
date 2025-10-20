@@ -158,6 +158,8 @@ CREATE TABLE `participante_partida` (
   FOREIGN KEY (`partida_id`) REFERENCES `partida`(`partida_id`)
 );
 
+
+
 	INSERT INTO `skins` (`nombre`, `url_imagen`, `precio`, `vigencia` ) VALUES
 	('Skin Ingeniero Civil', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214821/Ingeniero-Civil128x128.png_pnf3ts.png', 250, 1), -- Ejemplo adicional
 	('Skin Administrador', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214817/Administrador-1.png_yx2uzf.png', 250, 1), -- Ejemplo adicional
@@ -181,4 +183,51 @@ CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`prt_id`),
   FOREIGN KEY (`usuario_id`) REFERENCES `usuario`(`usuario_id`) ON DELETE CASCADE
+);
+
+
+
+-- 6. TABLA PARTICIPANTE
+CREATE TABLE `participante` (
+  `participante_id` INT NOT NULL AUTO_INCREMENT,
+  `puntuacion_total` NUMERIC(9, 2) NOT NULL DEFAULT 0.00, -- Puntaje total acumulado por el participante
+  `cant_preguntas_correctas` INT NOT NULL DEFAULT 0, -- Cantidad de respuestas correctas
+  `cant_preguntas_incorrectas` INT NOT NULL DEFAULT 0, -- Cantidad de respuestas incorrectas
+  `lider_id` INT NULL, -- FK a sí mismo (participante) si este participante es el líder de su grupo (si la partida tiene grupos)
+  `usuario_id` INT NOT NULL, -- FK al usuario registrado que participa (o puede ser null si es invitado)
+  `partida_id` INT NOT NULL, -- FK a la partida en la que participa
+  
+  PRIMARY KEY (`participante_id`),
+  
+  -- La restricción de líder_id se crea con ON DELETE SET NULL para evitar problemas de borrado.
+  -- Si el líder es eliminado, el participante se queda sin líder asignado.
+  FOREIGN KEY (`lider_id`) REFERENCES `participante`(`participante_id`) ON DELETE SET NULL, 
+  
+  -- Asumiendo que existe una tabla 'usuario' con 'usuario_id' como llave primaria
+  FOREIGN KEY (`usuario_id`) REFERENCES `usuario`(`usuario_id`), 
+  
+  FOREIGN KEY (`partida_id`) REFERENCES `partida`(`partida_id`) -- Referencia a la tabla PARTIDA
+);
+
+-- 7. TABLA PREGUNTA_PARTICIPANTE
+CREATE TABLE `pregunta_participante` (
+  `pregunta_participante_id` INT NOT NULL AUTO_INCREMENT,
+  `participante_id` INT NOT NULL, -- FK al participante que respondió la pregunta
+  `pregunta_id` INT NOT NULL, -- FK a la pregunta que se respondió
+  `respuesta_seleccionada_id` INT NULL, -- FK a la respuesta elegida por el participante (puede ser null si no respondió)
+  `texto_pregunta` VARCHAR(255) NOT NULL, -- Texto de la pregunta en el momento de la respuesta (para registro histórico)
+  `correcta` BOOL NOT NULL, -- Indicador de si la respuesta fue correcta (1 = TRUE, 0 = FALSE)
+  `tiempo_pregunta` INT NOT NULL, -- Tiempo que tardó el participante en responder (en segundos o milisegundos, según tu lógica)
+  `tiempo_maximo_pregunta` INT NOT NULL, -- Límite de tiempo para la pregunta (para registro histórico)
+
+  PRIMARY KEY (`pregunta_participante_id`),
+  
+  FOREIGN KEY (`participante_id`) REFERENCES `participante`(`participante_id`), -- Referencia a la tabla PARTICIPANTE
+  
+  -- Asumiendo que existe una tabla 'pregunta' con 'pregunta_id' como llave primaria
+  FOREIGN KEY (`pregunta_id`) REFERENCES `pregunta`(`pregunta_id`), 
+  
+  -- Asumiendo que existe una tabla 'respuesta' con 'respuesta_id' como llave primaria
+  -- La restricción es ON DELETE RESTRICT o NO ACTION para no permitir borrar respuestas que ya fueron seleccionadas.
+  FOREIGN KEY (`respuesta_seleccionada_id`) REFERENCES `respuesta`(`respuesta_id`)
 );

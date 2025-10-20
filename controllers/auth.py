@@ -4,6 +4,7 @@ import random
 import pymysql
 import re
 from extensions import bcrypt as bcrypt_ext
+from utils import send_verification_email, mask_email
 
 auth_bp = Blueprint('auth', __name__, template_folder='../../templates')
 
@@ -163,13 +164,154 @@ def procesarlogin():
 
 @auth_bp.route('/procesar_verificacion', methods=['POST'])
 def procesar_verificacion():
-    # Esta función se mantiene en main.py en parte, se puede delegar a aquí si se desea
-    # Para compatibilidad, importamos la implementación global si existe
-    from main import procesar_verificacion as main_proc_ver
-    return main_proc_ver()
+    data = request.get_json(silent=True)
+    if data:
+        email = data.get('email')
+        codigo = data.get('codigo')
+        nombre_reniec = data.get('nombre_reniec')
+    else:
+        email = request.form.get('email')
+        codigo = request.form.get('codigo')
+        nombre_reniec = request.form.get('nombre_reniec')
+
+    print("=== [DEBUG procesar_verificacion] ===")
+    print(f"Email: {email}, Nombre RENIEC: {nombre_reniec}")
+    print("===================================")
+
+    if not email or not codigo:
+        if data:
+            return jsonify({'success': False, 'message': 'Faltan datos para verificar la cuenta.'}), 400
+        flash('Faltan datos para verificar la cuenta.', 'error')
+        return redirect(url_for('auth.frm_registro'))
+
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        if data:
+            return jsonify({'success': False, 'message': 'Error de conexión a BD'}), 500
+        return redirect(url_for('pages.frm_error'))
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute("SELECT * FROM registro_temp WHERE correo=%s", (email,))
+                temp = cursor.fetchone()
+
+                if not temp:
+                    cursor.execute("SELECT usuario_id, verificado FROM usuario WHERE correo=%s", (email,))
+                    user_row = cursor.fetchone()
+                    if user_row and user_row.get('verificado') == 1:
+                        msg = 'Cuenta ya verificada. Puedes iniciar sesión.'
+                        if data:
+                            return jsonify({'success': False, 'message': msg}), 200
+                        flash(msg, 'info')
+                        return redirect(url_for('auth.frm_login'))
+
+                    msg = 'Correo no encontrado en el registro temporal. Vuelve a registrarte.'
+                    if data:
+                        return jsonify({'success': False, 'message': msg}), 404
+                    flash(msg, 'error')
+                    return redirect(url_for('auth.frm_registro'))
+
+                if temp.get('verification_code') == codigo:
+                    dni = temp.get('dni')
+                    nombre_final = nombre_reniec.strip() if nombre_reniec else temp.get('nombre')
+                    if nombre_final.strip() == dni:
+                        nombre_final = "(Sin nombre RENIEC)"
+
+                    cursor.execute("""
+                        INSERT INTO usuario (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verificado)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,1)
+                    """, (temp['username'], nombre_final, temp['contrasena'], temp['correo'],
+                          temp['dni'], temp['tipo_usuario'], temp['cant_monedas']))
+
+                    cursor.execute("DELETE FROM registro_temp WHERE temp_id=%s", (temp['temp_id'],))
+                    conexion.commit()
+
+                    if data:
+                        return jsonify({'success': True, 'message': 'Registro completado correctamente.',
+                                        'dni': dni, 'nombre': nombre_final}), 200
+
+                    flash('Registro completado correctamente. Ya puedes iniciar sesión.', 'success')
+                    return redirect(url_for('auth.frm_login'))
+
+                else:
+                    if data:
+                        return jsonify({'success': False, 'message': 'Código incorrecto.'}), 400
+                    flash('Código incorrecto. Intenta de nuevo.', 'error')
+                    return render_template('verificar.html', email=email, email_masked=mask_email(email))
+
+    except Exception as e:
+        print(f"❌ Error en procesar_verificacion: {e}")
+        if data:
+            return jsonify({'success': False, 'message': 'Error interno del servidor.'}), 500
+        return redirect(url_for('pages.frm_error'))
 
 
+@auth_bp.route('/api/get_dni', methods=['GET'])
+def get_dni():
+    email = request.args.get('email')
+    if not email:
+        return jsonify({"error": "Email requerido"}), 400
+
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({"error": "No hay conexión"}), 500
+
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("SELECT dni FROM registro_temp WHERE correo=%s", (email,))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({"error": "Registro temporal no encontrado"}), 404
+            return jsonify({"dni": row.get("dni")})
+    except Exception as e:
+        return jsonify({"error": "Error interno", "detail": str(e)}), 500
+# ------------------- Reenviar código -------------------
 @auth_bp.route('/reenviar_codigo', methods=['POST'])
 def reenviar_codigo():
-    from main import reenviar_codigo as main_reenviar
-    return main_reenviar()
+    data = request.get_json(silent=True)
+    email = data.get('email') if data else request.form.get('email')
+
+    if not email:
+        return jsonify({'success': False, 'message': 'Falta el email'}), 400 if data else flash('Falta el email', 'error')
+
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'success': False, 'message': 'Error de conexión a BD'}), 500
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute("SELECT temp_id FROM registro_temp WHERE correo=%s", (email,))
+                temp = cursor.fetchone()
+                new_code = ''.join(str(random.randint(0,9)) for _ in range(6))
+
+                if temp:
+                    cursor.execute("UPDATE registro_temp SET verification_code=%s, created_at=CURRENT_TIMESTAMP WHERE temp_id=%s",
+                                   (new_code, temp['temp_id']))
+                else:
+                    cursor.execute("SELECT * FROM usuario WHERE correo=%s", (email,))
+                    user_row = cursor.fetchone()
+                    if not user_row:
+                        return jsonify({'success': False, 'message': 'Email no encontrado'}), 404
+                    if user_row.get('verificado') == 1:
+                        return jsonify({'success': False, 'message': 'Cuenta ya verificada.'}), 400
+                    cursor.execute("""
+                        INSERT INTO registro_temp (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verification_code)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                    """, (user_row['username'], user_row['nombre'], user_row['contrasena'],
+                          user_row['correo'], user_row['dni'], user_row['tipo_usuario'],
+                          user_row.get('cant_monedas', 0), new_code))
+                conexion.commit()
+
+                try:
+                    send_verification_email(email, new_code)
+                except Exception as e:
+                    print(f"Error enviando email: {e}")
+                    return jsonify({'success': False, 'message': 'No se pudo enviar el correo.'}), 500
+
+                return jsonify({'success': True, 'message': 'Código reenviado.', 'email_masked': mask_email(email)}), 200
+
+    except Exception as e:
+        print(f"❌ Error en reenviar_codigo: {e}")
+        return jsonify({'success': False, 'message': 'Error interno.'}), 500

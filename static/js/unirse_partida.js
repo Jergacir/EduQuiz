@@ -5,14 +5,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const usuarioId = document.body.dataset.usuarioId;
 
     // Lógica para limitar la entrada a 6 caracteres (y mayúsculas)
-    gameCodeInput.addEventListener('input', function() {
+    gameCodeInput.addEventListener('input', function () {
         // Convierte a mayúsculas y limita a 6 caracteres
         this.value = this.value.toUpperCase().slice(0, 6);
     });
 
     joinButton.addEventListener('click', async () => {
         const codigoPartida = gameCodeInput.value.trim();
-        
+
         messageArea.textContent = "";
         messageArea.classList.remove("error", "success");
 
@@ -27,6 +27,8 @@ document.addEventListener("DOMContentLoaded", () => {
         joinButton.textContent = "Uniéndose...";
 
         try {
+            console.log("Usuario ID:", usuarioId);
+            console.log("Código de partida a enviar:", codigoPartida);
             const response = await fetch('/api/partida/unirse', {
                 method: 'POST',
                 headers: {
@@ -40,10 +42,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (response.ok) {
                 messageArea.textContent = result.message;
                 messageArea.classList.add("success");
-                
+
                 // Redirigir al usuario a la pantalla de juego/espera
                 setTimeout(() => {
-                    window.location.href = result.redirect_url; 
+                    window.location.href = result.redirect_url;
                 }, 1500);
 
             } else {
