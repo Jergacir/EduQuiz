@@ -68,10 +68,12 @@
                         <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
                         <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
                     </div>
-                    <div class="profile-box">
-                        <img src="/static/img/avatar.jpeg" class="profile-img">
-                        <span class="profile-text" style="display: none;">Mi Perfil</span>
-                    </div>
+                    <a href="{{ url_for('tienda.inventario_index') }}">
+                        <div class="profile-box">
+                            <img src="/static/img/avatar.jpeg" class="profile-img">
+                            <span class="profile-text" style="display: none;">Mi Perfil</span>
+                        </div>
+                    </a>
                 </div>
             </header>
 

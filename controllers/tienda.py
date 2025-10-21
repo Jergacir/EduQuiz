@@ -1,8 +1,34 @@
 from flask import Blueprint, render_template, jsonify, request, session, redirect, url_for
 import sys
 import db as dbmod
-
 tienda_bp = Blueprint('tienda', __name__, template_folder='../../templates')
+
+# Ruta para inventario
+@tienda_bp.route('/inventario')
+def inventario_index():
+    if not _is_logged_in():
+        return redirect(url_for('auth.frm_login'))
+
+    lista_skins = []
+    lista_accesorios = []
+
+    conexion = dbmod.obtenerConexion()
+    if conexion:
+        try:
+            with conexion.cursor() as cursor:
+                sql_skins = "SELECT skin_id, nombre, url_imagen, precio FROM skins WHERE vigencia = 1  ORDER BY precio ASC"
+                cursor.execute(sql_skins)
+                lista_skins = cursor.fetchall()
+
+                sql_accesorios = "SELECT accesorio_id, nombre, url_imagen, precio FROM accesorios WHERE vigencia = 1 ORDER BY precio ASC"
+                cursor.execute(sql_accesorios)
+                lista_accesorios = cursor.fetchall()
+        except Exception as e:
+            print(f"Error al consultar el inventario: {e}")
+
+    return render_template('inventario.html', skins=lista_skins, accesorios=lista_accesorios)
+
+
 
 
 def _is_logged_in():

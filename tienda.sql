@@ -100,5 +100,20 @@ FROM Inventario_Completo
 WHERE usuario_id = 100
 ORDER BY tipo_item DESC, equipada DESC;
 
--- correo: profe@gmail.com
--- contraseña: Profe123!
+--Usuario (username): profe
+--Correo: profe@gmail.com
+--Contraseña (texto plano): Profe123!
+
+INSERT INTO `usuario`
+  (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verificado, vigencia)
+VALUES
+  ('profe', 'Profesor Ejemplo', '$2b$12$8sbg23vMlHwjMYJrqiISj.ybiuyO2hMErhplxpjPmst5zmjwSmwgi', 'profe@gmail.com', '12345678', 'P', 0, 1, 1);
+
+  --Usuario (username): gestor
+  --Correo: gestor@example.com
+  --Contraseña (texto plano): Gestor123!
+
+INSERT INTO `usuario`
+  (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verificado, vigencia)
+VALUES
+  ('gestor', 'Gestor Ejemplo', '<HASH_BCRYPT>', 'gestor@example.com', '87654321', 'G', 0, 1, 1);
