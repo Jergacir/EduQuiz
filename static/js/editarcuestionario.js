@@ -486,7 +486,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Función para aplicar tema visual
     function aplicarTema(tema) {
-        const main = document.querySelector('.main-container');
+        const main = document.querySelector('.main-content');
         main.classList.remove('theme-light', 'theme-dark', 'theme-blue', 'theme-green', 'theme-pink');
 
         if (tema.color && tema.color !== 'default') {
@@ -528,7 +528,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     // --- Modal Editar Imagen del Cuestionario ---
-    const btnEditarCuestionario = document.querySelector('.btn-action.active'); // tu botón "Editar"
+    const btnEditarCuestionario = document.querySelector('.btn-action.editar'); // tu botón "Editar"
     const editImageModal = document.getElementById('editImageModal');
     const cancelEditImage = document.getElementById('cancelEditImage');
     const saveEditImage = document.getElementById('saveEditImage');
