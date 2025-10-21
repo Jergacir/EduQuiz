@@ -89,19 +89,19 @@
 }
 
 .btn-secondary { /* Salir */
-    background-color: #f0f2f5;
-    color: #555;
+    background-color: #ff4b4b;
+    color: #ffffff;
 }
 .btn-secondary:hover {
-    background-color: #ddd;
+    background-color: #912727;
 }
 
 .btn-primary { /* Guardar */
-    background-color: #059669;
+    background-color: #0D9488;
     color: white;
 }
 .btn-primary:hover {
-    background-color: #047857;
+    background-color: #10625b;
 }
 
 
@@ -172,8 +172,8 @@
 .btn-add-question {
     width: 100%;
     padding: 10px;
-    background-color: #374151; /* Gris oscuro para el botón inferior */
-    color: white;
+    background-color: #4DD0C8; /* Gris oscuro para el botón inferior */
+    color: #374151;
     border: none;
     border-radius: 8px;
     font-weight: bold;
@@ -182,7 +182,7 @@
     transition: background-color 0.2s;
 }
 .btn-add-question:hover {
-    background-color: #1f2937;
+    background-color: #2b726e;
 }
 
 
@@ -233,15 +233,31 @@
 }
 .btn-upload {
     padding: 8px 20px;
-    background-color: #059669;
-    color: white;
+    background-color: #4DD0C8;
+    color: #1f2937;
     border: none;
     border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
 }
 .btn-upload:hover {
-    background-color: #047857;
+    background-color: #338e88;
+    color: #fff;
+}
+
+.media-upload-box-modal {
+    background-color: #ffffff;
+    border: 3px dashed #d1fae5;
+    border-radius: 10px;
+    padding: 30px 20px;
+    text-align: center;
+    margin: 25px 0;
+    color: #555;
+}
+
+.media-upload-box-modal p {
+    margin: 10px 0;
+    font-weight: 600;
 }
 
 /* Grid de Respuestas (2x2) */
@@ -279,8 +295,8 @@
 }
 .btn-add-answer {
     padding: 12px 30px;
-    background-color: #374151;
-    color: white;
+    background-color: #4DD0C8;
+    color: #374151;
     border: none;
     border-radius: 25px; /* Píldora */
     font-size: 1.1rem;
@@ -292,7 +308,7 @@
     margin-right: 8px;
 }
 .btn-add-answer:hover {
-    background-color: #1f2937;
+    background-color: #2b726e;
 }
 
 
@@ -346,7 +362,7 @@
 }
 
 .question-card-preview.active {
-    border-color: #4e73df;
+    border-color: #F97316;
     background-color: #eaf0ff;
 }
 
@@ -578,7 +594,7 @@
 .theme-green { --bg-color: #e9fbe9; --text-color: #054a29; }
 .theme-pink { --bg-color: #ffeaf3; --text-color: #6e0035; }
 
-.main-container {
+.main-content {
     background-color: var(--bg-color, #fff);
     color: var(--text-color, #000);
     transition: background 0.4s, color 0.4s;
