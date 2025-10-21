@@ -598,7 +598,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   const canciones = [
     "https://res.cloudinary.com/ddsql5bqk/video/upload/v1760924674/Los_Enanitos_Verdes_-_Tu_C%C3%A1rcel_Lyrics_ej9cyc.mp3",
     "https://res.cloudinary.com/ddsql5bqk/video/upload/v1760925062/Bad_Bunny_-_Neverita_Video_Oficial_Un_Verano_Sin_Ti_oxyfy0.mp3",
-    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1760925147/Soda_Stereo_-_De_M%C3%BAsica_Ligera_Official_Video_m1i83y.mp3"
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1760925147/Soda_Stereo_-_De_M%C3%BAsica_Ligera_Official_Video_m1i83y.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761012145/The_Weeknd_-_Blinding_Lights_Lyrics_pnjckk.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761012198/The_Weeknd_-_Save_Your_Tears_Lyrics_sk53sy.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761012702/Imagine_Dragons_-_Believer_Lyrics_thbtuf.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013156/Tainy_Bad_Bunny_Julieta_Venegas_-_Lo_Siento_BB__tjdnjn.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013326/Harry_Styles_-_As_It_Was_Lyrics_ne5cp3.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013433/Charlie_Puth_-_Attention_Lyrics_tiluiq.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013506/Into_You_-_Ariana_Grande_Lyrics_d0jbb8.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013609/Bruno_Mars_Treasure_Letra_en_Espa%C3%B1ol_anocyz.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013695/Dua_Lipa_-_Don_t_Start_Now_Lyrics_z3ftld.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013759/Man%C3%A1_-_Oye_Mi_Amor_svzblo.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013897/Labios_Rotos_-_Zo%C3%A9_Letra._uy4h9m.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013953/Morat_-_C%C3%B3mo_Te_Atreves_in9iej.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014034/Avicii_-_Wake_Me_Up_Official_Lyric_Video_sumjir.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014555/Danny_Ocean_-_Me_Reh%C3%BAso_yxhoob.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014604/Besos_En_Guerra_-_Morat_Juanes_Lyrics_Video_wpnbbv.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014813/Coldplay_-_Viva_la_Vida_Lyrics_gcinot.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014903/Pokemon_Center_lofi_with_TanoshiSan_fp81ox.mp3"
   ];
 
   function reproducirMusicaAleatoria() {
