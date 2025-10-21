@@ -19,6 +19,17 @@ def frm_registro():
     return render_template('registro.html')
 
 
+@auth_bp.route('/verificar', methods=['GET'], endpoint='frm_verificar')
+def frm_verificar():
+    """Página para que el usuario ingrese el código de verificación que recibió por email.
+
+    Acepta un parámetro `email` en la query string para prellenar el campo.
+    """
+    email = request.args.get('email', '')
+    masked = mask_email(email) if email else ''
+    return render_template('verificar.html', email=email, email_masked=masked)
+
+
 @auth_bp.route('/logout')
 def logout():
     session.pop('user_id', None)

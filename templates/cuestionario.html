@@ -108,11 +108,13 @@
                 </div>
 
                 <!-- Botón de Acción Principal (Crear Cuestionario) -->
+                {% if logged_in_user.tipo_usuario == 'P' %}
                 <a href="{{ url_for('cuestionarios.frm_editarcuestionarios') }}" id="add-quiz-button"
                     class="main-action-button">
                     <i class="fas fa-plus"></i>
                     Crear Cuestionario
                 </a>
+                {% endif %}
             </div>
 
 

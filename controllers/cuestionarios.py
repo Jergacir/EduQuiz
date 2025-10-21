@@ -221,6 +221,73 @@ def obtener_cuestionario_completo(cuestionario_id):
         return jsonify({'error': str(e)}), 500
 
 
+@cuestionarios_bp.route('/api/cuestionarios/clone/<int:cuestionario_id>', methods=['POST'])
+def clonar_cuestionario(cuestionario_id):
+    """Clona un cuestionario (estructura completa de preguntas y respuestas)
+    y lo asigna al usuario logueado (session['user_id']). Devuelve el nuevo id creado.
+    """
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autorizado'}), 401
+
+    usuario_id = session['user_id']
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'No se pudo conectar a la BD'}), 500
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                # Obtener cuestionario original
+                cursor.execute("SELECT * FROM cuestionario WHERE cuestionario_id=%s AND estado=1", (cuestionario_id,))
+                origen = cursor.fetchone()
+                if not origen:
+                    return jsonify({'error': 'Cuestionario origen no encontrado'}), 404
+
+                # Crear nuevo cuestionario con los mismos campos (pero nuevo codigo_visualizacion)
+                codigo_visualizacion = generar_codigo_unico(cursor)
+                sql_insert = '''
+                    INSERT INTO cuestionario (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario, codigo_visualizacion)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                '''
+                nombreCuestionario = origen.get('nombre_cuestionario') + " (Copiado)",
+                cursor.execute(sql_insert, (
+                    nombreCuestionario,
+                    origen.get('descripcion'),
+                    0,  # por seguridad clonado como privado
+                    origen.get('modo_juego'),
+                    origen.get('tiempo_limite_pregunta'),
+                    usuario_id,
+                    origen.get('url_img_cuestionario'),
+                    codigo_visualizacion
+                ))
+                nuevo_id = cursor.lastrowid
+
+                # Clonar preguntas y respuestas
+                cursor.execute('SELECT * FROM pregunta WHERE cuestionario_id=%s', (cuestionario_id,))
+                preguntas = cursor.fetchall()
+                for p in preguntas:
+                    cursor.execute('INSERT INTO pregunta (texto_pregunta, media_url, tiempo_limite, cuestionario_id) VALUES (%s,%s,%s,%s)',
+                                   (p.get('texto_pregunta'), p.get('media_url'), p.get('tiempo_limite'), nuevo_id))
+                    new_preg_id = cursor.lastrowid
+                    cursor.execute('SELECT * FROM respuesta WHERE pregunta_id=%s', (p.get('pregunta_id'),))
+                    respuestas = cursor.fetchall()
+                    for r in respuestas:
+                        cursor.execute('INSERT INTO respuesta (texto_respuesta, estado_respuesta, pregunta_id) VALUES (%s,%s,%s)',
+                                       (r.get('texto_respuesta'), r.get('estado_respuesta'), new_preg_id))
+
+            conexion.commit()
+
+        return jsonify({'status': 'ok', 'mensaje': 'Cuestionario clonado', 'nuevo_id': nuevo_id}), 201
+
+    except Exception as e:
+        print(f"Error al clonar cuestionario: {e}", file=sys.stderr)
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
+        return jsonify({'error': str(e)}), 500
+
+
 @cuestionarios_bp.route('/verificar_codigo/<int:cuestionario_id>', methods=['POST'])
 def verificar_codigo(cuestionario_id):
     """Verifica que el código enviado coincide con el código_visualizacion del cuestionario.

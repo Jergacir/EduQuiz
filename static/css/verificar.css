@@ -368,7 +368,7 @@ h1 {
     }
 
     .logo{
-        margin: auto;
+        margin: 0 auto;
         margin-bottom: 10px;
     }
 }
