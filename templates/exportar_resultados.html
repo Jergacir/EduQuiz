@@ -4,154 +4,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exportar Resultados - Partida #{{ partida_id }} - EduQuiz</title>
+    <title>Exportar Resultados - Partida #{{ partida_id }} | EduQuiz</title>
 
-    <link rel="stylesheet" href="../static/css/home.css">
-    <link rel="stylesheet" href="../static/css/partidas_profesor.css">
-    <link rel="stylesheet" href="../static/css/exportar_resultados.css">
+    <link rel="icon" href="/static/img/icono.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <link rel="stylesheet" href="/static/css/global.css">
+    <link rel="stylesheet" href="/static/css/miscuestionarios.css">
+    <link rel="stylesheet" href="/static/css/partidas_profesor.css">
+    <link rel="stylesheet" href="/static/css/exportar_resultados.css">
 </head>
 
 <body data-partida-id="{{ partida_id }}">
+    
+    <button id="menu-button" class="menu-button lg:hidden">
+        <i class="fas fa-bars"></i>
+    </button>
 
-    <aside class="sidebar">
-        <div class="logo">
-            <img src="/static/img/logo.png" alt="EduQuiz Logo">
-            EduQuiz
+    <aside id="sidebar" class="sidebar">
+        <div class="logo-container">
+            <img src="/static/img/logo.png" alt="Logo de EduQuiz" class="logo-image">
         </div>
-        <nav class="nav-menu">
-            <a href="{{ url_for('pages.frm_home') }}" class="nav-item">
-                <i class="icon-inicio"></i> Inicio
+
+        <nav>
+            <a href="{{ url_for('pages.frm_home') }}" class="nav-link">
+                <i class="fas fa-home nav-icon"></i> Inicio
             </a>
-            <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-item">
-                <i class="icon-cuestionarios"></i> Cuestionarios
+            <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-link">
+                <i class="fa-regular fa-file nav-icon"></i> Cuestionarios
             </a>
-            <a href="{{ url_for('tienda.tienda_index') }}" class="nav-item">
-                <i class="icon-tienda"></i> Tienda
+            <a href="{{ url_for('tienda.tienda_index') }}" class="nav-link">
+                <i class="fas fa-store nav-icon"></i> Tienda
             </a>
-            <a href="{{ url_for('partidas.frm_partidas_profesor') }}" class="nav-item active">
-                <i class="icon-partida"></i> Partidas
-            </a>
-            <hr>
-            <a href="" class="nav-item">
-                <i class="icon-configuracion"></i> Configuración
-            </a>
-            <a href="" class="nav-item">
-                <i class="icon-cerrar-sesion"></i> Cerrar Sesión
+            <a href="{{ url_for('partidas.frm_partidas_profesor') }}" class="nav-link active">
+                <i class="fa-solid fa-gamepad nav-icon"></i> Partidas
             </a>
         </nav>
+
+        <div class="sidebar-bottom">
+            <a href="{{ url_for('usuarios.usuarios_index') }}" class="nav-link">
+                <i class="fas fa-cog nav-icon"></i> Configuración
+            </a>
+            <a href="{{ url_for('auth.logout') }}" id="logout-button" class="nav-link logout-btn">
+                <i class="fas fa-sign-out-alt nav-icon"></i> Cerrar Sesión
+            </a>
+        </div>
     </aside>
 
-    <div class="main-container">
+    <div id="sidebar-overlay" class="overlay"></div>
 
-        <header class="top-header">
-            <div class="search-bar-top">
-                <h2>Exportar Resultados</h2>
-            </div>
-            <div class="user-profile-widget">
-                <span class="coins">... 💰</span>
-                <a href="" class="profile-link">
-                    <img src="{{ url_for('static', filename='img/avatar.jpeg') }}" alt="Avatar" class="avatar">
-                    <span class="username">Mi Perfil</span>
-                </a>
-            </div>
-        </header>
+    <main class="main-content">
+        <div class="max-w-7xl" style="margin: 0 auto;">
 
-        <main class="content-area exportar-resultados-area">
+            <header class="header">
+                <div class="header-content">
+                    <h1>Exportar Resultados</h1>
+                    <p class="section-description">Elige el formato y los campos para generar tu informe</p>
+                </div>
+                <div class="credits-profile-container">
+                    <div class="credits-box">
+                        <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
+                        <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
+                    </div>
+                    <div class="profile-box">
+                        <img src="/static/img/avatar.jpeg" class="profile-img">
+                        <span class="profile-text" style="display: none;">Mi Perfil</span>
+                    </div>
+                </div>
+            </header>
 
             <div class="export-header">
                 <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=partida_id) }}" class="btn-back">
-                    <i class="icon-arrow-left"></i> Volver a Resultados
+                    <i class="fa-solid fa-arrow-left"></i> Volver a Resultados
                 </a>
-                <h1>Exportar: {{ partida_info.nombre_cuestionario }} 
-                    <span class="partida-id-label">#{{ partida_id }}</span>
-                </h1>
+                <h2>{{ partida_info.nombre_cuestionario }} <span class="partida-id-label">#{{ partida_id }}</span></h2>
             </div>
 
-            <div class="export-sections-container">
-                
-                <section class="export-section formato-section">
-                    <h2 class="section-title">1. Seleccionar Formato</h2>
-                    <div class="format-grid">
-                        
-                        <div class="format-card selected" data-format="csv">
-                            <i class="icon-csv"></i>
-                            <span class="format-name">CSV (.csv)</span>
-                            <p class="format-description">Ideal para bases de datos y hojas de cálculo simples.</p>
-                        </div>
-                        
-                        <div class="format-card" data-format="excel">
-                            <i class="icon-excel"></i>
-                            <span class="format-name">Excel (.xlsx)</span>
-                            <p class="format-description">Formato completo, soporta tablas y gráficos.</p>
-                        </div>
-                        
-                        <div class="format-card" data-format="pdf">
-                            <i class="icon-pdf"></i>
-                            <span class="format-name">PDF (.pdf)</span>
-                            <p class="format-description">Para compartir e imprimir. El formato no es editable.</p>
-                        </div>
+            <section class="export-section formato-section">
+                <h3 class="section-title">1. Seleccionar Formato</h3>
+                <div class="format-grid">
+                    <div class="format-card selected" data-format="csv">
+                        <i class="fa-solid fa-file-csv"></i>
+                        <span class="format-name">CSV (.csv)</span>
+                        <p class="format-description">Ideal para bases de datos y hojas de cálculo simples.</p>
                     </div>
-                </section>
-
-                <section class="export-section campos-section">
-                    <h2 class="section-title">2. Seleccionar Datos a Exportar</h2>
-                    <div class="fields-options">
-                        
-                        <div class="select-all-box">
-                            <input type="checkbox" id="selectAll" checked>
-                            <label for="selectAll">Seleccionar Todos los Campos</label>
-                        </div>
-                        
-                        <div class="fields-grid" id="camposGrid">
-                            <div class="field-item">
-                                <input type="checkbox" id="campo-1" data-field="nombre" checked>
-                                <label for="campo-1">Nombre del Jugador</label>
-                            </div>
-                            <div class="field-item">
-                                <input type="checkbox" id="campo-2" data-field="puntaje_final" checked>
-                                <label for="campo-2">Puntaje Final</label>
-                            </div>
-                            <div class="field-item">
-                                <input type="checkbox" id="campo-3" data-field="respuestas_correctas" checked>
-                                <label for="campo-3">Respuestas Correctas</label>
-                            </div>
-                            <div class="field-item">
-                                <input type="checkbox" id="campo-4" data-field="respuestas_incorrectas" checked>
-                                <label for="campo-4">Respuestas Incorrectas</label>
-                            </div>
-                            <div class="field-item">
-                                <input type="checkbox" id="campo-5" data-field="tiempo_promedio" checked>
-                                <label for="campo-5">Tiempo Promedio</label>
-                            </div>
-                            <div class="field-item">
-                                <input type="checkbox" id="campo-6" data-field="respuestas_detalle" checked>
-                                <label for="campo-6">Respuestas Detalladas (por pregunta)</label>
-                            </div>
-                            <div class="field-item">
-                                <input type="checkbox" id="campo-7" data-field="fecha_partida" checked>
-                                <label for="campo-7">Fecha de Partida</label>
-                            </div>
-                            <div class="field-item">
-                                <input type="checkbox" id="campo-8" data-field="cuestionario_nombre" checked>
-                                <label for="campo-8">Nombre del Cuestionario</label>
-                            </div>
-                        </div>
-
+                    <div class="format-card" data-format="excel">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span class="format-name">Excel (.xlsx)</span>
+                        <p class="format-description">Formato completo, soporta tablas y gráficos.</p>
                     </div>
-                </section>
+                    <div class="format-card" data-format="pdf">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span class="format-name">PDF (.pdf)</span>
+                        <p class="format-description">Perfecto para compartir e imprimir.</p>
+                    </div>
+                </div>
+            </section>
 
-            </div>
+            <section class="export-section campos-section">
+                <h3 class="section-title">2. Seleccionar Datos a Exportar</h3>
+
+                <div class="fields-options">
+                    <div class="select-all-box">
+                        <input type="checkbox" id="selectAll" checked>
+                        <label for="selectAll">Seleccionar Todos los Campos</label>
+                    </div>
+
+                    <div class="fields-grid" id="camposGrid">
+                        {% for campo in campos_disponibles %}
+                        <div class="field-item">
+                            <input type="checkbox" id="campo-{{ loop.index }}" data-field="{{ campo.valor }}" checked>
+                            <label for="campo-{{ loop.index }}">{{ campo.nombre }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
 
             <div class="export-action-footer">
                 <p id="export-status-message" class="hidden"></p>
                 <button class="btn-primary btn-exportar-final" id="btnExportar">
-                    <i class="icon-download"></i> Exportar
+                    <i class="fa-solid fa-download"></i> Exportar Resultados
                 </button>
             </div>
+        </div>
+    </main>
 
-        </main>
-    </div>
-
-    <script src="../static/js/exportar_resultados.js"></script>
+    <script src="/static/js/global.js"></script>
+    <script src="/static/js/exportar_resultados.js"></script>
 </body>
 </html>

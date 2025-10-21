@@ -510,25 +510,88 @@ def frm_sala_espera(codigo_partida):
         conexion.close()
 
 
-
-
-
 @partidas_bp.route('/resultados_partida/<int:partida_id>')
 def frm_resultados_partida(partida_id):
-    # Implementación mínima: pasar datos de ejemplo a la plantilla
-    partida_info = {
-        'titulo': 'Resultados de Partida',
-        'partida_id': partida_id
-    }
-    logged = _get_logged_in_user()
-    return render_template('resultados_partida.html', partida_info=partida_info, partida_id=partida_id, logged_in_user=logged)
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        abort(500, "No se pudo conectar a la base de datos")
 
+    try:
+        with conexion.cursor() as cursor:
+            # --- Información general de la partida ---
+            cursor.execute("""
+                SELECT p.partida_id, p.codigo_partida, p.estado, p.tipo_partida, 
+                       c.nombre_cuestionario, c.descripcion
+                FROM partida p
+                JOIN cuestionario c ON p.cuestionario_id = c.cuestionario_id
+                WHERE p.partida_id = %s
+            """, (partida_id,))
+            partida_info = cursor.fetchone()
+
+            # --- Participantes (para ranking) ---
+            cursor.execute("""
+                SELECT 
+                    u.nombre AS jugador,
+                    u.url_avatar AS avatar,
+                    pa.puntuacion_total,
+                    pa.cant_preguntas_correctas,
+                    pa.cant_preguntas_incorrectas
+                FROM participante pa
+                JOIN usuario u ON u.usuario_id = pa.usuario_id
+                WHERE pa.partida_id = %s
+                ORDER BY pa.puntuacion_total DESC
+            """, (partida_id,))
+            ranking = cursor.fetchall() or []
+
+        logged = _get_logged_in_user()
+
+        return render_template(
+            'resultados_partida.html',
+            partida_info=partida_info,
+            partida_id=partida_id,
+            ranking=ranking,
+            logged_in_user=logged
+        )
+    finally:
+        conexion.close()
 
 @partidas_bp.route('/exportar_resultados/<int:partida_id>')
 def frm_exportar_resultados(partida_id):
-    partida_info = {'partida_id': partida_id}
-    logged = _get_logged_in_user()
-    return render_template('exportar_resultados.html', partida_id=partida_id, partida_info=partida_info, logged_in_user=logged)
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        abort(500, "No se pudo conectar a la base de datos")
+
+    try:
+        with conexion.cursor() as cursor:
+            # Info básica de la partida
+            cursor.execute("""
+                SELECT p.partida_id, c.nombre_cuestionario
+                FROM partida p
+                JOIN cuestionario c ON p.cuestionario_id = c.cuestionario_id
+                WHERE p.partida_id = %s
+            """, (partida_id,))
+            partida_info = cursor.fetchone()
+
+        # Campos exportables (simples, fijos o personalizables)
+        campos_disponibles = [
+            {"nombre": "Nombre del Jugador", "valor": "nombre"},
+            {"nombre": "Puntaje Total", "valor": "puntuacion_total"},
+            {"nombre": "Preguntas Correctas", "valor": "cant_preguntas_correctas"},
+            {"nombre": "Preguntas Incorrectas", "valor": "cant_preguntas_incorrectas"},
+            {"nombre": "Código de Partida", "valor": "codigo_partida"},
+        ]
+
+        logged = _get_logged_in_user()
+
+        return render_template(
+            'exportar_resultados.html',
+            partida_id=partida_id,
+            partida_info=partida_info,
+            campos_disponibles=campos_disponibles,
+            logged_in_user=logged
+        )
+    finally:
+        conexion.close()
 
 
 @partidas_bp.route('/api/exportar_partida/<int:partida_id>', methods=['POST'])
