@@ -4,3 +4,4 @@ python-dotenv
 cloudinary
 requests
 PyMySQL==1.1.0
+flask-socketio

@@ -11,7 +11,7 @@
 </head>
 
 <body data-logged-user='{{ logged_in_user | tojson | default("null") }}'
-    data-is-group-game='{{ (partida.tipo_partida == "G") | tojson | default(false) if partida else "false" }}'>
+     data-is-group-game='{{ "true" if tipo_partida == "G" else "false" }}' data-num-grupos='{{ num_grupos }}'>
     <div class="container">
         <div class="header-card">
             <p>Únete en esta emocionante partida con este código</p>
@@ -30,52 +30,9 @@
         </div>
 
         <div id="group-view" class="participants-container group-layout" style="display: none;">
-            <div class="group-column">
-                <h3 class="group-title">Grupo 01</h3>
-                
-            </div>
+            
 
-            <div class="group-column">
-                <h3 class="group-title">Grupo 02</h3>
-                <div class="participant-card">
-                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
-                    <span class="username">nombre_usuario</span>
-                </div>
-                <div class="participant-card flag-icon">
-                    <i class="fas fa-flag"></i>
-                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
-                    <span class="username">nombre_usuario</span>
-                </div>
-                <div class="participant-card">
-                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
-                    <span class="username">nombre_usuario</span>
-                </div>
-                <div class="participant-card">
-                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
-                    <span class="username">nombre_usuario</span>
-                </div>
-            </div>
-
-            <div class="group-column">
-                <h3 class="group-title">Grupo 03</h3>
-                <div class="participant-card">
-                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
-                    <span class="username">nombre_usuario</span>
-                </div>
-                <div class="participant-card flag-icon">
-                    <i class="fas fa-flag"></i>
-                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
-                    <span class="username">nombre_usuario</span>
-                </div>
-                <div class="participant-card">
-                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
-                    <span class="username">nombre_usuario</span>
-                </div>
-                <div class="participant-card">
-                    <img src="placeholder-user.png" alt="Usuario" class="user-avatar">
-                    <span class="username">nombre_usuario</span>
-                </div>
-            </div>
+            
         </div>
     </div>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

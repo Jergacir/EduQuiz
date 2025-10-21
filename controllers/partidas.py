@@ -52,13 +52,7 @@ def handle_salir_sala(data):
             conexion.commit()
 
             # Emitir actualización a todos los que quedan en la sala
-            cursor.execute("""
-                SELECT p.participante_id, u.usuario_id, u.nombre
-                FROM participante p
-                JOIN usuario u ON u.usuario_id = p.usuario_id
-                WHERE p.partida_id=%s
-            """, (partida['partida_id'],))
-            participantes = cursor.fetchall() or []
+            participantes = obtener_participantes(codigo_partida)
 
             socketio.emit('actualizar_participantes', {'participantes': participantes}, room=codigo_partida)
 
@@ -68,8 +62,157 @@ def handle_salir_sala(data):
     finally:
         conexion.close()
 
+@socketio.on('unirse_grupo')
+def handle_unirse_grupo(data):
+    """
+    Evento emitido desde salaespera.js cuando un alumno se cambia de grupo.
+    data = {codigo_partida, usuario_id, grupo_id}
+    """
+    codigo_partida = data.get('codigo_partida')
+    usuario_id = data.get('usuario_id')
+    grupo_id = data.get('grupo_id')
+
+    if not codigo_partida or not usuario_id or not grupo_id:
+        print("[SocketIO] ⚠️ Datos incompletos en unirse_grupo:", data)
+        return
+
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        print("[SocketIO] ❌ No se pudo conectar a la base de datos.")
+        return
+
+    try:
+        with conexion.cursor() as cursor:
+            # 🔹 1️⃣ Obtener partida_id
+            cursor.execute("SELECT partida_id FROM partida WHERE codigo_partida = %s", (codigo_partida,))
+            partida = cursor.fetchone()
+            if not partida:
+                print(f"[SocketIO] ❌ No existe partida con código {codigo_partida}")
+                return
+
+            partida_id = partida["partida_id"]
+
+            # 🔹 2️⃣ Eliminar el lider_id del participante (sale del grupo anterior)
+            cursor.execute("""
+                UPDATE participante
+                SET grupo_id = %s, lider_id = NULL
+                WHERE partida_id = %s AND usuario_id = %s
+            """, (grupo_id, partida_id, usuario_id))
+            conexion.commit()
+
+            # 🔹 3️⃣ Verificar si el nuevo grupo ya tiene un líder
+            cursor.execute("""
+                SELECT DISTINCT lider_id 
+                FROM participante 
+                WHERE partida_id = %s AND grupo_id = %s AND lider_id IS NOT NULL
+                LIMIT 1
+            """, (partida_id, grupo_id))
+            lider_existente = cursor.fetchone()
+
+            if lider_existente and lider_existente["lider_id"]:
+                nuevo_lider_id = lider_existente["lider_id"]
+
+                # 🔹 4️⃣ Asignar ese lider_id al participante recién llegado
+                cursor.execute("""
+                    UPDATE participante
+                    SET lider_id = %s
+                    WHERE partida_id = %s AND usuario_id = %s
+                """, (nuevo_lider_id, partida_id, usuario_id))
+                conexion.commit()
+
+                print(f"[SocketIO] ✅ Participante {usuario_id} se unió al grupo {grupo_id} con líder {nuevo_lider_id}")
+            else:
+                print(f"[SocketIO] ℹ️ Grupo {grupo_id} no tiene líder, participante {usuario_id} se une sin líder.")
+
+            # 🔹 5️⃣ Obtener lista actualizada de participantes (con grupos y líderes)
+            participantes = obtener_participantes(codigo_partida)
+
+            # 🔹 6️⃣ Emitir actualización a todos los clientes en la sala
+            socketio.emit('actualizar_participantes', {'participantes': participantes}, room=codigo_partida)
+
+    except Exception as e:
+        print(f"[SocketIO] 💥 Error en unirse_grupo: {e}", file=sys.stderr)
+    finally:
+        conexion.close()
+
+@socketio.on('designar_lider')
+def handle_designar_lider(data):
+    """
+    Evento emitido cuando el profesor designa a un líder.
+    data = {
+        "codigo_partida": "ABC123",
+        "grupo_id": 1,
+        "lider_participante_id": 42
+    }
+    """
+    codigo_partida = data.get("codigo_partida")
+    grupo_id = data.get("grupo_id")
+    lider_participante_id = data.get("lider_participante_id")
+
+    if not codigo_partida or not grupo_id or not lider_participante_id:
+        print("[SocketIO] ⚠️ Datos incompletos para designar líder:", data)
+        return
+
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        print("[SocketIO] ❌ No se pudo conectar a la base de datos.")
+        return
+
+    try:
+        with conexion.cursor() as cursor:
+            # 1️⃣ Obtener el ID interno de la partida
+            cursor.execute(
+                "SELECT partida_id FROM partida WHERE codigo_partida = %s",
+                (codigo_partida,)
+            )
+            partida = cursor.fetchone()
+            if not partida:
+                print(f"[SocketIO] ❌ No existe partida con código {codigo_partida}")
+                return
+
+            partida_id = partida["partida_id"]
+
+            # 2️⃣ Actualizar el campo lider_id en los participantes del grupo
+            cursor.execute("""
+                UPDATE participante
+                SET lider_id = %s
+                WHERE partida_id = %s AND grupo_id = %s
+            """, (lider_participante_id, partida_id, grupo_id))
+            conexion.commit()
+
+            print(f"[SocketIO] ✅ Líder asignado correctamente → participante_id={lider_participante_id}, grupo={grupo_id}")
+
+            # 3️⃣ Obtener lista actualizada de participantes
+            cursor.execute("""
+                SELECT 
+                    p.participante_id,
+                    p.usuario_id,
+                    u.nombre,
+                    p.grupo_id,
+                    p.lider_id
+                FROM participante p
+                JOIN usuario u ON p.usuario_id = u.usuario_id
+                WHERE p.partida_id = %s
+                ORDER BY p.grupo_id, u.nombre
+            """, (partida_id,))
+            participantes = cursor.fetchall() or []
+
+            # 4️⃣ Emitir actualización a todos los clientes conectados en la sala
+            socketio.emit(
+                "actualizar_participantes",
+                {"participantes": participantes},
+                room=codigo_partida
+            )
+
+    except Exception as e:
+        print(f"[SocketIO] 💥 Error al designar líder: {e}", file=sys.stderr)
+
+    finally:
+        conexion.close()
+
+
 def obtener_participantes(codigo_partida):
-    """Devuelve lista de participantes de una partida específica"""
+    """Devuelve lista de participantes de una partida específica, incluyendo grupo y líder."""
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return []
@@ -77,20 +220,27 @@ def obtener_participantes(codigo_partida):
     try:
         with conexion.cursor() as cursor:
             sql = """
-                SELECT p.participante_id, u.usuario_id, u.nombre
+                SELECT 
+                    p.participante_id,
+                    u.usuario_id,
+                    u.nombre,
+                    p.grupo_id,
+                    p.lider_id
                 FROM participante p
                 JOIN usuario u ON u.usuario_id = p.usuario_id
                 JOIN partida pa ON pa.partida_id = p.partida_id
                 WHERE pa.codigo_partida = %s
+                ORDER BY p.grupo_id, u.nombre
             """
             cursor.execute(sql, (codigo_partida,))
-            participantes = cursor.fetchall()  # Lista de dicts
+            participantes = cursor.fetchall()
             return participantes or []
     except Exception as e:
         print(f"[partidas] Error obteniendo participantes: {e}", file=sys.stderr)
         return []
     finally:
         conexion.close()
+
 
 
 def _get_logged_in_user():
@@ -261,17 +411,19 @@ def crear_partida():
             modalidad = data.get('modalidad', 'I').upper()
             tipo_partida = 'G' if modalidad == 'G' else 'I'
 
-            # Insertar partida con tipo_partida
+            num_grupos = int(data.get('num_grupos', 0))  # 0 si es individual
+
             sql_insert = """
-                INSERT INTO partida (codigo_partida, cuestionario_id, usuario_creador_id, estado, tipo_partida, fecha_creacion)
-                VALUES (%s, %s, %s, %s, %s, NOW())
+                INSERT INTO partida (codigo_partida, cuestionario_id, usuario_creador_id, estado, tipo_partida, fecha_creacion, num_grupos)
+                VALUES (%s, %s, %s, %s, %s, NOW(), %s)
             """
             cursor.execute(sql_insert, (
                 codigo_partida,
                 data.get('cuestionario_id'),
                 usuario['usuario_id'],
-                'creada',
-                tipo_partida
+                'espera',
+                tipo_partida,
+                num_grupos
             ))
             conexion.commit()
 
@@ -310,7 +462,7 @@ def vista_previa_partida(codigo_partida):
     try:
         with conexion.cursor() as cursor:
             sql = """
-                SELECT p.partida_id, p.codigo_partida, p.estado,
+                SELECT p.partida_id, p.codigo_partida, p.estado, p.tipo_partida, p.num_grupos,
                        c.nombre_cuestionario, c.descripcion, c.url_img_cuestionario
                 FROM partida p
                 JOIN cuestionario c ON p.cuestionario_id = c.cuestionario_id
@@ -323,7 +475,7 @@ def vista_previa_partida(codigo_partida):
                 abort(404, "Partida no encontrada")
 
         logged = _get_logged_in_user()
-        return render_template('previapartida.html', partida=partida, logged_in_user=logged,codigo_partida=partida['codigo_partida'])
+        return render_template('previapartida.html', partida=partida, logged_in_user=logged,codigo_partida=partida['codigo_partida'], tipo_partida=partida['tipo_partida'], num_grupos=partida['num_grupos'])
     finally:
         conexion.close()
 
@@ -336,7 +488,7 @@ def frm_sala_espera(codigo_partida):
     try:
         with conexion.cursor() as cursor:
             sql = """
-                SELECT partida_id, codigo_partida, tipo_partida, estado
+                SELECT partida_id, codigo_partida, tipo_partida, estado, num_grupos
                 FROM partida
                 WHERE codigo_partida = %s
             """
@@ -351,7 +503,8 @@ def frm_sala_espera(codigo_partida):
             'salaespera.html',
             logged_in_user=logged,
             codigo_partida=codigo_partida,
-            tipo_partida=partida.get('tipo_partida', 'I')  # Por defecto individual
+            tipo_partida=partida.get('tipo_partida', 'I'),  # Por defecto individual
+            num_grupos=partida.get('num_grupos', 0)  
         )
     finally:
         conexion.close()

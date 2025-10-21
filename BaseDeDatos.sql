@@ -145,6 +145,11 @@ CREATE TABLE `partida` (
   FOREIGN KEY (`usuario_creador_id`) REFERENCES `usuario`(`usuario_id`)
 );
 
+ALTER TABLE partida
+ADD COLUMN num_grupos INT NOT NULL DEFAULT 0 
+ALTER TABLE partida
+ADD COLUMN tipo_partida CHAR(1) NOT NULL DEFAULT 'I';
+
 -- 6. TABLA PARTICIPANTE_PARTIDA (Relación Usuario-Partida)
 CREATE TABLE `participante_partida` (
   `participante_id` INT NOT NULL AUTO_INCREMENT,
@@ -208,7 +213,7 @@ CREATE TABLE `participante` (
   
   FOREIGN KEY (`partida_id`) REFERENCES `partida`(`partida_id`) -- Referencia a la tabla PARTIDA
 );
-
+ALTER TABLE participante ADD COLUMN grupo_id INT DEFAULT NULL;
 -- 7. TABLA PREGUNTA_PARTICIPANTE
 CREATE TABLE `pregunta_participante` (
   `pregunta_participante_id` INT NOT NULL AUTO_INCREMENT,
