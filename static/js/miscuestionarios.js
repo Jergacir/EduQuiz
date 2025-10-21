@@ -33,7 +33,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     card.innerHTML = `
             <div class="quiz-badge">${cuestionario.num_preguntas || 0
       } preguntas</div>
-                    <div class="quiz-image-placeholder"><i class="fas fa-image"></i></div>
+                    <div class="quiz-image-placeholder">
+                    ${cuestionario.url_img_cuestionario ? `
+                      <img src="${cuestionario.url_img_cuestionario}" alt="Imagen del cuestionario">
+                    ` : `
+                      <i class="fas fa-image"></i>
+                    `}
+                    </div>
                     <div class="quiz-content">
                         <h3 title="${cuestionario.nombre_cuestionario}">${cuestionario.nombre_cuestionario || "Cuestionario sin Título"
       }</h3>
@@ -56,7 +62,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                                 <button title="Jugar" class="action-icon-btn play btn-jugar"><i class="fa-solid fa-gamepad"></i></button>
                                 <button data-id="${cuestionario.cuestionario_id
       }" title="Clonar" class="action-icon-btn clone clone-quiz-btn"><i class="fas fa-copy"></i></button>
-                                <button title="Eliminar" class="action-icon-btn play"><i class="fa-solid fa-trash icon-delete"></i></button>
+                                <button title="Eliminar" class="action-icon-btn delete"><i class="fa-solid fa-trash icon-delete"></i></button>
                                 
                             </div>
                         </div>
@@ -82,7 +88,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     card.innerHTML = `
         <div class="quiz-badge">${cuestionario.num_preguntas || 0
       } preguntas</div>
-                    <div class="quiz-image-placeholder"><i class="fas fa-image"></i></div>
+                    <div class="quiz-image-placeholder">
+                    ${cuestionario.url_img_cuestionario ? `
+                      <img src="${cuestionario.url_img_cuestionario}" alt="Imagen del cuestionario">
+                    ` : `
+                      <i class="fas fa-image"></i>
+                    `}
+                    </div>
                     <div class="quiz-content">
                         <h3 title="${cuestionario.nombre_cuestionario}">${cuestionario.nombre_cuestionario || "Cuestionario sin Título"
       }</h3>
@@ -126,6 +138,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         privadosContainer.appendChild(card);
         const deleteIcon = card.querySelector(".icon-delete");
         if (deleteIcon) deleteIcon.addEventListener("click", () => abrirModalConfirmacion(c.cuestionario_id, card));
+        const cloneBtn = card.querySelector('.clone-quiz-btn');
+        if (cloneBtn) {
+          cloneBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const id = cloneBtn.dataset.id;
+            try {
+              const resp = await fetch(`/api/cuestionarios/clone/${id}`, { method: 'POST' });
+              const data = await resp.json();
+              if (resp.ok && data && data.status === 'ok') {
+                // refrescar lista
+                allCuestionarios = await fetchCuestionariosProfesor();
+                renderAll(quizSearchInput.value || '');
+              } else {
+                alert('No se pudo clonar el cuestionario: ' + (data.error || data.message || JSON.stringify(data)));
+              }
+            } catch (err) {
+              console.error('Error clonando cuestionario:', err);
+              alert('Error de red al clonar.');
+            }
+          });
+        }
       });
 
       publicos.forEach((c) => {
@@ -133,6 +166,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         publicosContainer.appendChild(card);
         const deleteIcon = card.querySelector(".icon-delete");
         if (deleteIcon) deleteIcon.addEventListener("click", () => abrirModalConfirmacion(c.cuestionario_id, card));
+        const cloneBtn = card.querySelector('.clone-quiz-btn');
+        if (cloneBtn) {
+          cloneBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const id = cloneBtn.dataset.id;
+            try {
+              const resp = await fetch(`/api/cuestionarios/clone/${id}`, { method: 'POST' });
+              const data = await resp.json();
+              if (resp.ok && data && data.status === 'ok') {
+                // refrescar lista
+                allCuestionarios = await fetchCuestionariosProfesor();
+                renderAll(quizSearchInput.value || '');
+              } else {
+                alert('No se pudo clonar el cuestionario: ' + (data.error || data.message || JSON.stringify(data)));
+              }
+            } catch (err) {
+              console.error('Error clonando cuestionario:', err);
+              alert('Error de red al clonar.');
+            }
+          });
+        }
       });
 
       // Mostrar mensaje cuando no hay resultados

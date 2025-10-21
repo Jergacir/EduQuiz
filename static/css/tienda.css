@@ -1,8 +1,11 @@
 /* static/css/tienda.css */
-
-.tienda-contenido {
-    padding: 20px;
+body {
+    display: block !important;
 }
+
+
+
+
 
 .tienda-contenido h2 {
     color: #333;

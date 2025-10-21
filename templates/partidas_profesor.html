@@ -4,153 +4,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Partidas - EduQuiz</title>
+    <title>Mis Partidas - EduQuiz</title>
 
-    <link rel="stylesheet" href="../static/css/home.css">
-    <link rel="stylesheet" href="../static/css/crearQuizz.css">
-    <link rel="stylesheet" href="../static/css/partidas_profesor.css">
+    <link rel="icon" href="/static/img/icono.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <link rel="stylesheet" href="/static/css/global.css">
+    <link rel="stylesheet" href="/static/css/miscuestionarios.css">
+    <link rel="stylesheet" href="/static/css/partidas_profesor.css">
 </head>
 
-<body data-usuario-id="{{ logged_in_user.usuario_id }}">
+<body data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}">
 
-    <aside class="sidebar">
-        <div class="logo">
-            <img src="/static/img/logo.png" alt="EduQuiz Logo">
-            EduQuiz
+    <button id="menu-button" class="menu-button lg:hidden">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <aside id="sidebar" class="sidebar">
+        <div class="logo-container">
+            <img src="/static/img/logo.png" alt="Logo de EduQuiz" class="logo-image">
         </div>
-        <nav class="nav-menu">
-            <a href="{{ url_for('pages.frm_home') }}" class="nav-item">
-                <i class="icon-inicio"></i> Inicio
+
+        <nav>
+            <a href="{{ url_for('pages.frm_home') }}" class="nav-link">
+                <i class="fas fa-home nav-icon"></i> Inicio
             </a>
-            <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-item">
-                <i class="icon-cuestionarios"></i> Cuestionarios
+            <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-link">
+                <i class="fa-regular fa-file nav-icon"></i> Cuestionarios
             </a>
-            <a href="{{ url_for('tienda.tienda_index') }}" class="nav-item">
-                <i class="icon-tienda"></i> Tienda
+            <a href="{{ url_for('tienda.tienda_index') }}" class="nav-link">
+                <i class="fas fa-store nav-icon"></i> Tienda
             </a>
-            <a href="{{ url_for('partidas.frm_partidas_profesor') }}" class="nav-item active">
-                <i class="icon-partida"></i> Partidas
-            </a>
-            <hr>
-            <a href="" class="nav-item">
-                <i class="icon-configuracion"></i> Configuración
-            </a>
-            <a href="" class="nav-item">
-                <i class="icon-cerrar-sesion"></i> Cerrar Sesión
+            <a href="{{ url_for('partidas.frm_partidas_profesor') }}" class="nav-link active">
+                <i class="fa-solid fa-gamepad nav-icon"></i> Partidas
             </a>
         </nav>
+
+        <div class="sidebar-bottom">
+            <a href="{{ url_for('usuarios.usuarios_index') }}" class="nav-link">
+                <i class="fas fa-cog nav-icon"></i> Configuración
+            </a>
+            <a href="{{ url_for('auth.logout') }}" id="logout-button" class="nav-link logout-btn">
+                <i class="fas fa-sign-out-alt nav-icon"></i> Cerrar Sesión
+            </a>
+        </div>
     </aside>
 
-    <div class="main-container">
+    <div id="sidebar-overlay" class="overlay"></div>
 
-        <header class="top-header">
-            <div class="search-bar-top">
-                <h2>Partidas</h2>
-            </div>
-            <div class="user-profile-widget">
-                <span class="coins">{{ logged_in_user.cant_monedas }} 💰</span>
-                <a href="" class="profile-link">
-                    <img src="/static/img/avatar.png" alt="Avatar" class="avatar">
-                    <span class="username">Mi Perfil</span>
+
+    <main class="main-content">
+        <div class="max-w-7xl" style="margin: 0 auto;">
+
+            <header class="header">
+                <div class="header-content">
+                    <h1>Partidas</h1>
+                    <p class="section-description">Ver y administrar tus partidas</p>
+                </div>
+                <div class="credits-profile-container">
+                    <div class="credits-box">
+                        <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
+                        <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
+                    </div>
+                    <div class="profile-box">
+                        <img src="/static/img/avatar.jpeg" class="profile-img">
+                        <span class="profile-text" style="display: none;">Mi Perfil</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="action-bar">
+
+                <div class="search-container">
+                    <input type="text" id="partida-search-input"
+                        placeholder="Buscar partidas por nombre de cuestionario o fecha" class="search-input">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+
+                <a href="{{ url_for('partidas.frm_crear_partida') }}" id="create-partida-button"
+                    class="main-action-button">
+                    <i class="fa-solid fa-gamepad"></i>
+                    Crear Partida
                 </a>
             </div>
-        </header>
 
-        <main class="content-area partidas-profesor-area">
-            <div class="partidas-header-actions">
-                <p class="section-description">Ver y administrar tus partidas</p>
-                <div class="search-and-create">
-                    <div class="search-input-container">
-                        <i class="icon-search"></i>
-                        <input type="text" placeholder="Buscar partida" class="search-partida-input">
-                    </div>
-                    <a href="{{ url_for('partidas.frm_crear_partida') }}" class="btn-nueva-partida">
-                        <i class="icon-plus"></i> Nueva partida
-                    </a>
+            <section class="quiz-section">
+                <h2>Partidas Recientes</h2>
+
+                <div class="table-responsive">
+                    <table class="partidas-table">
+                        <thead>
+                            <tr>
+                                <th>Cuestionario</th>
+                                <th>Fecha</th>
+                                <th>Modalidad</th>
+                                <th>Jugadores</th>
+                                <th>Código</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Cuestionario de Matemáticas 1</td>
+                                <td>2023-10-15</td>
+                                <td>Individual</td>
+                                <td>30</td>
+                                <td>458921</td>
+                                <td>
+                                    <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=1) }}"
+                                        class="btn-ver-resultados">Ver Resultados</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Cuestionario de Ciencias 2</td>
+                                <td>2023-10-14</td>
+                                <td>Grupal</td>
+                                <td>25</td>
+                                <td>197302</td>
+                                <td>
+                                    <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=2) }}"
+                                        class="btn-ver-resultados">Ver Resultados</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
 
-            <h3 class="recent-partidas-title">Partidas recientes</h3>
+            </section>
+        </div>
+    </main>
 
-            <div class="table-responsive">
-                <table class="partidas-table">
-                    <thead>
-                        <tr>
-                            <th>Nombre del cuestionario</th>
-                            <th>Fecha</th>
-                            <th>Modalidad</th>
-                            <th>Jugadores</th>
-                            <th>Preguntas</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="partidas-list">
-                        {% for partida in partidas %}
-                        <tr>
-                            <td>{{ partida.nombre_cuestionario }}</td>
-                            <td>{{ partida.fecha }}</td>
-                            <td>{{ partida.modalidad }}</td>
-                            <td>{{ partida.jugadores }}</td>
-                            <td>{{ partida.preguntas }}</td>
-                            <td>
-                                <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=partida.partida_id) }}"
-                                    class="btn-ver-resultados">
-                                    Ver Resultados
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        <tr>
-                            <td>Cuestionario de Matemáticas 1</td>
-                            <td>2023-09-15</td>
-                            <td>Individual</td>
-                            <td>25</td>
-                            <td>10</td>
-                            <td>
-                                <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=1) }}"
-                                    class="btn-ver-resultados">Ver Resultados</a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Cuestionario de Ciencias 2</td>
-                            <td>2023-09-14</td>
-                            <td>Grupal</td>
-                            <td>30</td>
-                            <td>15</td>
-                            <td><button class="btn-ver-resultados">Ver Resultados</button></td>
-                        </tr>
-                        <tr>
-                            <td>Cuestionario de Historia 3</td>
-                            <td>2023-09-13</td>
-                            <td>Individual</td>
-                            <td>20</td>
-                            <td>20</td>
-                            <td><button class="btn-ver-resultados">Ver Resultados</button></td>
-                        </tr>
-                        <tr>
-                            <td>Cuestionario de Inglés 4</td>
-                            <td>2023-09-12</td>
-                            <td>Grupal</td>
-                            <td>15</td>
-                            <td>25</td>
-                            <td><button class="btn-ver-resultados">Ver Resultados</button></td>
-                        </tr>
-                        <tr>
-                            <td>Cuestionario de Geografía 5</td>
-                            <td>2023-09-11</td>
-                            <td>Individual</td>
-                            <td>10</td>
-                            <td>30</td>
-                            <td><button class="btn-ver-resultados">Ver Resultados</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-        </main>
-    </div>
-
-    <script src="../static/js/partidas_profesor.js"></script>
+    <script src="/static/js/global.js"></script>
+    <script src="/static/js/partidas_profesor.js"></script>
 </body>
 
 </html>

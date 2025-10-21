@@ -143,17 +143,25 @@
 
 .quiz-image-placeholder {
     width: 100%;
-    height: 128px;
+    height: 130px;
     background-color: #e5e7eb;
-    /* Gray-200 */
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+
+}
+
+/* Estilos para la imagen dentro del placeholder */
+.quiz-image-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; 
+    display: block; 
 }
 
 .quiz-image-placeholder i {
     color: #9ca3af;
-    /* Gray-400 */
     font-size: 3rem;
 }
 
@@ -186,8 +194,11 @@
 }
 
 .edit-btn {
-    display: flex;
-    align-items: center;
+    /* display: flex;
+    align-items: center; */
+    display: block;
+    width: 100%;
+    text-align: center;
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--color-sidebar-bg);
@@ -200,7 +211,7 @@
 .div-edit-btn:hover,
 .div-edit-btn:hover .edit-btn {
     cursor: pointer;
-    color: black;
+    color: var(--color-text-dark);
 }
 
 .btn-visualize {
@@ -216,6 +227,11 @@
     padding: 5px;
     border-radius: 12px;
     cursor: pointer;
+}
+
+.btn-visualize:hover {
+    cursor: pointer;
+    color: var(--color-text-dark);
 }
 
 .action-icons {
@@ -240,12 +256,11 @@
 }
 
 .action-icon-btn.clone:hover {
-    color: var(--color-primary-teal);
+    color: var(--color-secondary-orange);
 }
 
 .action-icon-btn.delete:hover {
     color: #ef4444;
-    /* Red-600 */
 }
 
 .no-quizzes-message,

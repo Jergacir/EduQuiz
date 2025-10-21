@@ -1,287 +1,381 @@
 /* ======================================================= */
-/* ESTILOS PARA LA VISTA DE RESULTADOS DE PARTIDA (PROFESOR) */
+/* ESTILOS PARA RESULTADOS DE PARTIDA (UNIFICADO CON ESTILO EDUQUIZ) */
 /* ======================================================= */
 
-.resultados-partida-area {
-    background-color: #fff;
-    padding: 30px 40px;
-    min-height: calc(100vh - 80px);
-    /* Se añade posición relativa para posicionar el botón de exportar */
-    position: relative; 
-}
-
-/* --- CABECERA SUPERIOR DE RESULTADOS --- */
 .resultados-header {
-    /* Eliminamos el 'justify-content: space-between' ya que el botón se movió */
-    display: flex;
-    justify-content: flex-start; 
-    align-items: flex-start;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #eee;
-}
-
-.partida-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.partida-meta h1 {
-    font-size: 2rem;
-    color: #2D3047;
-    margin: 0;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e5e7eb;
 }
 
-.partida-id-label {
-    font-size: 0.9rem;
-    background-color: #f0f0f0;
-    color: #666;
-    padding: 4px 10px;
-    border-radius: 8px;
-    margin-left: 10px;
-    font-weight: normal;
-}
-
-.meta-details {
-    display: flex;
-    gap: 25px;
-    font-size: 0.95rem;
-    color: #555;
-}
-
-.meta-details i {
-    color: #40446C;
-    margin-right: 5px;
-}
-
-/* --- BOTONES DE ACCIÓN (Derecha) --- */
-.action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.btn-primary, .btn-secondary {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    font-weight: bold;
-    font-size: 1rem;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s ease;
-}
-
-.btn-primary {
-    background-color: #2D3047;
-    color: white;
-}
-
-.btn-primary:hover {
-    background-color: #1b1d2b;
-}
-
-.btn-secondary {
-    background-color: #059669;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background-color: #047857;
-}
-
-.btn-primary i, .btn-secondary i {
-    margin-right: 8px;
-}
-
-.btn-back {
+.btn-volver {
     background-color: transparent;
-    border: 1px solid #ccc;
-    color: #40446C;
+    border: 1.5px solid #ccc;
+    color: #333;
     padding: 8px 15px;
     border-radius: 8px;
     text-decoration: none;
     font-weight: 600;
     font-size: 0.9rem;
-    display: inline-flex;
-    align-items: center;
-    transition: background-color 0.2s ease;
-    width: fit-content;
+    transition: all 0.2s ease;
 }
 
-.btn-back:hover {
-    background-color: #f5f5f5;
+.btn-volver:hover {
+    background-color: #f0f0f0;
 }
 
-.btn-back i {
-    margin-right: 5px;
+.resultados-meta h2 {
+    font-size: 1.6rem;
+    color: var(--color-primary-dark, #2c3e50);
 }
 
-/* --- SECCIÓN DE ANÁLISIS --- */
+.resultados-meta span {
+    background-color: #f3f4f6;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.9rem;
+    margin-left: 8px;
+}
+
+.resultados-meta p {
+    color: #666;
+    margin-top: 5px;
+    font-size: 0.95rem;
+}
+
+/* --- Análisis --- */
 .analysis-section {
-    margin: 40px 0;
+    margin-top: 35px;
 }
 
 .analysis-section h2 {
-    font-size: 1.6rem;
-    color: #40446C;
-    font-weight: 600;
+    font-size: 1.3rem;
+    color: #2c3e50;
+    font-weight: 700;
     margin-bottom: 20px;
 }
 
 .analysis-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
 }
 
 .analysis-card {
-    background: #fff;
-    border-radius: 14px;
-    padding: 25px 20px;
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 20px;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease;
 }
 
 .analysis-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px);
 }
 
 .analysis-value {
-    display: block;
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: 800;
-    margin-bottom: 8px;
 }
 
 .analysis-label {
+    color: #555;
     font-size: 1rem;
-    color: #666;
     font-weight: 500;
 }
 
-.analysis-value.success { color: #059669; } /* Verde acierto */
-.analysis-value.primary { color: #40446C; } /* Azul oscuro */
-.analysis-value.info    { color: #0E7490; } /* Azul claro */
-.analysis-value.warning { color: #D97706; } /* Naranja */
+.analysis-value.success { color: #059669; }
+.analysis-value.primary { color: #2D3047; }
+.analysis-value.info { color: #0E7490; }
 
-/* --- TÍTULO DE RANKING --- */
-.ranking-title {
-    font-size: 1.5rem;
-    color: #40446C;
-    margin-bottom: 20px;
-    font-weight: 600;
-    display: flex; /* Para alinear el subtítulo */
-    align-items: baseline;
+/* --- Ranking --- */
+.ranking-section {
+    margin-top: 40px;
+}
+
+.ranking-section h2 {
+    font-size: 1.3rem;
+    color: #2c3e50;
 }
 
 .ranking-subtitle {
-    font-size: 1rem;
     color: #666;
-    font-weight: 400;
-    margin-left: 10px;
+    font-size: 0.95rem;
+    margin-bottom: 15px;
 }
 
-/* --- REJILLA DE CARDS DE RANKING (NUEVO) --- */
 .ranking-card-grid {
     display: grid;
-    /* 3 columnas de ancho flexible */
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-    gap: 25px;
-    padding-bottom: 80px; /* Espacio para que el botón de exportar no tape las cards */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
 }
 
 .ranking-item {
     display: flex;
     align-items: center;
-    background-color: #fcfcfc;
+    background: #fff;
     border: 1px solid #eee;
-    border-left: 5px solid #40446C; /* Borde de color principal */
-    border-radius: 12px;
-    padding: 15px 20px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    position: relative;
-    transition: box-shadow 0.2s;
+    border-left: 5px solid #2c3e50;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
 }
 
 .ranking-item:hover {
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
 .jugador-posicion {
-    font-size: 1.8rem;
     font-weight: 800;
+    font-size: 1.4rem;
     color: #ccc;
     margin-right: 15px;
-    width: 30px; /* Ancho fijo para las posiciones */
+    width: 28px;
     text-align: center;
 }
 
-/* Colores para las primeras 3 posiciones */
 .pos-1 { color: gold; }
 .pos-2 { color: silver; }
-.pos-3 { color: #CD7F32; }
+.pos-3 { color: #cd7f32; }
 
 .jugador-avatar {
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    object-fit: cover;
     margin-right: 15px;
-    border: 3px solid #eee;
+    object-fit: cover;
+    border: 2px solid #eee;
 }
 
 .jugador-info {
     display: flex;
     flex-direction: column;
-    flex-grow: 1;
 }
 
 .jugador-nombre {
-    font-size: 1.1rem;
     font-weight: 600;
     color: #2D3047;
 }
 
 .jugador-puntuacion {
-    font-size: 0.95rem;
+    color: #059669;
     font-weight: 500;
-    color: #059669; /* Color verde para el puntaje */
-    margin-top: 2px;
 }
 
-/* Estilo para los iconos de medalla (opcional, si los usas) */
-.icon-medal {
-    font-size: 1.5rem;
-    margin-left: auto;
-}
-.icon-medal.gold { color: gold; }
-.icon-medal.silver { color: silver; }
-.icon-medal.bronze { color: #CD7F32; }
-
-
-/* --- BOTÓN EXPORTAR MOVIMIENTO --- */
-.export-button-container {
-    position: absolute;
-    right: 40px; /* Alineado con el padding del content-area */
-    bottom: 30px; /* En la esquina inferior derecha */
+/* --- Exportar botón --- */
+.exportar-container {
+    text-align: right;
+    margin: 40px 0;
 }
 
-.btn-exportar {
-    /* Reutiliza .btn-primary */
-    min-width: 250px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+.exportar-btn {
+    background-color: var(--color-primary-teal);
+    color: #fff;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-/* Eliminamos los estilos obsoletos de tabla */
-.table-responsive, .ranking-table, .ranking-table thead th, .ranking-table tbody tr, .ranking-table td {
-    display: none; /* O puedes borrarlos si sabes que no se usan en otro lado */
+.exportar-btn:hover {
+    background-color: #047870;
+    transform: translateY(-2px);
+}
+
+/* --- Toast --- */
+.eduquiz-toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--color-primary-dark, #2D3047);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.4s ease;
+    font-weight: 600;
+    z-index: 9999;
+}
+
+.eduquiz-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ======================================================= */
+/* VERSIÓN RESPONSIVA MÓVIL Y TABLET - EDUQUIZ */
+/* ======================================================= */
+
+@media (max-width: 1024px) {
+    .resultados-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .resultados-meta h2 {
+        font-size: 1.3rem;
+    }
+
+    .resultados-meta p {
+        font-size: 0.9rem;
+    }
+
+    .analysis-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .ranking-card-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .exportar-container {
+        text-align: center;
+    }
+
+    .exportar-btn {
+        width: 80%;
+        max-width: 320px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        padding: 10px;
+    }
+
+    .header-content h1 {
+        font-size: 1.6rem;
+    }
+
+    .section-description {
+        font-size: 0.9rem;
+    }
+
+    .analysis-section h2, 
+    .ranking-section h2 {
+        font-size: 1.2rem;
+    }
+
+    .analysis-grid {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        gap: 16px;
+        padding-bottom: 10px;
+    }
+
+    .analysis-card {
+        flex: 0 0 70%;
+        min-width: 220px;
+        scroll-snap-align: center;
+    }
+
+    /* Ranking como carrusel */
+    .ranking-card-grid {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        gap: 15px;
+        padding: 10px 0 20px 0;
+    }
+
+    .ranking-item {
+        flex: 0 0 85%;
+        min-width: 260px;
+        scroll-snap-align: center;
+    }
+
+    .jugador-avatar {
+        width: 45px;
+        height: 45px;
+    }
+
+    .jugador-posicion {
+        font-size: 1.3rem;
+    }
+
+    .ranking-subtitle {
+        font-size: 0.85rem;
+    }
+
+    .exportar-container {
+        text-align: center;
+        margin-bottom: 60px;
+    }
+
+    .exportar-btn {
+        display: inline-flex;
+        width: 90%;
+        max-width: 320px;
+        justify-content: center;
+        font-size: 0.95rem;
+        padding: 10px 16px;
+    }
+
+    /* Ajustes del toast en pantallas pequeñas */
+    .eduquiz-toast {
+        right: 50%;
+        bottom: 20px;
+        transform: translate(50%, 20px);
+        font-size: 0.9rem;
+        text-align: center;
+        max-width: 90%;
+    }
+
+    .eduquiz-toast.visible {
+        transform: translate(50%, 0);
+    }
+}
+
+@media (max-width: 480px) {
+    .header-content h1 {
+        font-size: 1.4rem;
+    }
+
+    .section-description {
+        font-size: 0.85rem;
+    }
+
+    .analysis-card {
+        min-width: 190px;
+        padding: 15px;
+    }
+
+    .analysis-value {
+        font-size: 1.6rem;
+    }
+
+    .analysis-label {
+        font-size: 0.9rem;
+    }
+
+    .ranking-item {
+        flex: 0 0 90%;
+        min-width: 230px;
+        padding: 12px;
+    }
+
+    .jugador-nombre {
+        font-size: 1rem;
+    }
+
+    .jugador-puntuacion {
+        font-size: 0.85rem;
+    }
+
+    .btn-volver {
+        font-size: 0.8rem;
+        padding: 6px 12px;
+    }
 }
