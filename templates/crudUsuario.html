@@ -1,198 +1,270 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuración de Perfil y Administración - EduQuiz</title>
+
+    <link rel="icon" href="/static/img/icono.png" type="image/png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <link rel="stylesheet" href="../static/css/crudusuario.css">
+    <link rel="stylesheet" href="../static/css/global.css">
 </head>
-<body>
-    <div class="contenedor-principal">
-        <aside class="sidebar">
-            <div class="logo">
-                <img src="../static/img/logo.png" alt="EduQuiz Logo" style="width: 30px; height: 30px;">
-                <span>EduQuiz</span>
+
+<body data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}">
+
+    <!-- Botón de menú para móvil -->
+    <button id="menu-button" class="menu-button lg:hidden">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar de Navegación -->
+    <aside id="sidebar" class="sidebar">
+        <div class="logo-container">
+            <img src="/static/img/logo.png" alt="Logo de EduQuiz" class="logo-image">
+        </div>
+
+        <!-- Navegación -->
+
+        <nav>
+            <a href="{{ url_for('pages.frm_home') }}" class="nav-link">
+                <i class="fas fa-home nav-icon"></i> Inicio
+            </a>
+            <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-link">
+                <i class="fa-regular fa-file nav-icon"></i> Cuestionarios
+
+            </a>
+            <a href="{{ url_for('tienda.tienda_index') }}" class="nav-link">
+                <i class="fas fa-store nav-icon"></i> Tienda
+            </a>
+
+            {% if logged_in_user.tipo_usuario == 'P' %}
+            <a href="{{ url_for('partidas.frm_partidas_profesor') }}" class="nav-link">
+                <i class="fa-solid fa-gamepad nav-icon"></i> Partidas
+            </a>
+            {% else %}
+            <a href="{{ url_for('partidas.frm_partidas') }}" class="nav-link">
+                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Unirme a una partida
+            </a>
+            {% endif %}
+        </nav>
+
+        <!-- Configuración y Cerrar Sesión (Parte inferior) -->
+        <div class="sidebar-bottom">
+            <a href="{{ url_for('usuarios.usuarios_index') }}" class="nav-link active">
+                <i class="fas fa-cog nav-icon"></i> Configuración
+            </a>
+            <a href="{{ url_for('auth.logout') }}" id="logout-button" class="nav-link logout-btn">
+                <i class="fas fa-sign-out-alt nav-icon"></i> Cerrar Sesión
+            </a>
+        </div>
+    </aside>
+
+    <!-- Overlay para móvil -->
+    <div id="sidebar-overlay" class="overlay"></div>
+
+    <main class="main-content">
+
+        <!-- Barra Superior del Contenido Principal (Mis Cuestionarios, Perfil) -->
+        <header class="header">
+
+            <h1>Configuración</h1>
+
+            <!-- Créditos y Perfil -->
+            <div class="credits-profile-container">
+                <!-- Créditos y Perfil (Estilo del wireframe) -->
+                <div class="credits-box">
+                    <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
+                    <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
+                </div>
+                <div class="profile-box">
+                    <img src="/static/img/avatar.jpeg" class="profile-img">
+                    <span class="profile-text">{{ logged_in_user.username }}</span>
+                </div>
             </div>
-            <nav class="menu">
-                <ul>
-                    <li><a href="{{ url_for('pages.frm_home') }}"><i class="icono">🏠</i> Inicio</a></li>
-                    <li><a href="{{ url_for('cuestionarios.frm_cuestionarios') }}"><i class="icono">❓</i> Cuestionarios</a></li>
-                    <li><a href="{{ url_for('tienda.tienda_index') }}"><i class="icono">🛍️</i> Tienda</a></li>
-                    <li><a href="{{ url_for('partidas.frm_partidas') }}"><i class="icono">🎮</i> Partidas</a></li>
-                    <li class="activo"><a href="{{ url_for('usuarios.usuarios_index') }}"><i class="icono">⚙️</i> Configuración</a></li>
-                    <li><a href="{{ url_for('auth.logout') }}"><i class="icono">➡️</i> Cerrar Sesión</a></li>
-                </ul>
+        </header>
+
+        <div class="perfil-configuracion">
+            <nav class="tabs">
+                <button class="tab-button activo" data-tab="perfil">Editar perfil</button>
+                <button class="tab-button" data-tab="contrasena">Cambiar contraseña</button>
+                <button class="tab-button" data-tab="privacidad">Privacidad</button>
+                {% if logged_in_user.tipo_usuario == 'G' %}
+                <button class="tab-button" data-tab="administracion">Administración</button>
+                {% endif %}
             </nav>
-        </aside>
 
-        <main class="contenido">
-            <header class="header">
-                <div class="titulo">Configuración</div>
-                <div class="perfil-info">
-                    <span id="cant_monedas">10000</span> <i class="icono">🪙</i> 
-                    <img src="{{ url_for('static', filename='img/avatar.svg') }}" alt="Avatar" class="avatar" style="width: 30px; height: 30px; border-radius: 50%;">
-                    <span id="header_perfil_nombre">Mi Perfil</span> 
-                </div>
-            </header>
-
-            <div class="perfil-configuracion">
-                <nav class="tabs">
-                    <button class="tab-button activo" data-tab="perfil">Editar perfil</button>
-                    <button class="tab-button" data-tab="contrasena">Cambiar contraseña</button>
-                    <button class="tab-button" data-tab="privacidad">Privacidad</button>
-                    <button class="tab-button" data-tab="administracion">Administración</button>
-                </nav>
-
-                <div id="perfil" class="tab-content activo">
-                    <form id="form-perfil">
-                        <!-- ID DE USUARIO (informativo) -->
-                        <div class="campo">
-                            <label for="usuario_id" class="block text-sm font-medium text-gray-700 mb-1">ID de Usuario</label>
-                            <input type="text" id="usuario_id" name="usuario_id" value="Cargando..." readonly class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
-                        </div>
-                        
-                        <!-- NOMBRE Y APELLIDOS -->
-                        <div class="campo">
-                            <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombres y Apellidos</label>
-                            <input type="text" id="nombre" name="nombre" placeholder="Tu nombre completo" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-
-                        <!-- NOMBRE DE USUARIO -->
-                        <div class="campo">
-                            <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Nombre de Usuario</label>
-                            <div class="input-con-icono relative">
-                                <input type="text" id="username" name="username" placeholder="tu_usuario" readonly class="w-full p-3 border border-gray-300 rounded-lg input-deshabilitado">
-                                <span class="editar-icono absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer hover:text-blue-500 transition" onclick="habilitarEdicion('username')">✏️</span>
-                            </div>
-                        </div>
-
-                        <!-- EMAIL -->
-                        <div class="campo">
-                            <label for="correo" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <div class="input-con-icono relative">
-                                <input type="email" id="correo" name="correo" placeholder="correo@ejemplo.com" readonly class="w-full p-3 border border-gray-300 rounded-lg input-deshabilitado">
-                                <span class="editar-icono absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer hover:text-blue-500 transition" onclick="habilitarEdicion('correo')">✏️</span>
-                            </div>
-                        </div>
-
-                        <!-- DNI (NO EDITABLE) -->
-                        <div class="campo">
-                            <label for="dni" class="block text-sm font-medium text-gray-700 mb-1">DNI</label>
-                            <input type="text" id="dni" name="dni" placeholder="00000000" readonly class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
-                        </div>
-                        
-                        <!-- MONEDAS (NO EDITABLE) -->
-                        <div class="campo">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Monedas Ganadas</label>
-                            <div class="monedas-info flex items-center space-x-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                                <i class="text-xl text-yellow-500">🪙</i>
-                                <span id="cant_monedas_display" class="font-bold text-lg text-yellow-700">...</span>
-                            </div>
-                        </div>
-
-                        <!-- TIPO DE CUENTA (NO EDITABLE) -->
-                        <div class="campo">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de cuenta</label>
-                            <input type="text" id="tipo_usuario" name="tipo_usuario" readonly class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
-                        </div>
-
-                        <!-- VIGENCIA (NO EDITABLE) -->
-                        <div class="campo">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Estado de Vigencia</label>
-                            <input type="text" id="vigencia" name="vigencia" readonly class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
-                        </div>
-
-                        <!-- Mensaje de estado -->
-                        <div id="perfil-status" class="md:col-span-2 text-center p-3 rounded-lg hidden" role="alert"></div>
-
-
-                        <div class="acciones">
-                            <button type="button" id="cancelar" class="btn-secundario">Cancelar</button>
-                            <button type="submit" id="guardar" class="btn-principal">Guardar</button>
-                            
-                            <button type="button" id="btn-dar-baja-perfil" class="btn-eliminar btn-secundario" onclick="confirmarYManejarBaja()">
-                                Dar de Baja Cuenta
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <div id="contrasena" class="tab-content">...</div>
-                <div id="privacidad" class="tab-content">...</div>
-
-                <div id="administracion" class="tab-content">
-                    <h2>Gestión General de Usuarios</h2>
-                    
-                    <form id="form-gestion-usuario" class="formulario-gestion" style="display:none;">
-                        <h3><span id="form-titulo">Crear</span> Usuario</h3>
-                        <input type="hidden" id="gestion-usuario_id">
-                        
-                        <div class="campo">
-                            <label for="gestion-nombre">Nombres y Apellidos</label>
-                            <input type="text" id="gestion-nombre" required>
-                        </div>
-                        <div class="campo">
-                            <label for="gestion-username">Nombre de Usuario</label>
-                            <input type="text" id="gestion-username" required>
-                        </div>
-                        <div class="campo">
-                            <label for="gestion-correo">Email</label>
-                            <input type="email" id="gestion-correo" required>
-                        </div>
-                        
-                        <div class="campo">
-                            <label for="gestion-dni">DNI</label>
-                            <input type="text" id="gestion-dni" required maxlength="8" pattern="[0-9]{8}">
-                        </div>
-                        <div class="campo">
-                            <label for="gestion-tipo_usuario">Tipo de Usuario (A, P, G)</label>
-                            <input type="text" id="gestion-tipo_usuario" maxlength="1" required>
-                        </div>
-                        
-                        <!-- 🔑 NUEVO CAMPO AGREGADO -->
-                        <div class="campo">
-                            <label for="gestion-vigencia">Estado de Vigencia</label>
-                            <select id="gestion-vigencia" required>
-                                <option value="true">Vigente</option>
-                                <option value="false">No Vigente</option>
-                            </select>
-                        </div>
-
-                        <div class="acciones">
-                            <button type="button" id="btn-cancelar-gestion" class="btn-secundario">Cancelar</button>
-                            <button type="submit" class="btn-principal">Guardar Cambios</button>
-                        </div>
-                        <hr>
-                    </form>
-
-                    <div class="tabla-contenedor">
-                        <h4>Usuarios del Sistema</h4>
-                        <table id="tabla-usuarios">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Usuario</th>
-                                    <th>Nombre</th>
-                                    <th>Email</th>
-                                    <th>Tipo</th>
-                                    <th>Monedas</th>
-                                    <th>DNI</th>
-                                    <!-- 🔑 NUEVA COLUMNA AGREGADA -->
-                                    <th>Vigencia</th>
-                                    <!-- 🔑 FIN NUEVA COLUMNA -->
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
+            <div id="perfil" class="tab-content activo">
+                <form id="form-perfil">
+                    <!-- ID DE USUARIO (informativo) -->
+                    <div class="campo">
+                        <label for="usuario_id" class="block text-sm font-medium text-gray-700 mb-1">ID de
+                            Usuario</label>
+                        <input type="text" id="usuario_id" name="usuario_id" value="Cargando..." readonly
+                            class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
                     </div>
-                </div>
 
+                    <!-- NOMBRE Y APELLIDOS -->
+                    <div class="campo">
+                        <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombres y
+                            Apellidos</label>
+                        <input type="text" id="nombre" name="nombre" placeholder="Tu nombre completo"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- NOMBRE DE USUARIO -->
+                    <div class="campo">
+                        <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Nombre de
+                            Usuario</label>
+                        <div class="input-con-icono relative">
+                            <input type="text" id="username" name="username" placeholder="tu_usuario" readonly
+                                class="w-full p-3 border border-gray-300 rounded-lg input-deshabilitado">
+                            <span
+                                class="editar-icono absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer hover:text-blue-500 transition"
+                                onclick="habilitarEdicion('username')">✏️</span>
+                        </div>
+                    </div>
+
+                    <!-- EMAIL -->
+                    <div class="campo">
+                        <label for="correo" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <div class="input-con-icono relative">
+                            <input type="email" id="correo" name="correo" placeholder="correo@ejemplo.com" readonly
+                                class="w-full p-3 border border-gray-300 rounded-lg input-deshabilitado">
+                            <span
+                                class="editar-icono absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer hover:text-blue-500 transition"
+                                onclick="habilitarEdicion('correo')">✏️</span>
+                        </div>
+                    </div>
+
+                    <!-- DNI (NO EDITABLE) -->
+                    <div class="campo">
+                        <label for="dni" class="block text-sm font-medium text-gray-700 mb-1">DNI</label>
+                        <input type="text" id="dni" name="dni" placeholder="00000000" readonly
+                            class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+
+                    <!-- MONEDAS (NO EDITABLE) -->
+                    <div class="campo">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Monedas Ganadas</label>
+                        <div
+                            class="monedas-info flex items-center space-x-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <i class="text-xl text-yellow-500">🪙</i>
+                            <span id="cant_monedas_display" class="font-bold text-lg text-yellow-700">...</span>
+                        </div>
+                    </div>
+
+                    <!-- TIPO DE CUENTA (NO EDITABLE) -->
+                    <div class="campo">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de cuenta</label>
+                        <input type="text" id="tipo_usuario" name="tipo_usuario" readonly
+                            class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+
+                    <!-- VIGENCIA (NO EDITABLE) -->
+                    <div class="campo">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Estado de Vigencia</label>
+                        <input type="text" id="vigencia" name="vigencia" readonly
+                            class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+
+                    <!-- Mensaje de estado -->
+                    <div id="perfil-status" class="md:col-span-2 text-center p-3 rounded-lg hidden" role="alert"></div>
+
+
+                    <div class="acciones">
+                        <button type="button" id="cancelar" class="btn-secundario">Cancelar</button>
+                        <button type="submit" id="guardar" class="btn-principal">Guardar</button>
+
+                        <button type="button" id="btn-dar-baja-perfil" class="btn-eliminar btn-secundario"
+                            onclick="confirmarYManejarBaja()">
+                            Dar de Baja Cuenta
+                        </button>
+                    </div>
+                </form>
             </div>
-        </main>
-    </div>
+
+            <div id="contrasena" class="tab-content">...</div>
+            <div id="privacidad" class="tab-content">...</div>
+
+            <div id="administracion" class="tab-content">
+                <h2>Gestión General de Usuarios</h2>
+
+                <form id="form-gestion-usuario" class="formulario-gestion" style="display:none;">
+                    <h3><span id="form-titulo">Crear</span> Usuario</h3>
+                    <input type="hidden" id="gestion-usuario_id">
+
+                    <div class="campo">
+                        <label for="gestion-nombre">Nombres y Apellidos</label>
+                        <input type="text" id="gestion-nombre" required>
+                    </div>
+                    <div class="campo">
+                        <label for="gestion-username">Nombre de Usuario</label>
+                        <input type="text" id="gestion-username" required>
+                    </div>
+                    <div class="campo">
+                        <label for="gestion-correo">Email</label>
+                        <input type="email" id="gestion-correo" required>
+                    </div>
+
+                    <div class="campo">
+                        <label for="gestion-dni">DNI</label>
+                        <input type="text" id="gestion-dni" required maxlength="8" pattern="[0-9]{8}">
+                    </div>
+                    <div class="campo">
+                        <label for="gestion-tipo_usuario">Tipo de Usuario (A, P, G)</label>
+                        <input type="text" id="gestion-tipo_usuario" maxlength="1" required>
+                    </div>
+
+                    <!-- 🔑 NUEVO CAMPO AGREGADO -->
+                    <div class="campo">
+                        <label for="gestion-vigencia">Estado de Vigencia</label>
+                        <select id="gestion-vigencia" required>
+                            <option value="true">Vigente</option>
+                            <option value="false">No Vigente</option>
+                        </select>
+                    </div>
+
+                    <div class="acciones">
+                        <button type="button" id="btn-cancelar-gestion" class="btn-secundario">Cancelar</button>
+                        <button type="submit" class="btn-principal">Guardar Cambios</button>
+                    </div>
+                    <hr>
+                </form>
+
+                <div class="tabla-contenedor">
+                    <h4>Usuarios del Sistema</h4>
+                    <table id="tabla-usuarios">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Usuario</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Tipo</th>
+                                <th>Monedas</th>
+                                <th>DNI</th>
+                                <!-- 🔑 NUEVA COLUMNA AGREGADA -->
+                                <th>Vigencia</th>
+                                <!-- 🔑 FIN NUEVA COLUMNA -->
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
 
     <script src="../static/js/crudusuario.js"></script>
 </body>
+
 </html>

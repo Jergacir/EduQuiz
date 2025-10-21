@@ -29,7 +29,6 @@
 body {
     background-color: var(--color-fondo);
     color: var(--color-texto);
-    line-height: 1.6;
 }
 
 .contenedor-principal {
