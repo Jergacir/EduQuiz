@@ -611,7 +611,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013759/Man%C3%A1_-_Oye_Mi_Amor_svzblo.mp3",
     "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013897/Labios_Rotos_-_Zo%C3%A9_Letra._uy4h9m.mp3",
     "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761013953/Morat_-_C%C3%B3mo_Te_Atreves_in9iej.mp3",
-    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014034/Avicii_-_Wake_Me_Up_Official_Lyric_Video_sumjir.mp3"
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014034/Avicii_-_Wake_Me_Up_Official_Lyric_Video_sumjir.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014555/Danny_Ocean_-_Me_Reh%C3%BAso_yxhoob.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014604/Besos_En_Guerra_-_Morat_Juanes_Lyrics_Video_wpnbbv.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014813/Coldplay_-_Viva_la_Vida_Lyrics_gcinot.mp3",
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014903/Pokemon_Center_lofi_with_TanoshiSan_fp81ox.mp3"
   ];
 
   function reproducirMusicaAleatoria() {
