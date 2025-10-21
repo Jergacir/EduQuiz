@@ -4,25 +4,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Esperando a que inicie la partida...</title>
+    <title>Sala de Espera - EduQuiz</title>
     <link rel="stylesheet" href="../static/css/salaespera.css">
 </head>
 
-<body data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}"
-    data-codigo-partida="{{ codigo_partida }}" data-num-grupos="{{ num_grupos }}" >
+<body data-usuario-id="{{ logged_in_user.usuario_id }}" 
+      data-tipo-usuario="{{ logged_in_user.tipo_usuario }}"
+      data-codigo-partida="{{ codigo_partida }}" 
+      data-num-grupos="{{ num_grupos }}">
+    
     <div class="contenedor-juego">
         <button id="btnSalir" class="btn-salir">Salir de la partida</button>
+        
         {% if logged_in_user.tipo_usuario == 'A' %}
         <h1>Esperando a que inicie la partida...</h1>
 
-        <!-- 🔹 Esta tarjeta se usará SIEMPRE (individual o grupal) -->
+        <!-- Tarjeta del usuario actual -->
         <div class="tarjeta-usuario" data-nombre-usuario="{{ logged_in_user.nombre }}">
+            <!-- Se llenará con JS -->
         </div>
 
         {% if tipo_partida == 'G' %}
+        <!-- Contenedor de grupos (se crea dinámicamente) -->
         <div class="grupos-contenedor"></div>
+        
         {% elif tipo_partida == 'I' %}
         <p class="mensaje-confirmacion">¡Te has unido! ¿Ves tu nombre en pantalla?</p>
+        
         {% else %}
         <p>El tipo de partida no está definido correctamente.</p>
         {% endif %}
@@ -34,8 +42,7 @@
 
     </div>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
+    <!-- AJAX Polling (Sin Socket.IO) -->
     <script src="../static/js/salaespera.js"></script>
 </body>
 

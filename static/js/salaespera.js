@@ -1,184 +1,264 @@
-// static/js/salaespera.js
+// static/js/salaespera.js - AJAX POLLING (Sin WebSockets)
 document.addEventListener("DOMContentLoaded", () => {
-    const usuarioId = document.body.dataset.usuarioId;
-    const tipoUsuario = document.body.dataset.tipoUsuario; // 'A' o 'P'
-    const codigoPartida = document.body.dataset.codigoPartida;
-    const numGrupos = parseInt(document.body.dataset.numGrupos || "3"); // <--- aquí
-    // Solo los alumnos participan
-    // Verificar tipo de usuario
+    console.log("👥 salaespera.js iniciado (AJAX Polling Mode)");
 
+    // ===================================================================
+    // OBTENER DATOS DEL DOM
+    // ===================================================================
+    const usuarioId = document.body.dataset.usuarioId;
+    const tipoUsuario = document.body.dataset.tipoUsuario;
+    const codigoPartida = document.body.dataset.codigoPartida;
+    const numGrupos = parseInt(document.body.dataset.numGrupos || "3");
+
+    console.log("📋 Configuración:", { usuarioId, tipoUsuario, codigoPartida, numGrupos });
+
+    // Solo alumnos participan en la sala de espera
     if (tipoUsuario !== 'A') {
-        console.log("⛔ No es alumno, no se ejecuta sala de espera del alumno.");
+        console.log("⛔ Usuario no es alumno, no se activa sala de espera");
         return;
     }
 
-    const socket = io();
-    socket.on('actualizar_participantes', (data) => {
-        const participantes = data.participantes || [];
-        console.log("📡 Actualización de participantes recibida:", participantes);
+    // ===================================================================
+    // VARIABLES DE POLLING
+    // ===================================================================
+    let pollingInterval = null;
+    let lastTimestamp = 0;
+    let isPolling = false;
 
-        // Limpia todas las listas de usuarios
-        document.querySelectorAll('.lista-usuarios').forEach(lista => lista.innerHTML = '');
+    // ===================================================================
+    // CREAR TARJETAS DE GRUPOS DINÁMICAMENTE
+    // ===================================================================
+    const gruposContenedor = document.querySelector('.grupos-contenedor');
+    if (gruposContenedor) {
+        gruposContenedor.innerHTML = '';
 
-        // Mostrar los participantes dentro de sus grupos
+        for (let i = 0; i < numGrupos; i++) {
+            const tarjeta = document.createElement('div');
+            tarjeta.className = 'tarjeta-grupo';
+            tarjeta.dataset.grupoId = i + 1;
+            tarjeta.innerHTML = `
+                <div class="encabezado-grupo">Grupo ${String(i + 1).padStart(2, '0')}</div>
+                <div class="lista-usuarios"></div>
+                <button class="boton-unirse">
+                    <span class="icono-mas">+</span> Unirse al equipo
+                </button>
+            `;
+            gruposContenedor.appendChild(tarjeta);
+
+            // Evento para unirse al grupo
+            const botonUnirse = tarjeta.querySelector('.boton-unirse');
+            botonUnirse.addEventListener('click', () => {
+                unirseAGrupo(i + 1);
+            });
+        }
+    }
+
+    // ===================================================================
+    // FUNCIÓN: UNIRSE A UN GRUPO
+    // ===================================================================
+    async function unirseAGrupo(grupoSeleccionado) {
+        console.log(`📍 Uniéndose al grupo ${grupoSeleccionado}...`);
+
+        try {
+            const response = await fetch(`/api/partida/${codigoPartida}/unirse_grupo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    usuario_id: usuarioId,
+                    grupo_id: grupoSeleccionado
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                console.log(`✅ Unido al grupo ${grupoSeleccionado}`);
+                // Forzar actualización inmediata
+                await pollParticipantes();
+            } else {
+                alert("❌ Error al unirse al grupo: " + (data.message || "Error desconocido"));
+            }
+
+        } catch (error) {
+            console.error("❌ Error al unirse al grupo:", error);
+            alert("Error de conexión al unirse al grupo");
+        }
+    }
+
+    // ===================================================================
+    // FUNCIÓN: POLLING DE PARTICIPANTES
+    // ===================================================================
+    async function pollParticipantes() {
+        if (isPolling) {
+            console.log("⏳ Polling en progreso...");
+            return;
+        }
+
+        isPolling = true;
+
+        try {
+            const response = await fetch(`/api/partida/${codigoPartida}/poll`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success && data.participantes) {
+                // Solo actualizar si hay cambios
+                if (data.timestamp !== lastTimestamp) {
+                    console.log(`🔄 Actualización: ${data.total} participantes`);
+                    lastTimestamp = data.timestamp;
+                    renderizarParticipantes(data.participantes);
+                }
+            }
+
+        } catch (error) {
+            console.error("❌ Error en polling:", error);
+        } finally {
+            isPolling = false;
+        }
+    }
+
+    // ===================================================================
+    // FUNCIÓN: RENDERIZAR PARTICIPANTES EN GRUPOS
+    // ===================================================================
+    function renderizarParticipantes(participantes) {
+        // Limpiar todas las listas de usuarios
+        document.querySelectorAll('.lista-usuarios').forEach(lista => {
+            lista.innerHTML = '';
+        });
+
         participantes.forEach(p => {
-            const grupoId = p.grupo_id || 0; // Si no tiene grupo, va a "sin grupo"
+            const grupoId = p.grupo_id || 0;
             const tarjeta = document.querySelector(`.tarjeta-grupo[data-grupo-id="${grupoId}"]`);
-            if (!tarjeta) return;
+            
+            if (!tarjeta) {
+                console.warn(`⚠️ No se encontró tarjeta para grupo ${grupoId}`);
+                return;
+            }
 
             const listaUsuarios = tarjeta.querySelector('.lista-usuarios');
             const usuarioDiv = document.createElement('div');
             usuarioDiv.className = 'usuario';
             usuarioDiv.dataset.usuarioId = p.usuario_id;
 
-            // 🔹 Mostrar líder con corona
-            if (p.lider_id && p.lider_id === p.participante_id) {
+            // Mostrar líder con corona
+            const esLider = p.lider_id && p.lider_id === p.participante_id;
+            
+            if (esLider) {
                 usuarioDiv.classList.add('lider');
                 usuarioDiv.innerHTML = `
-                <img src="/static/img/default-avatar.png" alt="Avatar">
-                <span>👑 ${p.nombre}</span>
-            `;
+                    <img src="${p.url_avatar || '/static/img/default-avatar.png'}" alt="Avatar">
+                    <span>👑 ${p.nombre}</span>
+                `;
             } else {
                 usuarioDiv.innerHTML = `
-                <img src="/static/img/default-avatar.png" alt="Avatar">
-                <span>${p.nombre}</span>
-            `;
+                    <img src="${p.url_avatar || '/static/img/default-avatar.png'}" alt="Avatar">
+                    <span>${p.nombre}</span>
+                `;
             }
 
             listaUsuarios.appendChild(usuarioDiv);
         });
+    }
 
-
-    });
-    // 🔹 Contenedor de grupos
-    const gruposContenedor = document.querySelector('.grupos-contenedor');
-    if (gruposContenedor) {
-        gruposContenedor.innerHTML = '';
-
-        // Crear tarjetas de grupo dinámicamente
-        for (let i = 0; i < numGrupos; i++) {
-            const tarjeta = document.createElement('div');
-            tarjeta.className = 'tarjeta-grupo';
-            tarjeta.dataset.grupoId = i + 1;
-            tarjeta.innerHTML = `
-            <div class="encabezado-grupo">Grupo ${String(i + 1).padStart(2, '0')}</div>
-            <div class="lista-usuarios"></div>
-            <button class="boton-unirse"><span class="icono-mas">+</span> Unirse al equipo</button>
+    // ===================================================================
+    // MOSTRAR USUARIO ACTUAL EN SU TARJETA
+    // ===================================================================
+    const tarjetaUsuario = document.querySelector('.tarjeta-usuario');
+    if (tarjetaUsuario) {
+        const nombreUsuario = tarjetaUsuario.dataset.nombreUsuario || "Usuario";
+        tarjetaUsuario.innerHTML = `
+            <div class="usuario">
+                <img src="/static/img/default-avatar.png" alt="Avatar">
+                <span>${nombreUsuario}</span>
+            </div>
         `;
-            gruposContenedor.appendChild(tarjeta);
-
-            tarjeta.querySelector('.boton-unirse').addEventListener('click', () => {
-                unirseAGrupo(i + 1);
-            });
-        }
     }
 
-    // 🔹 Función para unirse a un grupo directamente
-    function unirseAGrupo(grupoSeleccionado) {
-        console.log("Me uno a:", grupoSeleccionado);
-
-        // 🔹 Buscar si el usuario ya está en algún grupo
-        document.querySelectorAll('.lista-usuarios').forEach(lista => {
-            const usuarioExistente = lista.querySelector(`.usuario[data-usuario-id="${usuarioId}"]`);
-            if (usuarioExistente) {
-                lista.removeChild(usuarioExistente);
-            }
-        });
-
-        const tarjeta = document.querySelector(`.tarjeta-grupo[data-grupo-id="${grupoSeleccionado}"]`);
-        if (!tarjeta) return;
-
-        const listaUsuarios = tarjeta.querySelector('.lista-usuarios');
-
-
-        // 🔹 Mover la tarjeta-usuario dentro del grupo
-        const tarjetaUsuario = document.querySelector('.tarjeta-usuario');
-        if (tarjetaUsuario) {
-            tarjetaUsuario.dataset.usuarioId = usuarioId; // aseguramos el id
-            tarjetaUsuario.classList.add('usuario-en-grupo'); // por si quieres estilos distintos
-            listaUsuarios.appendChild(tarjetaUsuario); // la movemos al grupo
-        } else {
-            console.warn("⚠️ No se encontró la tarjeta del usuario para mover al grupo.");
-        }
-
-        // 🔹 Emitir al backend para actualizar en tiempo real
-        socket.emit("unirse_grupo", {
-            codigo_partida: codigoPartida,
-            usuario_id: usuarioId,
-            grupo_id: grupoSeleccionado
-        });
-    }
-
-
-    // 🔹 Escuchar actualizaciones de grupos desde el servidor
-    socket.on('actualizar_grupos', (data) => {
-        // data = [{usuario_id, nombre, grupo_id, avatar}, ...]
-        document.querySelectorAll('.lista-usuarios').forEach(list => list.innerHTML = '');
-
-        data.forEach(u => {
-            const tarjeta = document.querySelector(`.tarjeta-grupo[data-grupo-id="${u.grupo_id}"]`);
-            if (!tarjeta) return;
-
-            const listaUsuarios = tarjeta.querySelector('.lista-usuarios');
-            const divUsuario = document.createElement('div');
-            divUsuario.className = 'usuario';
-            divUsuario.innerHTML = `<img src="${u.avatar || '/static/img/default-avatar.png'}" alt="Avatar"><span>${u.nombre}</span>`;
-            listaUsuarios.appendChild(divUsuario);
-        });
-    });
-    // 🔹 Unirse a la sala (solo notificación al backend)
-    socket.emit('unirse_sala', { codigo_partida: codigoPartida, usuario: { usuario_id: usuarioId } });
-
-    // 🔹 Mostrar únicamente tu usuario en sala de espera
-    const lista = document.querySelector('.tarjeta-usuario');
-    if (lista) {
-
-        const nombreUsuario = lista.dataset.nombreUsuario || "Usuario";
-        lista.innerHTML = `
-        <div class="usuario">
-            <img src="/static/img/default-avatar.png" alt="Avatar">
-            <span>${nombreUsuario}</span>
-        </div>`;
-    } else {
-        console.warn("⚠️ No se encontró .tarjeta-usuario en el DOM.");
-    }
-
-    // 🔹 Botón salir
+    // ===================================================================
+    // BOTÓN SALIR
+    // ===================================================================
     const salirBtn = document.querySelector('#btnSalir');
     if (salirBtn) {
-        salirBtn.addEventListener('click', () => {
-            if (confirm("¿Estás seguro que quieres salir de la partida?")) {
-                // Primero actualizamos la BD
-                fetch('/api/partida/salir', {
+        salirBtn.addEventListener('click', async () => {
+            if (!confirm("¿Estás seguro que quieres salir de la partida?")) {
+                return;
+            }
+
+            try {
+                // Primero actualizar BD
+                await fetch('/api/partida/salir', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ codigo_partida: codigoPartida, usuario_id: usuarioId })
-                }).finally(() => {
-                    // Emitimos socket para notificar a otras vistas
-                    socket.emit('salir_sala', { codigo_partida: codigoPartida, usuario_id: usuarioId });
-                    // Redirigimos al menú
-                    window.location.href = '/partidas';
+                    body: JSON.stringify({ 
+                        codigo_partida: codigoPartida, 
+                        usuario_id: usuarioId 
+                    })
                 });
+
+                console.log("✅ Usuario salió de la partida");
+                
+                // Detener polling
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                }
+
+                // Redirigir
+                window.location.href = '/partidas';
+
+            } catch (error) {
+                console.error("❌ Error al salir:", error);
+                alert("Error al salir de la partida");
             }
         });
     }
 
-    // 🔹 Manejar refresh o cerrar pestaña
-    window.addEventListener("beforeunload", (e) => {
-        // Actualizar BD usando sendBeacon (para garantizar envío aunque se cierre la pestaña)
-        navigator.sendBeacon('/api/partida/salir', JSON.stringify({
-            codigo_partida: codigoPartida,
-            usuario_id: usuarioId
-        }));
+    // ===================================================================
+    // MANEJAR REFRESH/CIERRE DE PESTAÑA
+    // ===================================================================
+    window.addEventListener("beforeunload", async (e) => {
+        // Intentar notificar al servidor que el usuario salió
+        try {
+            navigator.sendBeacon(
+                '/api/partida/salir', 
+                JSON.stringify({
+                    codigo_partida: codigoPartida,
+                    usuario_id: usuarioId
+                })
+            );
+        } catch (error) {
+            console.error("Error en beforeunload:", error);
+        }
 
-        // Emitir socket
-        socket.emit('salir_sala', { codigo_partida: codigoPartida, usuario_id: usuarioId });
-
-        e.preventDefault();
-        e.returnValue = "";
+        // Detener polling
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
     });
 
-    // 🔹 Opcional: logs de socket
-    socket.on('connect', () => console.log('✅ Socket conectado', socket.id));
-    socket.on('disconnect', () => console.log('❌ Socket desconectado'));
+    // ===================================================================
+    // INICIAR POLLING
+    // ===================================================================
+    if (!codigoPartida || !usuarioId) {
+        console.error("❌ Faltan datos necesarios para polling");
+    } else {
+        console.log("🔄 Iniciando AJAX Polling cada 2 segundos...");
+        
+        // Primera carga inmediata
+        pollParticipantes();
+        
+        // Polling cada 2 segundos
+        pollingInterval = setInterval(pollParticipantes, 2000);
+    }
+
+    console.log("✅ salaespera.js configurado correctamente");
 });

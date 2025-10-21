@@ -4,43 +4,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Previa de Partida</title>
+    <title>Previa de Partida - EduQuiz</title>
     <link rel="stylesheet" href="../static/css/previapartida.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
 <body data-logged-user='{{ logged_in_user | tojson | default("null") }}'
-     data-is-group-game='{{ "true" if tipo_partida == "G" else "false" }}' data-num-grupos='{{ num_grupos }}'>
+     data-is-group-game='{{ "true" if tipo_partida == "G" else "false" }}' 
+     data-num-grupos='{{ num_grupos }}'>
+    
     <div class="container">
         <div class="header-card">
             <p>Únete en esta emocionante partida con este código</p>
             <div class="code-section">
                 <span class="game-code">{{ codigo_partida }}</span>
-                <i class="far fa-copy copy-icon" onclick="copyCode()"></i>
+                <i class="far fa-copy copy-icon"></i>
             </div>
-            <img src="qr-code.png" alt="Código QR" class="qr-code">
+            <img src="qr-code.png" alt="Código QR" class="qr-code" style="display:none;">
             <button class="start-game-button">Iniciar Partida</button>
         </div>
 
         <h2 class="waiting-message">Esperando participantes</h2>
 
+        <!-- Vista Individual -->
         <div id="individual-view" class="participants-container individual-layout">
-
+            <!-- Se llenará dinámicamente con AJAX Polling -->
         </div>
 
+        <!-- Vista Grupal -->
         <div id="group-view" class="participants-container group-layout" style="display: none;">
-            
-
-            
+            <!-- Se llenará dinámicamente con AJAX Polling -->
         </div>
     </div>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script>
-        const socket = io();  // Esto se conecta al mismo host:puerto
-    </script>
-    <script src="../static/js/previapartida.js"></script>
 
+    <!-- AJAX Polling (Sin Socket.IO) -->
+    <script src="../static/js/previapartida.js"></script>
 </body>
 
 </html>
