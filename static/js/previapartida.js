@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const isGroupGame = JSON.parse(body.dataset.isGroupGame || "false");
     const numGrupos = parseInt(body.dataset.numGrupos || "3");
     const codigoPartida = document.querySelector(".game-code")?.textContent.trim();
-    
+
     console.log("📋 Config:", { loggedUser, isGroupGame, numGrupos, codigoPartida });
 
     // ===================================================================
@@ -17,12 +17,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const cancionGuardada = localStorage.getItem("cancionActual");
     let musicaActual = null;
 
+    // Verificamos si ya hay música en reproducción (guardada)
     if (musicaActiva === "true" && cancionGuardada) {
-        musicaActual = new Audio(cancionGuardada);
-        musicaActual.loop = true;
-        musicaActual.volume = 0.4;
-        musicaActual.play();
-        console.log("🎧 Música iniciada:", cancionGuardada);
+        function iniciarMusica() {
+            if (!window.musicaGlobal) {
+                const audio = new Audio(cancionGuardada);
+                audio.loop = true;
+                audio.volume = 0.4;
+                audio.play().then(() => {
+                    console.log("🎧 Música iniciada tras interacción:", cancionGuardada);
+                }).catch(err => console.warn("⚠️ Bloqueo al reproducir audio:", err));
+
+                window.musicaGlobal = audio;
+            }
+            // Quita el listener una vez ejecutado
+            document.removeEventListener("click", iniciarMusica);
+            document.removeEventListener("keydown", iniciarMusica);
+        }
+
+        // Espera a que el usuario haga clic o presione algo
+        document.addEventListener("click", iniciarMusica);
+        document.addEventListener("keydown", iniciarMusica);
     }
 
     // ===================================================================
@@ -124,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 tarjeta.title = usuario.nombre;
 
                 const esLider = usuario.lider_id === usuario.participante_id;
-                const iconoLider = esLider ? 
+                const iconoLider = esLider ?
                     `<span class="lider-icon" title="Líder del grupo">🏁</span>` : '';
 
                 tarjeta.innerHTML = `
@@ -237,10 +252,10 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("❌ No se encontró código de partida");
     } else {
         console.log("🔄 Iniciando AJAX Polling cada 3 segundos...");
-        
+
         // Primera carga inmediata
         pollParticipantes();
-        
+
         // Polling cada 3 segundos (ajustable según necesidades)
         pollingInterval = setInterval(pollParticipantes, 3000);
     }

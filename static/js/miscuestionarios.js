@@ -434,7 +434,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       const pinDisplay = document.querySelector('.pin-display');
       const pinAutomatico = document.getElementById('checkPinAutomatico').checked;
       pinDisplay.style.display = pinAutomatico ? 'flex' : 'none';
-
+      if (document.getElementById('checkPinAutomatico').checked) {
+        const nuevoPin = generarPin();
+        mostrarPin(nuevoPin);
+        pinDisplay.style.display = 'flex';
+      }
       // Mostrar modal
       configModal.classList.remove("hidden");
 
