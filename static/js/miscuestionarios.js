@@ -456,6 +456,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Lógica para iniciar la partida (Enviar configuración al backend)
   iniciarPartidaBtn.addEventListener("click", async () => {
+    localStorage.setItem("userInteractedWithAudio", "true");
     if (!cuestionarioAConfigurar) return;
     const modalidadSelect = document.getElementById("modalidadSelect").value;
     let tipo_partida = modalidadSelect === "grupal" ? "G" : "I";
@@ -521,7 +522,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (data.status === "ok") {
         alert(`Partida creada con PIN: ${data.codigo_partida}`);
-
         // 🕒 Pequeña pausa para asegurar que localStorage se guarde bien
         setTimeout(() => {
           window.location.href = `/previapartida/${data.codigo_partida}`;

@@ -1,5 +1,9 @@
 // static/js/previapartida.js - AJAX POLLING (Sin WebSockets)
 document.addEventListener("DOMContentLoaded", () => {
+    // Si la página se recarga directamente (sin pasar desde config), limpiar el flag
+    if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+        localStorage.removeItem("userInteractedWithAudio");
+    }
     console.log("🎮 previapartida.js cargado (AJAX Polling Mode)");
 
     const body = document.body;
@@ -17,29 +21,40 @@ document.addEventListener("DOMContentLoaded", () => {
     const cancionGuardada = localStorage.getItem("cancionActual");
     let musicaActual = null;
 
+    const userInteracted = localStorage.getItem("userInteractedWithAudio");
     // Verificamos si ya hay música en reproducción (guardada)
-    if (musicaActiva === "true" && cancionGuardada) {
-        function iniciarMusica() {
-            if (!window.musicaGlobal) {
-                const audio = new Audio(cancionGuardada);
-                audio.loop = true;
-                audio.volume = 0.4;
-                audio.play().then(() => {
-                    console.log("🎧 Música iniciada tras interacción:", cancionGuardada);
-                }).catch(err => console.warn("⚠️ Bloqueo al reproducir audio:", err));
-
-                window.musicaGlobal = audio;
-            }
-            // Quita el listener una vez ejecutado
-            document.removeEventListener("click", iniciarMusica);
-            document.removeEventListener("keydown", iniciarMusica);
+    // Función genérica para iniciar música
+    function iniciarMusica() {
+        if (!window.musicaGlobal && musicaActiva === "true" && cancionGuardada) {
+            const audio = new Audio(cancionGuardada);
+            audio.loop = true;
+            audio.volume = 0.4;
+            audio.play()
+                .then(() => console.log("🎧 Música iniciada:", cancionGuardada))
+                .catch(err => console.warn("⚠️ Error al reproducir audio:", err));
+            window.musicaGlobal = audio;
         }
-
-        // Espera a que el usuario haga clic o presione algo
-        document.addEventListener("click", iniciarMusica);
-        document.addEventListener("keydown", iniciarMusica);
     }
 
+    // === CASO 1: Usuario ya interactuó en la página anterior (automático) ===
+    if (musicaActiva === "true" && cancionGuardada && userInteracted === "true") {
+        console.log("✅ Reproduciendo automáticamente (usuario ya interactuó).");
+        iniciarMusica();
+    }
+
+    // === CASO 2: Primera vez o recarga (espera interacción) ===
+    else if (musicaActiva === "true" && cancionGuardada) {
+        console.log("🟡 Esperando interacción del usuario para iniciar música...");
+        function handleFirstInteraction() {
+            iniciarMusica();
+            document.removeEventListener("click", handleFirstInteraction);
+            document.removeEventListener("keydown", handleFirstInteraction);
+            // Guardamos que ya interactuó (para futuras cargas)
+            localStorage.setItem("userInteractedWithAudio", "true");
+        }
+        document.addEventListener("click", handleFirstInteraction);
+        document.addEventListener("keydown", handleFirstInteraction);
+    }
     // ===================================================================
     // BOTÓN COPIAR CÓDIGO
     // ===================================================================
