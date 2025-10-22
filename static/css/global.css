@@ -136,6 +136,7 @@ a {
 
     .main-content {
         margin-left: var(--sidebar-width);
+.btn-inventory i { margin-right: 8px; }
         padding: 30px;
     }
 }
@@ -168,6 +169,19 @@ a {
     align-items: center;
     gap: 16px;
 }
+
+.btn-inventory {
+    display: inline-block;
+    padding: 8px 12px;
+    background: #0D9488;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 8px;
+    color: white;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.btn-inventory:hover { background: rgba(13,148,136,0.04); color: var(--color-primary-teal); }
 
 .credits-box {
     display: none;
@@ -322,5 +336,97 @@ a {
     .sidebar.open~.main-content,
     .sidebar.open+.main-content {
         margin-left: var(--sidebar-width);
+    }
+}
+
+/* Menú contextual del perfil (emergente) */
+.profile-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    border: 1px solid rgba(0,0,0,0.06);
+    min-width: 180px;
+    display: none;
+    flex-direction: column;
+    z-index: 1000;
+    overflow: hidden;
+}
+.profile-menu.visible { display: flex; }
+.profile-menu-item {
+    padding: 10px 14px;
+    color: var(--color-text-dark);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+.profile-menu-item:hover { background-color: rgba(13,148,136,0.06); color: var(--color-primary-teal); }
+.profile-menu-item:last-child { border-bottom: none; color: #ef4444; }
+.profile-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.profile-menu-item i { width: 18px; }
+.profile-caret { margin-left: 8px; color: var(--color-text-light); }
+
+.profile-menu-divider {
+    height: 1px;
+    background: rgba(0,0,0,0.06);
+    margin: 6px 0;
+}
+
+/* Responsive mobile: mostrar título, monedas y menú contextual; ocultar botón Inventario */
+@media (max-width: 767px) {
+    .header h1 { display: block; }
+    /* Mostrar monedas y perfil */
+    .credits-box { display: flex; }
+    .profile-box { display: flex; }
+    /* Ocultar el botón Inventario en mobile */
+    .btn-inventory { display: none !important; }
+
+    /* Hacer que el profile-menu esté en flujo y ocupe el ancho completo cuando se muestra */
+    .profile-menu {
+        position: static;
+        width: 100%;
+        min-width: 0;
+        margin-top: 12px;
+        border-radius: 10px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        display: none;
+    }
+    .profile-menu.visible { display: flex; }
+
+    .profile-menu-item { padding: 12px 16px; }
+    .profile-profile-mobile-spacer { height: 8px; }
+}
+
+/* Reordenar header en mobile: colocar créditos/perfil arriba a la izquierda y título debajo */
+@media (max-width: 767px) {
+    .header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    /* Colocar credits-profile-container en primer lugar */
+    .credits-profile-container { order: -1; align-self: flex-end; }
+
+    /* Hacer que el título quede después y centrado a la izquierda */
+    .header h1 { order: 0; align-self: stretch; }
+
+    /* Posicionar el profile-menu para que aparezca alineado a la izquierda arriba */
+    .profile-box { position: relative; }
+    .profile-menu {
+        position: absolute;
+        left: 0;
+        top: calc(100% + 6px);
+        width: auto;
+        max-width: 90vw;
+        border-radius: 8px;
+                font-size: 10px;
     }
 }
