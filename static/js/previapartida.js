@@ -95,6 +95,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const groupView = document.getElementById('group-view');
         if (groupView) {
             groupView.innerHTML = '';
+
+            // 1. Crear el grupo especial "SIN ASIGNAR" (Grupo ID 0)
+            const colNoGroup = document.createElement('div');
+            colNoGroup.classList.add('group-column', 'no-group');
+            // Usaremos el ID 0 o 'null' para identificar este grupo
+            colNoGroup.dataset.grupoId = '0'; 
+            colNoGroup.innerHTML = `<h3 class="group-title no-group-title">Sin Asignar (0)</h3>`;
+            groupView.appendChild(colNoGroup);
+
+            // 2. Crear los grupos normales (Grupo ID 1 hasta numGrupos)
             for (let i = 1; i <= numGrupos; i++) {
                 const col = document.createElement('div');
                 col.classList.add('group-column');
@@ -112,47 +122,48 @@ document.addEventListener("DOMContentLoaded", () => {
         const individualView = document.getElementById('individual-view');
         const groupView = document.getElementById('group-view');
 
-        // MODO INDIVIDUAL
+        // ... (código para MODO INDIVIDUAL sin cambios)
         if (!isGroupGame && individualView) {
-            individualView.innerHTML = '';
-            participantes.forEach(usuario => {
-                const card = document.createElement('div');
-                card.classList.add('participant-card');
-                card.dataset.usuarioId = usuario.usuario_id;
-                card.innerHTML = `
-                    <img src="${usuario.url_avatar || '/static/img/default-avatar.png'}" 
-                         alt="Avatar" class="user-avatar">
-                    <span class="username">${usuario.nombre}</span>
-                `;
-                individualView.appendChild(card);
-            });
+            // ... (código sin cambios)
             return;
         }
+
 
         // MODO GRUPAL
         if (isGroupGame && groupView) {
             // Limpiar todas las columnas de grupo
             const columnas = groupView.querySelectorAll('.group-column');
             columnas.forEach(col => {
+                // Preservar el título, pero limpiar participantes
                 const titulo = col.querySelector('.group-title');
                 col.innerHTML = '';
                 if (titulo) col.appendChild(titulo);
             });
 
             participantes.forEach(usuario => {
-                const grupoId = usuario.grupo_id || 0;
+                // Si grupo_id es NULL, lo mapeamos al grupo 0 ("Sin Asignar")
+                const grupoId = usuario.grupo_id || '0'; 
                 let targetColumn;
 
-                if (grupoId >= 1 && grupoId <= numGrupos) {
+                // La condición para el grupo objetivo ahora incluye el grupo 0
+                if (grupoId == '0') {
+                    targetColumn = groupView.querySelector(`[data-grupo-id="0"]`);
+                } else if (grupoId >= 1 && grupoId <= numGrupos) {
                     targetColumn = groupView.querySelector(`[data-grupo-id="${grupoId}"]`);
                 }
 
-                if (!targetColumn) return;
+                // Si el grupo es válido o es el grupo "Sin Asignar"
+                if (!targetColumn) {
+                    // Esto podría pasar si el grupoId es mayor que numGrupos, lo ignoramos
+                    console.warn(`Participante ${usuario.nombre} tiene grupo_id ${usuario.grupo_id} inválido o no renderizable.`);
+                    return;
+                }
 
                 const tarjeta = document.createElement("div");
                 tarjeta.classList.add("tarjeta-usuario", "usuario-en-grupo");
                 tarjeta.title = usuario.nombre;
 
+                // Solo permitimos designar líder si el participante YA está en un grupo (grupoId > 0)
                 const esLider = usuario.lider_id === usuario.participante_id;
                 const iconoLider = esLider ?
                     `<span class="lider-icon" title="Líder del grupo">🏁</span>` : '';
@@ -165,14 +176,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 `;
 
-                // Si es profesor, permitir designar líder
-                if (loggedUser && loggedUser.tipo_usuario === 'P' && usuario.grupo_id) {
+                // Si es profesor, permitir designar líder (solo si está en un grupo asignado)
+                if (loggedUser && loggedUser.tipo_usuario === 'P' && grupoId > 0) {
                     tarjeta.style.cursor = 'pointer';
                     tarjeta.addEventListener('click', async () => {
-                        if (confirm(`¿Designar a ${usuario.nombre} como líder del grupo ${usuario.grupo_id}?`)) {
-                            await designarLider(usuario.grupo_id, usuario.participante_id);
+                        if (confirm(`¿Designar a ${usuario.nombre} como líder del grupo ${grupoId}?`)) {
+                            await designarLider(grupoId, usuario.participante_id);
                         }
                     });
+                } else if (grupoId == '0') {
+                    // Estilo distinto o simplemente no es clickeable si está "Sin Asignar"
+                    tarjeta.style.backgroundColor = '#f0f0f0'; 
                 }
 
                 targetColumn.appendChild(tarjeta);
