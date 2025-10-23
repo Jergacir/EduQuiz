@@ -11,8 +11,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const isGroupGame = JSON.parse(body.dataset.isGroupGame || "false");
     const numGrupos = parseInt(body.dataset.numGrupos || "3");
     const codigoPartida = document.querySelector(".game-code")?.textContent.trim();
+    
+    const esProfesor = loggedUser && loggedUser.tipo_usuario === 'P';
 
-    console.log("📋 Config:", { loggedUser, isGroupGame, numGrupos, codigoPartida });
+    console.log("📋 Config:", { loggedUser, isGroupGame, numGrupos, codigoPartida, esProfesor });
+
 
     // ===================================================================
     // MÚSICA DE FONDO
@@ -74,18 +77,55 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===================================================================
     // BOTÓN INICIAR PARTIDA
     // ===================================================================
+    // ===================================================================
+    // MEJORADO: Botón iniciar partida (solo profesor)
+    // ===================================================================
     const startBtn = document.querySelector(".start-game-button");
-    if (startBtn) {
-        startBtn.addEventListener("click", () => {
+    if (startBtn && esProfesor) {
+        startBtn.addEventListener("click", async () => {
             console.log("🚀 Iniciando partida...");
-            if (musicaActual) {
-                musicaActual.pause();
-                musicaActual = null;
+            
+            // Deshabilitar botón
+            startBtn.disabled = true;
+            startBtn.textContent = "Iniciando...";
+            
+            try {
+                const response = await fetch(`/api/partida/${codigoPartida}/estado`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nuevo_estado: 'cuenta_regresiva' })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log("✅ Estado cambiado a cuenta_regresiva");
+                    // El polling detectará el cambio y redirigirá
+                } else {
+                    console.error("❌ Error al cambiar estado:", data.message);
+                    alert("Error al iniciar partida: " + data.message);
+                    startBtn.disabled = false;
+                    startBtn.textContent = "Iniciar Partida";
+                }
+
+            } catch (error) {
+                console.error("❌ Error al iniciar partida:", error);
+                alert("Error de conexión al iniciar partida");
+                startBtn.disabled = false;
+                startBtn.textContent = "Iniciar Partida";
             }
-            localStorage.removeItem("cancionActual");
-            localStorage.removeItem("musicaActiva");
-            // Aquí puedes redirigir o cambiar el estado de la partida
         });
+    }
+
+    // ===================================================================
+    // FUNCIÓN AUXILIAR: Detener polling
+    // ===================================================================
+    function detenerPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+            console.log("🛑 Polling detenido");
+        }
     }
 
     // ===================================================================
@@ -195,16 +235,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ===================================================================
-    // AJAX POLLING: CONSULTAR PARTICIPANTES PERIÓDICAMENTE
+    // NUEVA: Variable de estado actual
     // ===================================================================
+    let estadoActual = 'espera';
     let pollingInterval = null;
     let lastTimestamp = 0;
     let isPolling = false;
 
+    // ===================================================================
+    // MEJORADO: Polling que detecta cambios de estado
+    // ===================================================================
     async function pollParticipantes() {
-        // Evitar múltiples llamadas simultáneas
         if (isPolling) {
-            console.log("⏳ Polling en progreso, esperando...");
+            console.log("⏳ Polling en progreso...");
             return;
         }
 
@@ -225,10 +268,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const data = await response.json();
 
-            if (data.success && data.participantes) {
-                // Solo actualizar si hubo cambios (comparar timestamp)
+            if (data.success) {
+                // 🔥 CLAVE: Detectar cambio de estado
+                if (data.estado_partida !== estadoActual) {
+                    console.log(`🔄 CAMBIO DE ESTADO: ${estadoActual} → ${data.estado_partida}`);
+                    manejarCambioEstado(data.estado_partida);
+                    estadoActual = data.estado_partida;
+                }
+
+                // Actualizar participantes solo si hubo cambios
                 if (data.timestamp !== lastTimestamp) {
-                    console.log(`🔄 Actualización detectada (${data.total} participantes)`);
+                    console.log(`🔄 Actualización (${data.total} participantes)`);
                     lastTimestamp = data.timestamp;
                     renderParticipantes(data.participantes);
                 }
@@ -238,9 +288,66 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (error) {
             console.error("❌ Error en polling:", error);
-            // No detener el polling en caso de error temporal
         } finally {
             isPolling = false;
+        }
+    }
+
+
+    // ===================================================================
+    // NUEVA: Manejar transiciones de estado
+    // ===================================================================
+    function manejarCambioEstado(nuevoEstado) {
+        switch(nuevoEstado) {
+            case 'cuenta_regresiva':
+                console.log("⏱️ Iniciando cuenta regresiva...");
+                detenerPolling();
+                redirigirACuentaRegresiva();
+                break;
+            
+            case 'en_curso':
+                console.log("🎮 Partida en curso");
+                detenerPolling();
+                redirigirAJuego();
+                break;
+            
+            case 'finalizada':
+                console.log("🏁 Partida finalizada");
+                detenerPolling();
+                redirigirAResultados();
+                break;
+            
+            default:
+                console.log(`Estado: ${nuevoEstado}`);
+        }
+    }
+
+    // ===================================================================
+    // NUEVAS: Funciones de redirección
+    // ===================================================================
+    function redirigirACuentaRegresiva() {
+        // Pausa la música si existe
+        if (window.musicaGlobal) {
+            window.musicaGlobal.pause();
+        }
+        
+        // Redirigir a cuenta regresiva
+        window.location.href = `/cuentaregresiva/${codigoPartida}`;
+    }
+
+    function redirigirAJuego() {
+        if (esProfesor) {
+            window.location.href = `/preguntasprofesor/${codigoPartida}`;
+        } else {
+            window.location.href = `/preguntasalumno/${codigoPartida}`;
+        }
+    }
+
+    function redirigirAResultados() {
+        if (esProfesor) {
+            window.location.href = `/resultados_partida/${partidaId}`;
+        } else {
+            window.location.href = `/resultados_alumno/${codigoPartida}`;
         }
     }
 
@@ -280,27 +387,58 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!codigoPartida) {
         console.error("❌ No se encontró código de partida");
     } else {
-        console.log("🔄 Iniciando AJAX Polling cada 3 segundos...");
-
+        console.log("🔄 Iniciando AJAX Polling cada 2 segundos...");
+        
         // Primera carga inmediata
         pollParticipantes();
-
-        // Polling cada 3 segundos (ajustable según necesidades)
-        pollingInterval = setInterval(pollParticipantes, 3000);
+        
+        // Polling cada 2 segundos
+        pollingInterval = setInterval(pollParticipantes, 2000);
     }
 
     // ===================================================================
     // LIMPIAR AL SALIR
     // ===================================================================
     window.addEventListener('beforeunload', () => {
-        if (pollingInterval) {
-            clearInterval(pollingInterval);
-            console.log("🛑 Polling detenido");
-        }
-        if (musicaActual) {
-            musicaActual.pause();
+        detenerPolling();
+        if (window.musicaGlobal) {
+            window.musicaGlobal.pause();
         }
     });
+
+
+    // ===================================================================
+    // REDIRIGIRME A CUENTAREGRESIVA
+    // ===================================================================
+    const startGameButton = document.querySelector('.start-game-button');
+    const gameCode = document.querySelector('.game-code').textContent.trim(); 
+    // ... otras variables de setup ...
+
+    startGameButton.addEventListener('click', async () => {
+        // 1. Llamar al backend para cambiar el estado de la partida
+        try {
+            const response = await fetch('/api/partida/iniciar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo_partida: gameCode })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                console.log("Partida iniciada en el backend. Redirigiendo a la cuenta regresiva.");
+                
+                // 2. Redirigir a la nueva ruta
+                window.location.href = `/cuentaregresiva/${gameCode}`;
+            } else {
+                alert("Error al iniciar la partida: " + (data.message || 'Error desconocido'));
+            }
+        } catch (error) {
+            console.error("Error de red al iniciar partida:", error);
+            alert("Ocurrió un error al intentar conectar con el servidor.");
+        }
+    });
+
 
     // ===================================================================
     // CONFIGURAR VISTA INICIAL

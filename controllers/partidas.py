@@ -5,6 +5,15 @@ from datetime import datetime
 import random
 import string
 import json
+from enum import Enum
+
+class EstadoPartida(Enum):
+    """Estados posibles de una partida"""
+    ESPERA = 'espera'           # Esperando jugadores
+    CUENTA_REGRESIVA = 'cuenta_regresiva'  # 3, 2, 1... Let's go
+    EN_CURSO = 'en_curso'       # Jugando
+    ENTRE_PREGUNTAS = 'entre_preguntas'  # Mostrando resultados de pregunta
+    FINALIZADA = 'finalizada'   # Juego terminado
 
 partidas_bp = Blueprint('partidas', __name__, template_folder='../../templates')
 
@@ -204,40 +213,124 @@ def frm_sala_espera(codigo_partida):
     finally:
         conexion.close()
 
+# En partidas_bp.py (ruta frm_cuenta_regresiva)
+@partidas_bp.route('/cuentaregresiva/<string:codigo_partida>')
+def frm_cuenta_regresiva(codigo_partida):
+    logged = _get_logged_in_user() # Asegúrate de que esta función devuelve el objeto de usuario completo
+    return render_template(
+        'cuentaregresiva.html', 
+        codigo_partida=codigo_partida, 
+        logged_in_user=logged # logged_in_user DEBE contener 'tipo_usuario'
+    )
 
 # ====================================================================
 # API ENDPOINTS PARA AJAX POLLING
 # ====================================================================
-
+def obtener_pregunta_actual(codigo_partida):
+    """
+    Obtiene la pregunta que se está jugando actualmente.
+    Retorna None si no hay pregunta activa.
+    """
+    # Esto requiere agregar un campo en la tabla partida:
+    # ALTER TABLE partida ADD COLUMN pregunta_actual_index INT DEFAULT 0;
+    
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return None
+    
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                SELECT 
+                    p.pregunta_actual_index,
+                    c.cuestionario_id
+                FROM partida p
+                JOIN cuestionario c ON p.cuestionario_id = c.cuestionario_id
+                WHERE p.codigo_partida = %s
+            """, (codigo_partida,))
+            
+            result = cursor.fetchone()
+            if not result:
+                return None
+            
+            # Obtener preguntas del cuestionario
+            cursor.execute("""
+                SELECT pregunta_id, texto_pregunta, tiempo_limite
+                FROM pregunta
+                WHERE cuestionario_id = %s
+                ORDER BY pregunta_id
+            """, (result['cuestionario_id'],))
+            
+            preguntas = cursor.fetchall()
+            index = result['pregunta_actual_index']
+            
+            if 0 <= index < len(preguntas):
+                return preguntas[index]
+            
+            return None
+            
+    except Exception as e:
+        print(f"[ERROR] obtener_pregunta_actual: {e}", file=sys.stderr)
+        return None
+    finally:
+        conexion.close()
+# ====================================================================
+# MEJORADO: Endpoint de polling incluye estado de partida
+# ====================================================================
 @partidas_bp.route('/api/partida/<codigo_partida>/poll', methods=['GET'])
 def api_poll_participantes(codigo_partida):
     """
-    Endpoint principal para AJAX Polling.
-    Retorna participantes y timestamp de última actualización.
-    El cliente puede usar el timestamp para detectar cambios.
+    Polling mejorado que incluye:
+    - Participantes
+    - Estado de la partida
+    - Pregunta actual (si está en curso)
+    - Timestamp
     """
     try:
-        participantes = obtener_participantes(codigo_partida)
+        conexion = dbmod.obtenerConexion()
+        if not conexion:
+            return jsonify({'success': False, 'error': 'Error de conexión'}), 500
         
-        # Obtener timestamp de cache
-        timestamp = partidas_cache.get(codigo_partida, {}).get('last_update', datetime.now().timestamp())
-        timestamp_str = partidas_cache.get(codigo_partida, {}).get('last_update_str', datetime.now().isoformat())
-        
-        return jsonify({
-            'success': True,
-            'participantes': participantes,
-            'timestamp': timestamp,
-            'timestamp_str': timestamp_str,
-            'total': len(participantes)
-        }), 200
+        with conexion.cursor() as cursor:
+            # Obtener datos de la partida
+            cursor.execute("""
+                SELECT estado, cuestionario_id 
+                FROM partida 
+                WHERE codigo_partida = %s
+            """, (codigo_partida,))
+            
+            partida_info = cursor.fetchone()
+            if not partida_info:
+                return jsonify({'success': False, 'error': 'Partida no encontrada'}), 404
+            
+            # Obtener participantes
+            participantes = obtener_participantes(codigo_partida)
+            
+            # Timestamp
+            timestamp = partidas_cache.get(codigo_partida, {}).get('last_update', datetime.now().timestamp())
+            
+            response_data = {
+                'success': True,
+                'participantes': participantes,
+                'estado_partida': partida_info['estado'],
+                'timestamp': timestamp,
+                'total': len(participantes)
+            }
+            
+            # Si está en curso, incluir pregunta actual
+            if partida_info['estado'] == EstadoPartida.EN_CURSO.value:
+                pregunta_actual = obtener_pregunta_actual(codigo_partida)
+                if pregunta_actual:
+                    response_data['pregunta_actual'] = pregunta_actual
+            
+            return jsonify(response_data), 200
         
     except Exception as e:
         print(f"[ERROR] api_poll_participantes: {e}", file=sys.stderr)
-        return jsonify({
-            'success': False,
-            'error': str(e),
-            'participantes': []
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conexion:
+            conexion.close()
 
 
 @partidas_bp.route('/api/partida/<codigo_partida>/participantes')
@@ -422,6 +515,56 @@ def api_designar_lider(codigo_partida):
         conexion.close()
 
 
+# CAMBIAR ES ESTADO DE LA PARTIDA: esperando -> iniciar
+@partidas_bp.route('/api/partida/iniciar', methods=['POST'])
+def api_iniciar_partida():
+    """
+    Endpoint para que el profesor cambie el estado de la partida a 'en_juego'.
+    """
+    data = request.get_json() or {}
+    codigo_partida = data.get('codigo_partida')
+    usuario = _get_logged_in_user()
+
+    if not codigo_partida or not usuario:
+        return jsonify({"success": False, "message": "Datos o autenticación incompletos"}), 400
+
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({"success": False, "message": "Error de conexión"}), 500
+
+    try:
+        with conexion.cursor() as cursor:
+            # 1. Verificar que el usuario sea el creador de la partida
+            cursor.execute(
+                "SELECT partida_id, usuario_creador_id FROM partida WHERE codigo_partida = %s",
+                (codigo_partida,)
+            )
+            partida_info = cursor.fetchone()
+
+            if not partida_info:
+                return jsonify({"success": False, "message": "Partida no encontrada"}), 404
+
+            if partida_info['usuario_creador_id'] != usuario['usuario_id']:
+                return jsonify({"success": False, "message": "Solo el creador puede iniciar la partida"}), 403
+
+            # 2. Actualizar el estado a 'en_juego'
+            cursor.execute(
+                "UPDATE partida SET estado = 'en_juego' WHERE codigo_partida = %s",
+                (codigo_partida,)
+            )
+            conexion.commit()
+            actualizar_timestamp_partida(codigo_partida) # Notificar a los participantes (polling)
+
+            return jsonify({"success": True, "message": "Partida iniciada"}), 200
+
+    except Exception as e:
+        print(f"[ERROR] api_iniciar_partida: {e}", file=sys.stderr)
+        conexion.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        conexion.close()
+
+
 # ====================================================================
 # CREAR PARTIDA
 # ====================================================================
@@ -586,6 +729,28 @@ def frm_exportar_resultados(partida_id):
     finally:
         conexion.close()
 
+# En partidas_bp.py (o donde manejes tus rutas)
+
+@partidas_bp.route('/preguntasprofesor/<string:codigo_partida>')
+def frm_preguntas_profesor(codigo_partida):
+    """Renderiza la vista principal de juego para el profesor."""
+    # Aquí puedes añadir lógica de carga de la primera pregunta
+    return render_template(
+        'preguntasprofesor.html', 
+        codigo_partida=codigo_partida, 
+        # ... datos adicionales ...
+    )
+
+@partidas_bp.route('/preguntasalumno/<string:codigo_partida>')
+def frm_preguntas_alumno(codigo_partida):
+    """Renderiza la vista principal de juego para el alumno/participante."""
+    # Aquí puedes añadir lógica de carga de la primera pregunta
+    return render_template(
+        'preguntasalumno.html', 
+        codigo_partida=codigo_partida,
+        # ... datos adicionales ...
+    )
+
 
 @partidas_bp.route('/api/exportar_partida/<int:partida_id>', methods=['POST'])
 def api_exportar_partida(partida_id):
@@ -594,3 +759,74 @@ def api_exportar_partida(partida_id):
     campos = data.get('campos', [])
     print(f"Exportando partida #{partida_id} a {formato} con campos: {campos}")
     return jsonify({'success': True, 'message': f'Partida {partida_id} exportada como {formato}.'})
+
+
+# ====================================================================
+# NUEVO: Endpoint para cambiar estado de partida
+# ====================================================================
+@partidas_bp.route('/api/partida/<codigo_partida>/estado', methods=['POST'])
+def api_cambiar_estado_partida(codigo_partida):
+    """
+    Cambia el estado de la partida (solo profesor).
+    Body: { "nuevo_estado": "cuenta_regresiva" | "en_curso" | "finalizada" }
+    """
+    data = request.get_json() or {}
+    nuevo_estado = data.get('nuevo_estado')
+    
+    # Validar usuario
+    usuario = _get_logged_in_user()
+    if not usuario or usuario['tipo_usuario'] != 'P':
+        return jsonify({'success': False, 'message': 'Solo profesores pueden cambiar el estado'}), 403
+    
+    # Validar estado
+    estados_validos = [e.value for e in EstadoPartida]
+    if nuevo_estado not in estados_validos:
+        return jsonify({'success': False, 'message': 'Estado inválido'}), 400
+    
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+    
+    try:
+        with conexion.cursor() as cursor:
+            # Verificar que la partida existe y el profesor es el creador
+            cursor.execute("""
+                SELECT partida_id, usuario_creador_id, estado 
+                FROM partida 
+                WHERE codigo_partida = %s
+            """, (codigo_partida,))
+            
+            partida = cursor.fetchone()
+            if not partida:
+                return jsonify({'success': False, 'message': 'Partida no encontrada'}), 404
+            
+            if partida['usuario_creador_id'] != usuario['usuario_id']:
+                return jsonify({'success': False, 'message': 'No eres el creador de esta partida'}), 403
+            
+            # Actualizar estado
+            cursor.execute("""
+                UPDATE partida 
+                SET estado = %s 
+                WHERE codigo_partida = %s
+            """, (nuevo_estado, codigo_partida))
+            
+            conexion.commit()
+            
+            # Actualizar timestamp para polling
+            actualizar_timestamp_partida(codigo_partida)
+            
+            return jsonify({
+                'success': True, 
+                'estado_anterior': partida['estado'],
+                'nuevo_estado': nuevo_estado,
+                'timestamp': datetime.now().isoformat()
+            }), 200
+            
+    except Exception as e:
+        print(f"[ERROR] api_cambiar_estado_partida: {e}", file=sys.stderr)
+        conexion.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conexion.close()
+
+

@@ -111,13 +111,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const data = await response.json();
 
-            if (data.success && data.participantes) {
-                // Solo actualizar si hay cambios
-                if (data.timestamp !== lastTimestamp) {
-                    console.log(`🔄 Actualización: ${data.total} participantes`);
-                    lastTimestamp = data.timestamp;
-                    renderizarParticipantes(data.participantes);
-                }
+            if (data.success) {
+
+                // ⭐️ AÑADIR/VERIFICAR LÓGICA DE REDIRECCIÓN AQUÍ ⭐️
+                if (data.estado_partida === 'en_juego') {
+                    console.log("¡El profesor ha iniciado la partida! Redirigiendo a la cuenta regresiva.");
+                    
+                    // Detener el polling
+                    if (pollingInterval) { 
+                        clearInterval(pollingInterval);
+                    }
+                    
+                    window.location.href = `/cuentaregresiva/${codigoPartida}`;
+                    return; 
+                }
+
+                // Solo actualizar si hay cambios y si hay participantes (para evitar error si data.participantes es null)
+                if (data.participantes && data.timestamp !== lastTimestamp) {
+                    console.log(`🔄 Actualización: ${data.total} participantes`);
+                    lastTimestamp = data.timestamp;
+                    renderizarParticipantes(data.participantes);
+                }
             }
 
         } catch (error) {

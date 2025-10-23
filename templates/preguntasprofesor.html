@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pregunta en Curso - Profesor | EduQuiz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header con información de partida */
+        .game-header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .game-info h2 {
+            font-size: 24px;
+            color: #1e3a8a;
+            margin-bottom: 5px;
+        }
+
+        .game-meta {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .question-counter {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        /* Grid principal: pregunta + stats */
+        .game-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Card de pregunta */
+        .question-card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .timer-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            transition: width 1s linear;
+        }
+
+        .question-text {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 30px;
+            line-height: 1.3;
+        }
+
+        .question-media {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .answers-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .answer-option {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+            border: 3px solid transparent;
+            transition: all 0.3s;
+            font-size: 18px;
+            font-weight: 600;
+            color: #334155;
+            position: relative;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+        }
+
+        .answer-option.correct {
+            border-color: #10b981;
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .answer-option.incorrect {
+            border-color: #ef4444;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .answer-label {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        /* Panel de estadísticas en tiempo real */
+        .stats-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-panel h3 {
+            font-size: 20px;
+            color: #1e293b;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            margin-bottom: 25px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .progress-ring {
+            width: 120px;
+            height: 120px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .progress-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.3s;
+            transform-origin: 50% 50%;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        /* Botón de acción */
+        .action-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .action-button:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .action-button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Indicador de respuestas */
+        .response-indicator {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .response-indicator.complete {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        @media (max-width: 1024px) {
+            .game-grid {
+                grid-template-columns: 1fr;
+            }
+            .answers-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body data-codigo-partida="{{ codigo_partida }}">
+    
+    <div class="container">
+        <!-- Header -->
+        <div class="game-header">
+            <div class="game-info">
+                <h2 id="cuestionarioNombre">Cargando cuestionario...</h2>
+                <div class="game-meta">
+                    Código: <strong>{{ codigo_partida }}</strong> | 
+                    Participantes: <strong id="totalParticipantes">0</strong>
+                </div>
+            </div>
+            <div class="question-counter">
+                Pregunta <span id="preguntaActual">1</span> de <span id="totalPreguntas">10</span>
+            </div>
+        </div>
+
+        <!-- Grid principal -->
+        <div class="game-grid">
+            <!-- Card de pregunta -->
+            <div class="question-card">
+                <div class="timer-bar">
+                    <div class="timer-fill" id="timerFill"></div>
+                </div>
+
+                <h1 class="question-text" id="preguntaTexto">
+                    Cargando pregunta...
+                </h1>
+
+                <img class="question-media" id="preguntaMedia" style="display: none;">
+
+                <div class="answers-grid" id="answersGrid">
+                    <!-- Se llenan dinámicamente -->
+                </div>
+            </div>
+
+            <!-- Panel de estadísticas -->
+            <div class="stats-panel">
+                <h3>⏱️ Estado en Tiempo Real</h3>
+
+                <div class="stat-item">
+                    <div class="stat-label">Alumnos que respondieron</div>
+                    <div class="stat-value">
+                        <span id="respondidos">0</span> / <span id="totalAlumnos">0</span>
+                    </div>
+                </div>
+
+                <!-- Progreso circular -->
+                <div class="progress-ring">
+                    <svg width="120" height="120">
+                        <circle
+                            class="progress-ring-circle"
+                            stroke="#e2e8f0"
+                            stroke-width="10"
+                            fill="transparent"
+                            r="52"
+                            cx="60"
+                            cy="60"
+                        />
+                        <circle
+                            id="progressCircle"
+                            class="progress-ring-circle"
+                            stroke="#3b82f6"
+                            stroke-width="10"
+                            fill="transparent"
+                            r="52"
+                            cx="60"
+                            cy="60"
+                            stroke-dasharray="326.73"
+                            stroke-dashoffset="326.73"
+                        />
+                    </svg>
+                    <div class="progress-text" id="progressPercent">0%</div>
+                </div>
+
+                <div class="response-indicator" id="responseIndicator">
+                    Esperando respuestas...
+                </div>
+
+                <button class="action-button" id="btnContinuar" disabled>
+                    Continuar a Siguiente Pregunta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/preguntasprofesor.js"></script>
+</body>
+</html>

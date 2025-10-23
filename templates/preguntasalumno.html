@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego en Curso - EduQuiz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        /* Card principal */
+        .game-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Timer circular */
+        .timer-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .timer-circle {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 10px;
+            position: relative;
+        }
+
+        .timer-circle svg {
+            transform: rotate(-90deg);
+        }
+
+        .timer-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: 800;
+            color: #3b82f6;
+        }
+
+        .question-counter {
+            font-size: 16px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        /* Texto de pregunta */
+        .question-text {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 30px;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        /* Imagen de pregunta */
+        .question-image {
+            width: 100%;
+            max-height: 250px;
+            object-fit: contain;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        /* Grid de respuestas */
+        .answers-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .answer-btn {
+            background: #f1f5f9;
+            border: 3px solid #e2e8f0;
+            padding: 25px 20px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .answer-btn:hover {
+            background: #e0e7ff;
+            border-color: #6366f1;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .answer-btn.selected {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+
+        .answer-btn.correct {
+            background: #d1fae5;
+            border-color: #10b981;
+            color: #065f46;
+        }
+
+        .answer-btn.incorrect {
+            background: #fee2e2;
+            border-color: #ef4444;
+            color: #991b1b;
+        }
+
+        .answer-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .answer-label {
+            width: 45px;
+            height: 45px;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Pantalla de espera */
+        .waiting-screen {
+            display: none;
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .waiting-screen.active {
+            display: block;
+        }
+
+        .waiting-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .waiting-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+
+        .waiting-subtext {
+            font-size: 16px;
+            color: #64748b;
+        }
+
+        /* Indicador de líder (para modo grupal) */
+        .leader-indicator {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+            color: #92400e;
+            display: none;
+        }
+
+        .leader-indicator.show {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .game-card {
+                padding: 25px;
+            }
+            .question-text {
+                font-size: 22px;
+            }
+            .answers-container {
+                grid-template-columns: 1fr;
+            }
+            .answer-btn {
+                padding: 20px 15px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body data-codigo-partida="{{ codigo_partida }}" 
+      data-usuario-id="{{ logged_in_user.usuario_id }}"
+      data-participante-id="{{ participante_id }}">
+    
+    <div class="container">
+        <div class="game-card">
+            
+            <!-- Indicador de líder (solo modo grupal) -->
+            <div class="leader-indicator" id="leaderIndicator">
+                🏁 Eres el líder de tu grupo - ¡Selecciona la respuesta!
+            </div>
+
+            <!-- Sección de timer -->
+            <div class="timer-section">
+                <div class="timer-circle">
+                    <svg width="100" height="100">
+                        <circle
+                            stroke="#e2e8f0"
+                            stroke-width="8"
+                            fill="transparent"
+                            r="42"
+                            cx="50"
+                            cy="50"
+                        />
+                        <circle
+                            id="timerCircle"
+                            stroke="#3b82f6"
+                            stroke-width="8"
+                            fill="transparent"
+                            r="42"
+                            cx="50"
+                            cy="50"
+                            stroke-dasharray="263.89"
+                            stroke-dashoffset="0"
+                        />
+                    </svg>
+                    <div class="timer-value" id="timerValue">30</div>
+                </div>
+                <div class="question-counter">
+                    Pregunta <span id="currentQuestion">1</span> de <span id="totalQuestions">10</span>
+                </div>
+            </div>
+
+            <!-- Contenedor de pregunta (oculto inicialmente) -->
+            <div id="questionContainer">
+                <h2 class="question-text" id="questionText">
+                    Cargando pregunta...
+                </h2>
+
+                <img class="question-image" id="questionImage" style="display: none;">
+
+                <div class="answers-container" id="answersContainer">
+                    <!-- Respuestas se insertan dinámicamente -->
+                </div>
+            </div>
+
+            <!-- Pantalla de espera -->
+            <div class="waiting-screen" id="waitingScreen">
+                <div class="waiting-icon">⏳</div>
+                <div class="waiting-text">Esperando a que los demás terminen...</div>
+                <div class="waiting-subtext">Tu respuesta ha sido registrada</div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="/static/js/preguntasalumno.js"></script>
+</body>
+</html>
