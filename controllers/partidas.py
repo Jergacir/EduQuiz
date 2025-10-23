@@ -829,4 +829,136 @@ def api_cambiar_estado_partida(codigo_partida):
     finally:
         conexion.close()
 
+# controllers/partidas.py (añadir estos endpoints)
 
+@partidas_bp.route('/api/partida/<codigo_partida>/respuestas_recibidas', methods=['GET'])
+def api_obtener_respuestas_recibidas(codigo_partida):
+    """
+    Obtiene la cantidad de respuestas recibidas en la pregunta actual
+    """
+    pregunta_index = request.args.get('pregunta_index', 0, type=int)
+    
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'success': False, 'error': 'Error de conexión'}), 500
+    
+    try:
+        with conexion.cursor() as cursor:
+            # Obtener partida_id
+            cursor.execute("""
+                SELECT partida_id, pregunta_actual_index, cuestionario_id
+                FROM partida
+                WHERE codigo_partida = %s
+            """, (codigo_partida,))
+            
+            partida = cursor.fetchone()
+            if not partida:
+                return jsonify({'success': False, 'error': 'Partida no encontrada'}), 404
+            
+            # Obtener pregunta actual
+            cursor.execute("""
+                SELECT pregunta_id
+                FROM pregunta
+                WHERE cuestionario_id = %s
+                ORDER BY pregunta_id
+                LIMIT 1 OFFSET %s
+            """, (partida['cuestionario_id'], pregunta_index))
+            
+            pregunta = cursor.fetchone()
+            if not pregunta:
+                return jsonify({'success': False, 'error': 'Pregunta no encontrada'}), 404
+            
+            # Contar respuestas recibidas
+            cursor.execute("""
+                SELECT COUNT(DISTINCT pp.participante_id) as total
+                FROM pregunta_participante pp
+                JOIN participante p ON pp.participante_id = p.participante_id
+                WHERE p.partida_id = %s
+                AND pp.pregunta_id = %s
+            """, (partida['partida_id'], pregunta['pregunta_id']))
+            
+            result = cursor.fetchone()
+            respuestas_recibidas = result['total'] if result else 0
+            
+            return jsonify({
+                'success': True,
+                'respuestas_recibidas': respuestas_recibidas
+            }), 200
+            
+    except Exception as e:
+        print(f"[ERROR] api_obtener_respuestas_recibidas: {e}", file=sys.stderr)
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conexion.close()
+
+
+@partidas_bp.route('/api/partida/<codigo_partida>/avanzar_pregunta', methods=['POST'])
+def api_avanzar_pregunta(codigo_partida):
+    """
+    Avanza a la siguiente pregunta (solo profesor)
+    """
+    usuario = _get_logged_in_user()
+    
+    if not usuario or usuario['tipo_usuario'] != 'P':
+        return jsonify({'success': False, 'message': 'Solo profesores pueden avanzar preguntas'}), 403
+    
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'success': False, 'error': 'Error de conexión'}), 500
+    
+    try:
+        with conexion.cursor() as cursor:
+            # Obtener partida
+            cursor.execute("""
+                SELECT partida_id, pregunta_actual_index, cuestionario_id
+                FROM partida
+                WHERE codigo_partida = %s
+            """, (codigo_partida,))
+            
+            partida = cursor.fetchone()
+            if not partida:
+                return jsonify({'success': False, 'error': 'Partida no encontrada'}), 404
+            
+            # Contar preguntas totales
+            cursor.execute("""
+                SELECT COUNT(*) as total
+                FROM pregunta
+                WHERE cuestionario_id = %s
+            """, (partida['cuestionario_id'],))
+            
+            total_preguntas = cursor.fetchone()['total']
+            
+            # Avanzar o finalizar
+            nuevo_index = partida['pregunta_actual_index'] + 1
+            
+            if nuevo_index < total_preguntas:
+                # Avanzar a siguiente pregunta
+                cursor.execute("""
+                    UPDATE partida
+                    SET pregunta_actual_index = %s,
+                        tiempo_inicio_pregunta = NOW()
+                    WHERE codigo_partida = %s
+                """, (nuevo_index, codigo_partida))
+                
+                conexion.commit()
+                actualizar_timestamp_partida(codigo_partida)
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Pregunta avanzada',
+                    'pregunta_actual': nuevo_index
+                }), 200
+            else:
+                # No hay más preguntas, finalizar partida
+                return jsonify({
+                    'success': True,
+                    'message': 'No hay más preguntas',
+                    'finalizada': True
+                }), 200
+                
+    except Exception as e:
+        print(f"[ERROR] api_avanzar_pregunta: {e}", file=sys.stderr)
+        conexion.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conexion.close()
