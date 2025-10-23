@@ -743,13 +743,38 @@ def frm_preguntas_profesor(codigo_partida):
 
 @partidas_bp.route('/preguntasalumno/<string:codigo_partida>')
 def frm_preguntas_alumno(codigo_partida):
-    """Renderiza la vista principal de juego para el alumno/participante."""
-    # Aquí puedes añadir lógica de carga de la primera pregunta
-    return render_template(
-        'preguntasalumno.html', 
-        codigo_partida=codigo_partida,
-        # ... datos adicionales ...
-    )
+    """Renderiza la vista de juego para el alumno"""
+    usuario_id = session.get('user_id')
+    
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        abort(500, "Error de conexión")
+    
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                SELECT pa.participante_id
+                FROM participante pa
+                JOIN partida p ON pa.partida_id = p.partida_id
+                WHERE p.codigo_partida = %s AND pa.usuario_id = %s
+            """, (codigo_partida, usuario_id))
+            
+            result = cursor.fetchone()
+            participante_id = result['participante_id'] if result else None
+            
+            if not participante_id:
+                abort(404, "No eres participante de esta partida")
+        
+        logged = _get_logged_in_user()
+        
+        return render_template(
+            'preguntasalumno.html',
+            codigo_partida=codigo_partida,
+            participante_id=participante_id,
+            logged_in_user=logged
+        )
+    finally:
+        conexion.close()
 
 
 @partidas_bp.route('/api/exportar_partida/<int:partida_id>', methods=['POST'])
@@ -962,3 +987,286 @@ def api_avanzar_pregunta(codigo_partida):
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         conexion.close()
+
+
+# =========================================================================
+# NUEVO ENDPOINT: Obtener pregunta actual
+# =========================================================================
+@partidas_bp.route('/api/partida/<codigo_partida>/pregunta_actual', methods=['GET'])
+def api_obtener_pregunta_actual(codigo_partida):
+    """
+    Obtiene la pregunta que se está mostrando actualmente en la partida.
+    Retorna la pregunta con sus respuestas.
+    """
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'success': False, 'error': 'Error de conexión'}), 500
+    
+    try:
+        with conexion.cursor() as cursor:
+            # Obtener datos de la partida
+            cursor.execute("""
+                SELECT 
+                    p.pregunta_actual_index,
+                    p.cuestionario_id,
+                    p.tiempo_inicio_pregunta
+                FROM partida p
+                WHERE p.codigo_partida = %s
+            """, (codigo_partida,))
+            
+            partida = cursor.fetchone()
+            if not partida:
+                return jsonify({'success': False, 'error': 'Partida no encontrada'}), 404
+            
+            pregunta_index = partida['pregunta_actual_index']
+            cuestionario_id = partida['cuestionario_id']
+            
+            # Obtener todas las preguntas del cuestionario
+            cursor.execute("""
+                SELECT 
+                    pregunta_id, 
+                    texto_pregunta, 
+                    media_url, 
+                    tiempo_limite
+                FROM pregunta
+                WHERE cuestionario_id = %s
+                ORDER BY pregunta_id ASC
+            """, (cuestionario_id,))
+            
+            preguntas = cursor.fetchall()
+            
+            if pregunta_index >= len(preguntas):
+                return jsonify({
+                    'success': True,
+                    'finalizada': True,
+                    'message': 'No hay más preguntas'
+                }), 200
+            
+            # Obtener la pregunta actual
+            pregunta = preguntas[pregunta_index]
+            
+            # Obtener respuestas de la pregunta
+            cursor.execute("""
+                SELECT 
+                    respuesta_id,
+                    texto_respuesta,
+                    estado_respuesta
+                FROM respuesta
+                WHERE pregunta_id = %s
+                ORDER BY respuesta_id ASC
+            """, (pregunta['pregunta_id'],))
+            
+            respuestas = cursor.fetchall()
+            
+            return jsonify({
+                'success': True,
+                'pregunta': {
+                    'pregunta_id': pregunta['pregunta_id'],
+                    'texto_pregunta': pregunta['texto_pregunta'],
+                    'media_url': pregunta['media_url'],
+                    'tiempo_limite': pregunta['tiempo_limite'],
+                    'respuestas': respuestas
+                },
+                'pregunta_actual': pregunta_index,
+                'total_preguntas': len(preguntas)
+            }), 200
+            
+    except Exception as e:
+        print(f"[ERROR] api_obtener_pregunta_actual: {e}", file=sys.stderr)
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conexion.close()
+
+
+# =========================================================================
+# NUEVO ENDPOINT: Registrar respuesta de participante
+# =========================================================================
+@partidas_bp.route('/api/juego/responder', methods=['POST'])
+def api_responder_pregunta():
+    """
+    Registra la respuesta de un participante a una pregunta.
+    Body: {
+        participante_id: int,
+        pregunta_id: int,
+        respuesta_seleccionada_id: int (puede ser null),
+        tiempo_respuesta: int (en segundos)
+    }
+    """
+    data = request.get_json() or {}
+    
+    participante_id = data.get('participante_id')
+    pregunta_id = data.get('pregunta_id')
+    respuesta_id = data.get('respuesta_seleccionada_id')
+    tiempo_respuesta = data.get('tiempo_respuesta', 0)
+    
+    if not participante_id or not pregunta_id:
+        return jsonify({
+            'success': False, 
+            'message': 'Faltan datos requeridos'
+        }), 400
+    
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+    
+    try:
+        with conexion.cursor() as cursor:
+            # Verificar que el participante existe
+            cursor.execute("""
+                SELECT participante_id, lider_id 
+                FROM participante 
+                WHERE participante_id = %s
+            """, (participante_id,))
+            
+            participante = cursor.fetchone()
+            if not participante:
+                return jsonify({
+                    'success': False, 
+                    'message': 'Participante no encontrado'
+                }), 404
+            
+            # Verificar si ya respondió esta pregunta
+            cursor.execute("""
+                SELECT pregunta_participante_id 
+                FROM pregunta_participante 
+                WHERE participante_id = %s AND pregunta_id = %s
+            """, (participante_id, pregunta_id))
+            
+            if cursor.fetchone():
+                return jsonify({
+                    'success': False, 
+                    'message': 'Ya respondiste esta pregunta'
+                }), 400
+            
+            # Obtener datos de la pregunta
+            cursor.execute("""
+                SELECT texto_pregunta, tiempo_limite 
+                FROM pregunta 
+                WHERE pregunta_id = %s
+            """, (pregunta_id,))
+            
+            pregunta = cursor.fetchone()
+            if not pregunta:
+                return jsonify({
+                    'success': False, 
+                    'message': 'Pregunta no encontrada'
+                }), 404
+            
+            # Verificar si la respuesta es correcta
+            correcta = False
+            if respuesta_id:
+                cursor.execute("""
+                    SELECT estado_respuesta 
+                    FROM respuesta 
+                    WHERE respuesta_id = %s
+                """, (respuesta_id,))
+                
+                respuesta = cursor.fetchone()
+                if respuesta:
+                    correcta = respuesta['estado_respuesta'] == 1
+            
+            # Insertar la respuesta del participante
+            cursor.execute("""
+                INSERT INTO pregunta_participante (
+                    participante_id,
+                    pregunta_id,
+                    respuesta_seleccionada_id,
+                    texto_pregunta,
+                    correcta,
+                    tiempo_pregunta,
+                    tiempo_maximo_pregunta
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (
+                participante_id,
+                pregunta_id,
+                respuesta_id,
+                pregunta['texto_pregunta'],
+                correcta,
+                tiempo_respuesta,
+                pregunta['tiempo_limite']
+            ))
+            
+            # Actualizar estadísticas del participante
+            if correcta:
+                cursor.execute("""
+                    UPDATE participante
+                    SET cant_preguntas_correctas = cant_preguntas_correctas + 1,
+                        puntuacion_total = puntuacion_total + %s
+                    WHERE participante_id = %s
+                """, (1000, participante_id))  # 1000 puntos por correcta
+            else:
+                cursor.execute("""
+                    UPDATE participante
+                    SET cant_preguntas_incorrectas = cant_preguntas_incorrectas + 1
+                    WHERE participante_id = %s
+                """, (participante_id,))
+            
+            conexion.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Respuesta registrada',
+                'correcta': correcta
+            }), 200
+            
+    except Exception as e:
+        print(f"[ERROR] api_responder_pregunta: {e}", file=sys.stderr)
+        conexion.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conexion.close()
+
+
+# =========================================================================
+# NUEVO ENDPOINT: Finalizar partida
+# =========================================================================
+@partidas_bp.route('/api/partida/finalizar', methods=['POST'])
+def api_finalizar_partida():
+    """
+    Marca una partida como finalizada y retorna el ID para ver resultados.
+    Body: { codigo_partida: str }
+    """
+    data = request.get_json() or {}
+    codigo_partida = data.get('codigo_partida')
+    
+    if not codigo_partida:
+        return jsonify({'success': False, 'message': 'Falta código de partida'}), 400
+    
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+    
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                SELECT partida_id 
+                FROM partida 
+                WHERE codigo_partida = %s
+            """, (codigo_partida,))
+            
+            partida = cursor.fetchone()
+            if not partida:
+                return jsonify({'success': False, 'message': 'Partida no encontrada'}), 404
+            
+            # Actualizar estado
+            cursor.execute("""
+                UPDATE partida 
+                SET estado = 'finalizada' 
+                WHERE codigo_partida = %s
+            """, (codigo_partida,))
+            
+            conexion.commit()
+            
+            return jsonify({
+                'success': True,
+                'partida_id': partida['partida_id'],
+                'message': 'Partida finalizada'
+            }), 200
+            
+    except Exception as e:
+        print(f"[ERROR] api_finalizar_partida: {e}", file=sys.stderr)
+        conexion.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conexion.close()
+

@@ -1,4 +1,4 @@
-// static/js/preguntasalumno.js
+// static/js/preguntasalumno.js - VERSIÓN CORREGIDA
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("👨‍🎓 Vista alumno cargada");
 
@@ -19,34 +19,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const leaderIndicator = document.getElementById("leaderIndicator");
 
     // Estado
-    let cuestionarioData = null;
     let preguntaActual = 0;
     let tiempoRestante = 30;
     let timerInterval = null;
     let pollingInterval = null;
-    let respuestaSeleccionada = null;
-    let esLider = false;
     let yaRespondi = false;
-
-    // ===================================================================
-    // Cargar datos del cuestionario desde sessionStorage
-    // ===================================================================
-    function cargarCuestionario() {
-        const stored = sessionStorage.getItem("cuestionario_actual");
-        if (!stored) {
-            console.error("❌ No se encontró cuestionario en sessionStorage");
-            return null;
-        }
-
-        try {
-            const data = JSON.parse(stored);
-            console.log("✅ Cuestionario cargado:", data);
-            return data;
-        } catch (error) {
-            console.error("❌ Error al parsear cuestionario:", error);
-            return null;
-        }
-    }
+    let esLider = false;
 
     // ===================================================================
     // Verificar si el usuario es líder (modo grupal)
@@ -80,27 +58,55 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // ===================================================================
+    // Cargar pregunta desde el servidor
+    // ===================================================================
+    async function cargarPreguntaActual() {
+        try {
+            const response = await fetch(`/api/partida/${codigoPartida}/pregunta_actual`);
+            if (!response.ok) {
+                throw new Error('Error al cargar pregunta');
+            }
+
+            const data = await response.json();
+            
+            if (!data.success) {
+                console.error("❌ Error en respuesta:", data.error);
+                return null;
+            }
+
+            if (data.finalizada) {
+                console.log("🏁 Partida finalizada");
+                window.location.href = `/resultados_alumno/${codigoPartida}`;
+                return null;
+            }
+
+            return data.pregunta;
+
+        } catch (error) {
+            console.error("❌ Error cargando pregunta:", error);
+            return null;
+        }
+    }
+
+    // ===================================================================
     // Mostrar pregunta
     // ===================================================================
-    function mostrarPregunta(index) {
-        if (!cuestionarioData || !cuestionarioData.preguntas) return;
-
-        const pregunta = cuestionarioData.preguntas[index];
+    async function mostrarPregunta() {
+        const pregunta = await cargarPreguntaActual();
+        
         if (!pregunta) {
-            console.error("❌ Pregunta no encontrada en índice:", index);
+            questionText.textContent = "Error al cargar pregunta";
             return;
         }
 
-        preguntaActual = index;
         yaRespondi = false;
-        respuestaSeleccionada = null;
 
         // Actualizar contador
-        currentQuestion.textContent = index + 1;
-        totalQuestions.textContent = cuestionarioData.preguntas.length;
+        currentQuestion.textContent = preguntaActual + 1;
+        totalQuestions.textContent = pregunta.total_preguntas || "?";
 
         // Mostrar texto
-        questionText.textContent = pregunta.texto_pregunta || pregunta.texto || "Pregunta sin texto";
+        questionText.textContent = pregunta.texto_pregunta || "Pregunta sin texto";
 
         // Mostrar imagen si existe
         if (pregunta.media_url) {
@@ -160,7 +166,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (yaRespondi) return;
 
         yaRespondi = true;
-        respuestaSeleccionada = respuesta;
 
         // Marcar visualmente
         document.querySelectorAll(".answer-btn").forEach(b => {
@@ -186,14 +191,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ===================================================================
     async function enviarRespuesta(respuestaId, tiempoUsado) {
         try {
-            const tiempoRespuesta = cuestionarioData.preguntas[preguntaActual].tiempo_limite - tiempoUsado;
+            const pregunta = await cargarPreguntaActual();
+            if (!pregunta) return;
+
+            const tiempoRespuesta = pregunta.tiempo_limite - tiempoUsado;
 
             const response = await fetch(`/api/juego/responder`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     participante_id: participanteId,
-                    pregunta_id: cuestionarioData.preguntas[preguntaActual].pregunta_id,
+                    pregunta_id: pregunta.pregunta_id,
                     respuesta_seleccionada_id: respuestaId,
                     tiempo_respuesta: tiempoRespuesta
                 })
@@ -249,11 +257,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (!yaRespondi) {
             yaRespondi = true;
-
-            // Enviar respuesta en blanco
             await enviarRespuesta(null, 0);
-
-            // Mostrar pantalla de espera
             mostrarPantallaEspera();
         }
     }
@@ -278,9 +282,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             if (data.success) {
                 // Verificar si cambió la pregunta actual
-                if (data.pregunta_actual !== undefined && data.pregunta_actual !== preguntaActual) {
-                    console.log(`🔄 Avanzando a pregunta ${data.pregunta_actual + 1}`);
-                    mostrarPregunta(data.pregunta_actual);
+                const preguntaServer = data.pregunta_actual || 0;
+                
+                if (preguntaServer !== preguntaActual) {
+                    console.log(`🔄 Avanzando a pregunta ${preguntaServer + 1}`);
+                    preguntaActual = preguntaServer;
+                    await mostrarPregunta();
                 }
 
                 // Verificar si la partida finalizó
@@ -314,14 +321,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Inicializar partida
     // ===================================================================
     async function inicializarPartida() {
-        cuestionarioData = cargarCuestionario();
-        if (!cuestionarioData) return;
-
         // Verificar si es líder (modo grupal)
         await verificarSiEsLider();
 
         // Mostrar primera pregunta
-        mostrarPregunta(0);
+        await mostrarPregunta();
 
         // Iniciar polling
         iniciarPolling();

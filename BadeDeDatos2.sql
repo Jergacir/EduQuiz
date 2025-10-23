@@ -314,38 +314,55 @@ WHERE pregunta_actual_index IS NULL;
 --EL TRIGGER QUE SE EJECUTA PARA QUE SE COPIE LOS RESULTADOS DEL LIDER:ESTE SE EJCUTA INTERNAMENTE:
 -- NO SÉ SI EL TRIGGER ESTÁ BIEN 
 
+-- Ejecuta estos comandos en tu BD:
+
+-- A) Agregar columna faltante
+ALTER TABLE partida 
+ADD COLUMN pregunta_actual_index INT DEFAULT 0;
+
+-- B) Corregir el trigger (reemplazar el que tienes)
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS replicar_respuesta_lider$$
+
 CREATE TRIGGER replicar_respuesta_lider
-AFTER INSERT ON PREGUNTA_PARTICIPANTE
+AFTER INSERT ON pregunta_participante
 FOR EACH ROW
 BEGIN
+    DECLARE v_es_lider INT DEFAULT 0;
     
-    -- 1. VERIFICAR si el participante que acaba de insertar (NEW.participante_id) es un líder.
-    IF (SELECT p.lider_id FROM PARTICIPANTE p WHERE p.participante_id = NEW.participante_id) = NEW.participante_id THEN
-        
-        -- 2. Replicar la respuesta a los seguidores (COPIAR TODOS LOS DATOS)
-        INSERT INTO PREGUNTA_PARTICIPANTE
-            (
-                participante_id,
-                texto_pregunta, 
-                correcta, 
-                tiempo_respuesta, 
-                pregunta_id, 
-                respuesta_seleccionada_id
-            )
-        SELECT
-            p.participante_id,      
-            NEW.texto_pregunta,     
-            NEW.correcta,           
-            NEW.tiempo_respuesta,   
-            NEW.pregunta_id,        
-            NEW.respuesta_seleccionada_id
-        FROM PARTICIPANTE p
-        WHERE
-            p.lider_id = NEW.participante_id  
-            AND p.participante_id != NEW.participante_id; 
+    SELECT COUNT(*) INTO v_es_lider
+    FROM participante
+    WHERE participante_id = NEW.participante_id
+      AND lider_id = participante_id;
     
+    IF v_es_lider > 0 THEN
+        INSERT INTO pregunta_participante (
+            participante_id,
+            pregunta_id,
+            respuesta_seleccionada_id,
+            texto_pregunta,
+            correcta,
+            tiempo_pregunta,
+            tiempo_maximo_pregunta
+        )
+        SELECT 
+            p.participante_id,
+            NEW.pregunta_id,
+            NEW.respuesta_seleccionada_id,
+            NEW.texto_pregunta,
+            NEW.correcta,
+            NEW.tiempo_pregunta,
+            NEW.tiempo_maximo_pregunta
+        FROM participante p
+        WHERE p.lider_id = NEW.participante_id
+          AND p.participante_id != NEW.participante_id
+          AND NOT EXISTS (
+              SELECT 1 FROM pregunta_participante pp
+              WHERE pp.participante_id = p.participante_id
+                AND pp.pregunta_id = NEW.pregunta_id
+          );
     END IF;
-
 END$$
 
-DELIMITER ;
+DELIMITER ;
