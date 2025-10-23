@@ -619,7 +619,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014555/Danny_Ocean_-_Me_Reh%C3%BAso_yxhoob.mp3",
     "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014604/Besos_En_Guerra_-_Morat_Juanes_Lyrics_Video_wpnbbv.mp3",
     "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014813/Coldplay_-_Viva_la_Vida_Lyrics_gcinot.mp3",
-    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014903/Pokemon_Center_lofi_with_TanoshiSan_fp81ox.mp3"
+    "https://res.cloudinary.com/ddsql5bqk/video/upload/v1761014903/Pokemon_Center_lofi_with_TanoshiSan_fp81ox.mp3",
+    "https://res.cloudinary.com/diyhrsm2r/video/upload/v1761185438/Dua_Lipa_-_Levitating_Lyrics_mivnx8.mp3",
+    "https://res.cloudinary.com/diyhrsm2r/video/upload/v1761185548/Ricky_Martin_-_Livin_La_Vida_Loca_Lyrics_k2wufq.mp3",
+    "https://res.cloudinary.com/diyhrsm2r/video/upload/v1761185837/CNCO_-_Reggaet%C3%B3n_Lento_Bailemos_umg2ow.mp3",
+    "https://res.cloudinary.com/diyhrsm2r/video/upload/v1761185885/W_W_-_Tung_Tung_Tung_Sahur_Italian_Brainrot_gnv8vp.mp3",
+    "https://res.cloudinary.com/diyhrsm2r/video/upload/v1761186032/Maroon_5_-_Memories_Lyrics_ga3zsq.mp3",
+    "https://res.cloudinary.com/diyhrsm2r/video/upload/v1761186735/los_vengadores_musica_de_la_pelicula_tbhhfg.mp3"
   ];
 
   function reproducirMusicaAleatoria() {
