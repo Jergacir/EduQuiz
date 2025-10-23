@@ -146,7 +146,12 @@ def procesarlogin():
     contrasena_plana = request.form.get('contrasena')
     conexion = dbmod.obtenerConexion()
 
+    # Detectar si la petición viene por AJAX (X-Requested-With) para devolver JSON
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     if not conexion:
+        if is_ajax:
+            return jsonify({'success': False, 'message': 'Error de conexión a BD.'}), 500
         return redirect(url_for('pages.frm_error'))
 
     try:
@@ -156,15 +161,31 @@ def procesarlogin():
             result = cursor.fetchone()
 
         if result and bcrypt_ext.check_password_hash(result['contrasena'], contrasena_plana):
+            # Usuario encontrado y contraseña correcta
             if result.get('vigencia', 0) == 0:
+                # Cuenta inactiva
+                if is_ajax:
+                    return jsonify({'success': False, 'code': 'inactive', 'message': 'Tu cuenta está inactiva.'}), 403
                 flash('Tu cuenta está inactiva.', 'error')
                 return redirect(url_for('auth.frm_login'))
+
             if result.get('verificado', 0) == 0:
+                # No verificado
+                if is_ajax:
+                    return jsonify({'success': False, 'code': 'not_verified', 'message': 'Tu cuenta aún no está verificada.'}), 403
                 flash('Tu cuenta aún no está verificada.', 'warning')
                 return render_template('verificar.html', email=result.get('correo'), email_masked=__import__('utils').mask_email(result.get('correo')))
+
+            # Login exitoso
             session['user_id'] = result['usuario_id']
+            if is_ajax:
+                return jsonify({'success': True, 'redirect': url_for('pages.frm_home')}), 200
             return redirect(url_for('pages.frm_home'))
+
         else:
+            # Credenciales incorrectas
+            if is_ajax:
+                return jsonify({'success': False, 'code': 'credentials', 'message': 'Credenciales incorrectas.'}), 401
             flash('Credenciales incorrectas.', 'error')
             return redirect(url_for('auth.frm_login'))
 

@@ -110,17 +110,27 @@
 
                 <!-- Búsqueda, Créditos y Perfil -->
                 <div class="credits-profile-container">
+                     <!-- Botón Inventario al lado de las monedas -->
+                    <a href="{{ url_for('tienda.inventario_index') }}" class="btn-inventory"><i class="fa-solid fa-box-open"></i> Inventario</a>
                     <!-- Créditos y Perfil (Estilo del wireframe) -->
                     <div class="credits-box">
                         <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
                         <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
                     </div>
-                    <a href="{{ url_for('tienda.inventario_index') }}" style="text-decoration:none;">
-                        <div class="profile-box" style="cursor:pointer;">
-                            <img src="/static/img/avatar.jpeg" class="profile-img">
-                            <span class="profile-text">{{ logged_in_user.username }}</span>
+                   
+                    <div class="profile-box" id="profile-box" style="cursor:pointer; position: relative;">
+                        <img src="/static/img/avatar.jpeg" class="profile-img">
+                        <span class="profile-text">{{ logged_in_user.username }}</span>
+                        <i class="fas fa-caret-down profile-caret" aria-hidden="true"></i>
+
+                        <!-- Menú contextual emergente -->
+                        <div id="profile-menu" class="profile-menu" aria-hidden="true">
+                            <a href="{{ url_for('tienda.inventario_index') }}" class="profile-menu-item"><i class="fa-solid fa-box-open"></i> Inventario</a>
+                            <div class="profile-menu-divider" aria-hidden="true"></div>
+                            <a href="{{ url_for('usuarios.usuarios_index') }}" class="profile-menu-item"><i class="fas fa-cog"></i> Configuración</a>
+                            <a href="{{ url_for('auth.logout') }}" class="profile-menu-item"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
                         </div>
-                    </a>
+                    </div>
                 </div>
             </header>
 

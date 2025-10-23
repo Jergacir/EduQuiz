@@ -201,3 +201,43 @@ p.subtitle {
         margin-bottom: 10px;
     }
 }
+
+/* Modal de login (estilo coherente con la página) */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+    z-index: 2000;
+}
+.modal-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+.modal-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 22px;
+    width: 90%;
+    max-width: 420px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+    text-align: left;
+}
+.modal-title {
+    margin: 0 0 8px 0;
+    color: #111827;
+    font-size: 1.2rem;
+}
+.modal-message {
+    color: #374151;
+    margin-bottom: 18px;
+}
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+}
