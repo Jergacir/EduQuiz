@@ -386,6 +386,61 @@ a {
     margin: 6px 0;
 }
 
+/* Modal de confirmación para cerrar sesión (global) */
+.confirm-logout-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1300;
+}
+.confirm-logout-modal.visible { display: flex; }
+.confirm-logout-modal .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+}
+.confirm-logout-modal .confirm-card {
+    position: relative;
+    z-index: 1310;
+    width: 92%;
+    max-width: 460px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 14px 48px rgba(0,0,0,0.18);
+    overflow: hidden;
+    font-family: inherit;
+}
+.confirm-logout-modal .confirm-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.confirm-logout-modal .confirm-header h3 { margin: 0; font-size: 1.05rem; color: var(--color-text-dark); }
+.confirm-logout-modal .modal-close { margin-left: auto; background: transparent; border: none; font-size: 1.25rem; cursor: pointer; }
+.confirm-logout-modal .confirm-body { padding: 14px 16px; color: var(--color-text-light); }
+.confirm-logout-modal .confirm-actions { display: flex; gap: 8px; justify-content: flex-end; padding: 12px 16px 18px; }
+.confirm-logout-modal .btn-cancel {
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.06);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.confirm-logout-modal .btn-confirm {
+    background: var(--color-primary-teal);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.confirm-logout-modal .btn-confirm:hover { filter: brightness(0.96); }
+
+
 /* Responsive mobile: mostrar título, monedas y menú contextual; ocultar botón Inventario */
 @media (max-width: 767px) {
     .header h1 { display: block; }

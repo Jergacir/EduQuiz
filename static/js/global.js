@@ -53,4 +53,88 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // --- Modal de confirmación global para logout ---
+  // Crear modal si no existe
+  let confirmLogoutModal = document.getElementById('confirm-logout-modal');
+  if (!confirmLogoutModal) {
+    confirmLogoutModal = document.createElement('div');
+    confirmLogoutModal.id = 'confirm-logout-modal';
+    confirmLogoutModal.className = 'confirm-logout-modal';
+    confirmLogoutModal.innerHTML = `
+      <div class="modal-backdrop"></div>
+      <div class="confirm-card" role="dialog" aria-modal="true">
+        <div class="confirm-header">
+          <h3>¿Cerrar sesión?</h3>
+          <button class="modal-close" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="confirm-body">¿Estás seguro que deseas cerrar sesión en tu cuenta?</div>
+        <div class="confirm-actions">
+          <button class="btn-cancel">Cancelar</button>
+          <button class="btn-confirm">Cerrar sesión</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(confirmLogoutModal);
+  }
+
+  const modalBackdrop = confirmLogoutModal.querySelector('.modal-backdrop');
+  const btnCancel = confirmLogoutModal.querySelector('.btn-cancel');
+  const btnConfirm = confirmLogoutModal.querySelector('.btn-confirm');
+  const modalClose = confirmLogoutModal.querySelector('.modal-close');
+
+  let pendingLogoutHref = null;
+
+  function openConfirmLogout(href) {
+    pendingLogoutHref = href;
+    confirmLogoutModal.classList.add('visible');
+  }
+
+  function closeConfirmLogout() {
+    pendingLogoutHref = null;
+    confirmLogoutModal.classList.remove('visible');
+  }
+
+  // Interceptar todos los enlaces que cierran sesión
+  function handleLogoutClick(e) {
+    const link = e.currentTarget;
+    const href = link.getAttribute('href');
+    if (!href) return;
+    e.preventDefault();
+    openConfirmLogout(href);
+  }
+
+  // Seleccionar varios posibles selectores de logout en la app
+  const logoutSelectors = Array.from(document.querySelectorAll('a[href*="logout"], a.logout-btn, #logout-button, a.profile-menu-item'));
+  logoutSelectors.forEach(el => {
+    // evitamos duplicar listeners
+    el.removeEventListener('click', handleLogoutClick);
+    el.addEventListener('click', function(e) {
+      // Si el enlace es de perfil pero no tiene logout en href, ignorar
+      const href = el.getAttribute('href') || '';
+      if (href.includes('logout')) {
+        handleLogoutClick.call(el, e);
+      }
+    });
+  });
+
+  // Acciones del modal
+  modalBackdrop.addEventListener('click', closeConfirmLogout);
+  btnCancel.addEventListener('click', closeConfirmLogout);
+  modalClose.addEventListener('click', closeConfirmLogout);
+  btnConfirm.addEventListener('click', () => {
+    if (pendingLogoutHref) {
+      // navegar a href
+      window.location.href = pendingLogoutHref;
+    } else {
+      closeConfirmLogout();
+    }
+  });
+
+  // ESC para cerrar modal de logout (agregar al listener ya existente)
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      closeConfirmLogout();
+    }
+  });
 });
