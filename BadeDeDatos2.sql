@@ -308,3 +308,44 @@ SET
     respuestas_recibidas = 0,
     tiempo_inicio_pregunta = NULL
 WHERE pregunta_actual_index IS NULL;
+
+
+-- TRIGERRR
+--EL TRIGGER QUE SE EJECUTA PARA QUE SE COPIE LOS RESULTADOS DEL LIDER:ESTE SE EJCUTA INTERNAMENTE:
+-- NO SÉ SI EL TRIGGER ESTÁ BIEN 
+
+CREATE TRIGGER replicar_respuesta_lider
+AFTER INSERT ON PREGUNTA_PARTICIPANTE
+FOR EACH ROW
+BEGIN
+    
+    -- 1. VERIFICAR si el participante que acaba de insertar (NEW.participante_id) es un líder.
+    IF (SELECT p.lider_id FROM PARTICIPANTE p WHERE p.participante_id = NEW.participante_id) = NEW.participante_id THEN
+        
+        -- 2. Replicar la respuesta a los seguidores (COPIAR TODOS LOS DATOS)
+        INSERT INTO PREGUNTA_PARTICIPANTE
+            (
+                participante_id,
+                texto_pregunta, 
+                correcta, 
+                tiempo_respuesta, 
+                pregunta_id, 
+                respuesta_seleccionada_id
+            )
+        SELECT
+            p.participante_id,      
+            NEW.texto_pregunta,     
+            NEW.correcta,           
+            NEW.tiempo_respuesta,   
+            NEW.pregunta_id,        
+            NEW.respuesta_seleccionada_id
+        FROM PARTICIPANTE p
+        WHERE
+            p.lider_id = NEW.participante_id  
+            AND p.participante_id != NEW.participante_id; 
+    
+    END IF;
+
+END$$
+
+DELIMITER ;
