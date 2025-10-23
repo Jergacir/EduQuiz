@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking - EduQuiz</title>
+
+    <link rel="icon" href="/static/img/icono.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../static/css/ranking.css">
+</head>
+
+<body data-codigo-partida="{{ codigo_partida }}" data-es-profesor="{{ 'true' if es_profesor else 'false' }}">
+    <div class="ranking-container">
+        <div class="header-debug">Ranking - Profesor (Desktop)</div>
+
+        <div class="ranking-header">
+            <h1>Marcador</h1>
+            <button class="continue-btn" id="continue-btn">Continuar</button>
+        </div>
+
+        <div class="ranking-list" id="ranking-list">
+        </div>
+    </div>
+
+    <script src="../static/js/ranking.js"></script>
+</body>
+
+</html>

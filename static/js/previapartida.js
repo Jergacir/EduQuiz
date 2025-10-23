@@ -210,7 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 tarjeta.innerHTML = `
                     <div class="usuario-info">
-                        <img src="${usuario.url_avatar || '/static/img/default-avatar.png'}" alt="Avatar">
+                        <img src="${usuario.url_avatar || '/static/img/avatar.jpeg'}" alt="Avatar">
                         <span>${usuario.nombre}</span>
                         ${iconoLider}
                     </div>

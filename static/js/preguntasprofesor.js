@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const stored = sessionStorage.getItem("cuestionario_actual");
         if (!stored) {
             console.error("❌ No se encontró cuestionario en sessionStorage");
-            preguntaTexto.textContent = "Error: Cuestionario no encontrado";
+            preguntaTexto.textContent = "Cargando cuestionario desde servidor...";
             return null;
         }
 
@@ -54,7 +54,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ===================================================================
     async function inicializarPartida() {
         cuestionarioData = cargarCuestionario();
-        if (!cuestionarioData) return;
+        if (!cuestionarioData) {
+            // Intentar recuperar desde servidor como fallback
+            try {
+                const resp = await fetch(`/api/partida/${codigoPartida}/info`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data.success && data.cuestionario) {
+                        cuestionarioData = data.cuestionario;
+                        // Guardar en sessionStorage para consistencia con el flujo original
+                        sessionStorage.setItem('cuestionario_actual', JSON.stringify(cuestionarioData));
+                    } else {
+                        preguntaTexto.textContent = 'Error: no se pudo cargar cuestionario';
+                        return;
+                    }
+                } else {
+                    preguntaTexto.textContent = 'Error al obtener cuestionario desde servidor';
+                    return;
+                }
+            } catch (error) {
+                console.error('Error fetch cuestionario fallback:', error);
+                preguntaTexto.textContent = 'Error al cargar cuestionario';
+                return;
+            }
+        }
 
         // Actualizar UI con datos del cuestionario
         cuestionarioNombre.textContent = cuestionarioData.nombre_cuestionario || "Cuestionario";
@@ -87,6 +110,51 @@ document.addEventListener("DOMContentLoaded", async () => {
             `;
             answersGrid.appendChild(div);
         });
+    }
+
+    // ===================================================================
+    // Mostrar pregunta (definición dentro del scope)
+    // ===================================================================
+    function mostrarPregunta(index) {
+        if (!cuestionarioData || !cuestionarioData.preguntas) return;
+
+        const pregunta = cuestionarioData.preguntas[index];
+        if (!pregunta) {
+            console.error("❌ Pregunta no encontrada en índice:", index);
+            preguntaTexto.textContent = "Pregunta no encontrada";
+            return;
+        }
+
+        preguntaActual = index;
+
+        // Actualizar contador
+        preguntaActualSpan.textContent = index + 1;
+
+        // Mostrar texto
+        preguntaTexto.textContent = pregunta.texto_pregunta || pregunta.texto || "Pregunta sin texto";
+
+        // Mostrar imagen si existe
+        if (pregunta.media_url) {
+            preguntaMedia.src = pregunta.media_url;
+            preguntaMedia.style.display = "block";
+        } else {
+            preguntaMedia.style.display = "none";
+        }
+
+        // Mostrar respuestas
+        mostrarRespuestas(pregunta.respuestas || []);
+
+        // Obtener tiempo límite
+        tiempoRestante = pregunta.tiempo_limite || 30;
+
+        // Resetear estado
+        todosRespondieron = false;
+        btnContinuar.disabled = true;
+        responseIndicator.classList.remove("complete");
+        responseIndicator.textContent = "Esperando respuestas...";
+
+        // Iniciar timer
+        iniciarTimer();
     }
 
     // ===================================================================
@@ -128,6 +196,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnContinuar.disabled = false;
         responseIndicator.textContent = "¡Tiempo agotado! Puedes continuar.";
         responseIndicator.classList.add("complete");
+
+        // Notificar al servidor que estamos en fase de resultados (entre preguntas)
+        try {
+            fetch(`/api/partida/${codigoPartida}/estado`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nuevo_estado: 'entre_preguntas' })
+            }).then(res => res.json()).then(d => console.log('Estado cambiado a entre_preguntas', d)).catch(err => console.warn('No se pudo notificar estado:', err));
+        } catch (e) {
+            console.warn('Error notificando estado entre_preguntas', e);
+        }
     }
 
     // ===================================================================
@@ -251,6 +330,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Habilitar botón
         btnContinuar.disabled = false;
+
+        // Notificar al servidor que estamos en fase de resultados (entre preguntas)
+        try {
+            fetch(`/api/partida/${codigoPartida}/estado`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nuevo_estado: 'entre_preguntas' })
+            }).then(res => res.json()).then(d => console.log('Estado cambiado a entre_preguntas (todos respondieron)', d)).catch(err => console.warn('No se pudo notificar estado:', err));
+        } catch (e) {
+            console.warn('Error notificando estado entre_preguntas', e);
+        }
     }
 
     // ===================================================================
@@ -282,6 +372,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (preguntaActual + 1 < cuestionarioData.preguntas.length) {
             // Avanzar a siguiente pregunta
             await avanzarPregunta();
+
+            // Notificar al servidor que volvemos al estado de juego
+            try {
+                await fetch(`/api/partida/${codigoPartida}/estado`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nuevo_estado: 'en_curso' })
+                });
+            } catch (e) {
+                console.warn('No se pudo notificar estado en_curso', e);
+            }
+
             mostrarPregunta(preguntaActual + 1);
             btnContinuar.textContent = "Continuar a Siguiente Pregunta";
         } else {
@@ -348,7 +450,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     inicializarPartida();
 
     console.log("✅ Vista profesor inicializada");
-}); pregunta
+}); 
     // ===================================================================
     function mostrarPregunta(index) {
         if (!cuestionarioData || !cuestionarioData.preguntas) return;

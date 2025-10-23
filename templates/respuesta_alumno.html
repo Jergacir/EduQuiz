@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Respuesta - EduQuiz</title>
+
+    <link rel="icon" href="/static/img/icono.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <link rel="stylesheet" href="../static/css/respuesta_alumno.css">
+</head>
+<body>
+    <div class="feedback-container" 
+        data-codigo-partida="{{ codigo_partida }}"
+        data-username="{{ usuario_nombre }}" 
+        data-avatar="{{ usuario_avatar }}" 
+        data-score="{{ puntuacion_total }}" 
+        data-streak="{{ cant_correctas }}"
+        data-question-number="{{ question_number if question_number is defined else 1 }}"
+        data-points-earned="{{ points_earned if points_earned is defined else 0 }}">
+
+        <div class="feedback-card">
+            <div class="question-number" id="question-number">Pregunta </div>
+
+            <div class="feedback-content">
+                <div class="feedback-icon-wrapper" id="feedback-icon-wrapper">
+                    </div>
+
+                <h2 class="feedback-message" id="feedback-message"></h2>
+                <p class="feedback-streak" id="feedback-streak"></p>
+
+                <div class="points-awarded" id="points-awarded" style="display: none;">
+                    <span></span>
+                </div>
+            </div>
+
+            <div class="user-info-bar">
+                <div class="user-profile">
+                    <img id="user-avatar" src="{{ usuario_avatar }}" alt="Avatar de usuario">
+                    <span id="username-display">{{ usuario_nombre }}</span>
+                </div>
+                <div class="user-score">
+                    <span id="user-total-score">{{ puntuacion_total }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/respuesta_alumno.js"></script>
+</body>
+</html>

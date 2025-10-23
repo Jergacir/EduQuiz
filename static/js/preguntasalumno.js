@@ -295,6 +295,15 @@ document.addEventListener("DOMContentLoaded", async () => {
                     detenerPolling();
                     window.location.href = `/resultados_alumno/${codigoPartida}`;
                 }
+
+                // Si el profesor está mostrando resultados (entre preguntas), redirigir al alumno a la vista de feedback
+                // aceptamos tanto 'entre_preguntas' (código) como 'entre_preguntas' de BD o 'mostrar_resultados'
+                const estado = data.estado_partida || data.estado || '';
+                if (estado === 'entre_preguntas' || estado === 'mostrar_resultados' || estado === 'EN_RESULTS') {
+                    detenerPolling();
+                    // redirigir a la plantilla de feedback del alumno
+                    window.location.href = `/respuesta_alumno/${codigoPartida}`;
+                }
             }
 
         } catch (error) {

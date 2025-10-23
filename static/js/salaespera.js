@@ -114,15 +114,22 @@ document.addEventListener("DOMContentLoaded", () => {
             if (data.success) {
 
                 // ⭐️ AÑADIR/VERIFICAR LÓGICA DE REDIRECCIÓN AQUÍ ⭐️
-                if (data.estado_partida === 'en_juego') {
-                    console.log("¡El profesor ha iniciado la partida! Redirigiendo a la cuenta regresiva.");
+                // Compatibilidad: el backend puede devolver 'estado' o 'estado_partida'
+                const estadoPartida = data.estado || data.estado_partida || null;
+                console.log('Estado de partida (poll):', estadoPartida);
+
+                // Aceptar varios valores que significan inicio de la cuenta regresiva / juego
+                if (estadoPartida === 'en_juego' || estadoPartida === 'en_curso' || estadoPartida === 'cuenta_regresiva') {
+                    console.log("¡El profesor ha iniciado la partida! Redirigiendo a la cuenta regresiva.");
                     
                     // Detener el polling
                     if (pollingInterval) { 
                         clearInterval(pollingInterval);
                     }
                     
-                    window.location.href = `/cuentaregresiva/${codigoPartida}`;
+                    // Redirigir al flujo de juego. Si tienes una ruta específica para la cuenta regresiva úsala
+                    const targetUrl = `/cuentaregresiva/${codigoPartida}`;
+                    window.location.href = targetUrl;
                     return; 
                 }
 
@@ -170,12 +177,12 @@ document.addEventListener("DOMContentLoaded", () => {
             if (esLider) {
                 usuarioDiv.classList.add('lider');
                 usuarioDiv.innerHTML = `
-                    <img src="${p.url_avatar || '/static/img/default-avatar.png'}" alt="Avatar">
+                    <img src="${p.url_avatar || '/static/img/avatar.jpeg'}" alt="Avatar">
                     <span>👑 ${p.nombre}</span>
                 `;
             } else {
                 usuarioDiv.innerHTML = `
-                    <img src="${p.url_avatar || '/static/img/default-avatar.png'}" alt="Avatar">
+                    <img src="${p.url_avatar || '/static/img/avatar.jpeg'}" alt="Avatar">
                     <span>${p.nombre}</span>
                 `;
             }
@@ -192,7 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const nombreUsuario = tarjetaUsuario.dataset.nombreUsuario || "Usuario";
         tarjetaUsuario.innerHTML = `
             <div class="usuario">
-                <img src="/static/img/default-avatar.png" alt="Avatar">
+                <img src="/static/img/avatar.jpeg" alt="Avatar">
                 <span>${nombreUsuario}</span>
             </div>
         `;

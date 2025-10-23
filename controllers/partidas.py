@@ -292,9 +292,9 @@ def api_poll_participantes(codigo_partida):
             return jsonify({'success': False, 'error': 'Error de conexión'}), 500
         
         with conexion.cursor() as cursor:
-            # Obtener datos de la partida
+            # Obtener datos de la partida (incluye índice de pregunta actual si existe)
             cursor.execute("""
-                SELECT estado, cuestionario_id 
+                SELECT estado, cuestionario_id, COALESCE(pregunta_actual_index, 0) as pregunta_actual_index
                 FROM partida 
                 WHERE codigo_partida = %s
             """, (codigo_partida,))
@@ -317,11 +317,15 @@ def api_poll_participantes(codigo_partida):
                 'total': len(participantes)
             }
             
-            # Si está en curso, incluir pregunta actual
-            if partida_info['estado'] == EstadoPartida.EN_CURSO.value:
-                pregunta_actual = obtener_pregunta_actual(codigo_partida)
-                if pregunta_actual:
-                    response_data['pregunta_actual'] = pregunta_actual
+            # Incluir índice de pregunta actual para que el cliente lo detecte (0-based)
+            response_data['pregunta_actual'] = partida_info.get('pregunta_actual_index', 0)
+
+            # Si está en curso (aceptar nombres de estado de BD y del código), incluir además el objeto pregunta
+            estados_en_curso = {EstadoPartida.EN_CURSO.value, 'en_juego', EstadoPartida.CUENTA_REGRESIVA.value}
+            if partida_info['estado'] in estados_en_curso:
+                pregunta_obj = obtener_pregunta_actual(codigo_partida)
+                if pregunta_obj:
+                    response_data['pregunta_obj'] = pregunta_obj
             
             return jsonify(response_data), 200
         
@@ -337,6 +341,66 @@ def api_poll_participantes(codigo_partida):
 def api_participantes(codigo_partida):
     """Endpoint legacy - redirige al endpoint de polling"""
     return api_poll_participantes(codigo_partida)
+
+
+@partidas_bp.route('/api/partida/<codigo_partida>/info')
+def api_info_partida(codigo_partida):
+    """Devuelve información de la partida y del cuestionario asociado (para fallback del profesor)."""
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                SELECT p.partida_id, p.codigo_partida, p.estado, p.cuestionario_id, c.nombre_cuestionario, c.descripcion
+                FROM partida p
+                JOIN cuestionario c ON p.cuestionario_id = c.cuestionario_id
+                WHERE p.codigo_partida = %s
+            """, (codigo_partida,))
+            partida = cursor.fetchone()
+
+            if not partida:
+                return jsonify({'success': False, 'message': 'Partida no encontrada'}), 404
+
+            # Obtener preguntas y respuestas básicas
+            cursor.execute("""
+                SELECT preg.pregunta_id, preg.texto_pregunta, preg.media_url, preg.tiempo_limite,
+                       (SELECT COUNT(*) FROM respuesta r WHERE r.pregunta_id = preg.pregunta_id) as total_respuestas
+                FROM pregunta preg
+                WHERE preg.cuestionario_id = %s
+                ORDER BY preg.pregunta_id
+            """, (partida['cuestionario_id'],))
+            preguntas = cursor.fetchall() or []
+
+            preguntas_list = []
+            for preg in preguntas:
+                cursor.execute("SELECT respuesta_id, texto_respuesta FROM respuesta WHERE pregunta_id = %s ORDER BY respuesta_id", (preg['pregunta_id'],))
+                respuestas = cursor.fetchall() or []
+                preguntas_list.append({
+                    'pregunta_id': preg['pregunta_id'],
+                    'texto_pregunta': preg['texto_pregunta'],
+                    'media_url': preg.get('media_url'),
+                    'tiempo_limite': preg.get('tiempo_limite'),
+                    'respuestas': respuestas
+                })
+
+            return jsonify({
+                'success': True,
+                'partida': partida,
+                'cuestionario': {
+                    'cuestionario_id': partida['cuestionario_id'],
+                    'nombre_cuestionario': partida['nombre_cuestionario'],
+                    'descripcion': partida.get('descripcion'),
+                    'preguntas': preguntas_list
+                }
+            }), 200
+
+    except Exception as e:
+        print(f"[ERROR] api_info_partida: {e}", file=sys.stderr)
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conexion.close()
 
 
 @partidas_bp.route('/api/partida/unirse', methods=['POST'])
@@ -547,10 +611,10 @@ def api_iniciar_partida():
             if partida_info['usuario_creador_id'] != usuario['usuario_id']:
                 return jsonify({"success": False, "message": "Solo el creador puede iniciar la partida"}), 403
 
-            # 2. Actualizar el estado a 'en_juego'
+            # 2. Actualizar el estado a 'cuenta_regresiva' para que alumnos vean la pantalla de "Prepárate..."
             cursor.execute(
-                "UPDATE partida SET estado = 'en_juego' WHERE codigo_partida = %s",
-                (codigo_partida,)
+                "UPDATE partida SET estado = %s WHERE codigo_partida = %s",
+                (EstadoPartida.CUENTA_REGRESIVA.value, codigo_partida)
             )
             conexion.commit()
             actualizar_timestamp_partida(codigo_partida) # Notificar a los participantes (polling)
@@ -773,6 +837,97 @@ def frm_preguntas_alumno(codigo_partida):
             participante_id=participante_id,
             logged_in_user=logged
         )
+    finally:
+        conexion.close()
+
+
+@partidas_bp.route('/respuesta_alumno/<string:codigo_partida>')
+def frm_respuesta_alumno(codigo_partida):
+    """Renderiza la pantalla de feedback individual del alumno (respuesta correcta/incorrecta)."""
+    usuario_id = session.get('user_id')
+    if not usuario_id:
+        abort(403, "Usuario no autenticado")
+
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        abort(500, "Error de conexión")
+
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                SELECT pa.participante_id, pa.puntuacion_total, pa.cant_preguntas_correctas, pa.cant_preguntas_incorrectas,
+                       u.nombre AS usuario_nombre, u.url_avatar
+                FROM participante pa
+                JOIN usuario u ON pa.usuario_id = u.usuario_id
+                JOIN partida p ON pa.partida_id = p.partida_id
+                WHERE p.codigo_partida = %s AND pa.usuario_id = %s
+            """, (codigo_partida, usuario_id))
+
+            info = cursor.fetchone()
+            if not info:
+                abort(404, "No eres participante de esta partida")
+
+            # Obtener índice de pregunta actual para mostrar número de pregunta
+            cursor.execute("""
+                SELECT COALESCE(pregunta_actual_index, 0) as pregunta_actual_index, p.partida_id, p.cuestionario_id
+                FROM partida p
+                WHERE p.codigo_partida = %s
+            """, (codigo_partida,))
+            partida_row = cursor.fetchone() or {}
+            pregunta_index = partida_row.get('pregunta_actual_index', 0)
+
+            # Obtener pregunta_id correspondiente al índice
+            pregunta_id = None
+            if partida_row.get('cuestionario_id') is not None:
+                cursor.execute("""
+                    SELECT pregunta_id
+                    FROM pregunta
+                    WHERE cuestionario_id = %s
+                    ORDER BY pregunta_id
+                    LIMIT 1 OFFSET %s
+                """, (partida_row['cuestionario_id'], pregunta_index))
+                preg_row = cursor.fetchone()
+                if preg_row:
+                    pregunta_id = preg_row.get('pregunta_id')
+
+            # Obtener la respuesta del participante para esa pregunta (si existe)
+            ultima_correcta = None
+            if pregunta_id and info.get('participante_id'):
+                cursor.execute("""
+                    SELECT correcta
+                    FROM pregunta_participante
+                    WHERE participante_id = %s AND pregunta_id = %s
+                    LIMIT 1
+                """, (info['participante_id'], pregunta_id))
+                pp = cursor.fetchone()
+                if pp is not None:
+                    ultima_correcta = bool(pp.get('correcta'))
+
+            # Construir valores para la plantilla
+            last_correct = True if ultima_correcta else False
+            streak = info.get('cant_preguntas_correctas', 0)
+            # Puntos por acierto (usar 900 para coincidir con el diseño; ajusta si tu lógica es distinta)
+            points_earned = 900 if ultima_correcta else 0
+            question_number = pregunta_index + 1
+
+        logged = _get_logged_in_user()
+
+        return render_template(
+            'respuesta_alumno.html',
+            codigo_partida=codigo_partida,
+            participante_id=info.get('participante_id'),
+            usuario_nombre=info.get('usuario_nombre'),
+            usuario_avatar=info.get('url_avatar') or '/static/img/default.png',
+            puntuacion_total=info.get('puntuacion_total') or 0,
+            cant_correctas=info.get('cant_preguntas_correctas') or 0,
+            cant_incorrectas=info.get('cant_preguntas_incorrectas') or 0,
+            question_number=question_number,
+            points_earned=points_earned,
+            last_correct=last_correct,
+            streak=streak,
+            logged_in_user=logged
+        )
+
     finally:
         conexion.close()
 
