@@ -174,3 +174,137 @@ INSERT INTO `accesorios` (`nombre`, `url_imagen`, `precio`, `vigencia`) VALUES
 ('Super Polo', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214821/PoloSuperman_xgwvpe.png', 180,1), -- Ejemplo adicional
 ('Lentes Cool', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214824/lentesSol_bz4bbt.png', 80,1), -- Ejemplo adicional
 ('Sombrero Luffy', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1760214817/sombreroOnepiece_h2zf0c.png', 120,1); -- Ejemplo adicional
+
+
+-- CAMBIOS SUGERIDOS EN MI BD
+-- ================================================================
+-- MIGRACIÓN: Mejoras al Sistema de Partidas
+-- Fecha: 2025-01-XX
+-- ================================================================
+
+-- 1. Agregar campo para controlar índice de pregunta actual
+ALTER TABLE partida 
+ADD COLUMN pregunta_actual_index INT DEFAULT 0 
+COMMENT 'Índice de la pregunta que se está mostrando actualmente (0-based)';
+
+-- 2. Agregar campo para timestamp de inicio de pregunta actual
+ALTER TABLE partida 
+ADD COLUMN tiempo_inicio_pregunta DATETIME NULL
+COMMENT 'Timestamp cuando comenzó la pregunta actual';
+
+-- 3. Agregar campo para contador de respuestas recibidas
+ALTER TABLE partida 
+ADD COLUMN respuestas_recibidas INT DEFAULT 0
+COMMENT 'Contador de respuestas recibidas en la pregunta actual';
+
+-- 4. Mejorar índices para consultas frecuentes
+CREATE INDEX idx_partida_estado ON partida(estado);
+CREATE INDEX idx_partida_codigo ON partida(codigo_partida);
+
+-- 5. Agregar timestamp de última actualización
+ALTER TABLE partida 
+ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+COMMENT 'Última actualización de la partida';
+
+-- ================================================================
+-- PROCEDIMIENTO: Avanzar a la siguiente pregunta
+-- ================================================================
+DELIMITER $$
+
+CREATE PROCEDURE avanzar_pregunta(
+    IN p_codigo_partida VARCHAR(6)
+)
+BEGIN
+    DECLARE v_partida_id INT;
+    DECLARE v_total_preguntas INT;
+    DECLARE v_index_actual INT;
+    
+    -- Obtener datos de la partida
+    SELECT partida_id, pregunta_actual_index
+    INTO v_partida_id, v_index_actual
+    FROM partida
+    WHERE codigo_partida = p_codigo_partida;
+    
+    -- Contar preguntas del cuestionario
+    SELECT COUNT(*)
+    INTO v_total_preguntas
+    FROM pregunta p
+    JOIN partida pa ON p.cuestionario_id = pa.cuestionario_id
+    WHERE pa.partida_id = v_partida_id;
+    
+    -- Si hay más preguntas, avanzar
+    IF v_index_actual + 1 < v_total_preguntas THEN
+        UPDATE partida
+        SET 
+            pregunta_actual_index = pregunta_actual_index + 1,
+            respuestas_recibidas = 0,
+            tiempo_inicio_pregunta = NOW(),
+            estado = 'en_curso'
+        WHERE partida_id = v_partida_id;
+    ELSE
+        -- No hay más preguntas, finalizar partida
+        UPDATE partida
+        SET estado = 'finalizada'
+        WHERE partida_id = v_partida_id;
+    END IF;
+    
+END$$
+
+DELIMITER ;
+
+-- ================================================================
+-- VISTA: Estado completo de partida para polling
+-- ================================================================
+CREATE OR REPLACE VIEW vista_estado_partida AS
+SELECT 
+    pa.partida_id,
+    pa.codigo_partida,
+    pa.estado,
+    pa.pregunta_actual_index,
+    pa.respuestas_recibidas,
+    pa.tiempo_inicio_pregunta,
+    pa.updated_at,
+    c.cuestionario_id,
+    c.nombre_cuestionario,
+    COUNT(DISTINCT part.participante_id) as total_participantes,
+    (SELECT COUNT(*) FROM pregunta WHERE cuestionario_id = c.cuestionario_id) as total_preguntas
+FROM partida pa
+JOIN cuestionario c ON pa.cuestionario_id = c.cuestionario_id
+LEFT JOIN participante part ON pa.partida_id = part.partida_id
+GROUP BY pa.partida_id;
+
+-- ================================================================
+-- FUNCIÓN: Verificar si todos respondieron
+-- ================================================================
+DELIMITER $$
+
+CREATE FUNCTION todos_respondieron(p_codigo_partida VARCHAR(6))
+RETURNS BOOLEAN
+DETERMINISTIC
+BEGIN
+    DECLARE v_total_participantes INT;
+    DECLARE v_respuestas_recibidas INT;
+    
+    SELECT COUNT(DISTINCT part.participante_id), pa.respuestas_recibidas
+    INTO v_total_participantes, v_respuestas_recibidas
+    FROM partida pa
+    LEFT JOIN participante part ON pa.partida_id = part.partida_id
+    WHERE pa.codigo_partida = p_codigo_partida
+    GROUP BY pa.partida_id;
+    
+    RETURN v_respuestas_recibidas >= v_total_participantes;
+END$$
+
+DELIMITER ;
+
+-- ================================================================
+-- DATOS DE PRUEBA (opcional)
+-- ================================================================
+
+-- Actualizar partidas existentes con valores por defecto
+UPDATE partida 
+SET 
+    pregunta_actual_index = 0,
+    respuestas_recibidas = 0,
+    tiempo_inicio_pregunta = NULL
+WHERE pregunta_actual_index IS NULL;
