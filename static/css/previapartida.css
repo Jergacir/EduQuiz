@@ -282,7 +282,7 @@ body {
 
 .tarjeta-usuario.usuario-en-grupo {
     width: 90%;
-    padding: 4px 8px;
+    /* padding: 4px 8px; */
     margin: 4px auto;
     display: flex;
     align-items: center;
@@ -314,6 +314,13 @@ body {
     display: inline-block;
 }
 
+.usuario-info{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+}
 
 /* ================================================= */
 /* == ESTILOS PARA GRUPOS Y PARTICIPANTES ========= */
@@ -364,7 +371,6 @@ body {
     align-items: center;
     gap: 0.4rem;
     background-color: #f8f9fa;
-    padding: 0.5rem 0.7rem;
     border-radius: 8px;
     margin-bottom: 0.4rem;
     width: 100%;
@@ -411,7 +417,7 @@ body {
 }
 
 .tarjeta-usuario {
-    flex: 1 1 45%; /* aprox dos por fila */
+    /* flex: 1 1 45%; aprox dos por fila */
     max-width: 300px;
     border-radius: 12px;
     background-color: #fff;
@@ -448,7 +454,6 @@ body {
     gap: 6px;
     background: #fff;
     border-radius: 10px;
-    padding: 5px 8px;
     margin: 4px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     cursor: pointer;
