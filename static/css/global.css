@@ -211,9 +211,26 @@ a {
 .profile-img {
     width: 40px;
     height: 40px;
+    display: block;
+    object-fit: cover; /* recorta la imagen para que llene el contenedor circular */
+    object-position: center center;
     border-radius: 9999px;
     border: 2px solid var(--color-primary-teal);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    /* Evitar que el elemento estire el layout y asegurar que el contenido quede dentro del círculo */
+    overflow: hidden;
+}
+
+/* Soporte para elementos que usan background-image en lugar de <img> */
+.profile-img-bg {
+    width: 40px;
+    height: 40px;
+    border-radius: 9999px;
+    background-size: cover;
+    background-position: center center;
+    border: 2px solid var(--color-primary-teal);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: inline-block;
 }
 
 .profile-text {

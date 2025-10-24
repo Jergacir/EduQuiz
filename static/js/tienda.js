@@ -101,28 +101,25 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Lógica de Transición de Vistas CRUD (Lista vs Formulario) ---
 
     function mostrarVista(tipo, vista, datos = null) {
-        // 💡 SOLUCIÓN: Definimos el prefijo basado en el tipo para asegurar consistencia con el HTML
+        // Definimos el prefijo basado en el tipo para asegurar consistencia con el HTML
         let prefijo = '';
         let tipoSingular = '';
 
         if (tipo === 'accesorios') {
             prefijo = 'acc';
-            tipoSingular = 'accesorio'; // Usado para textos (títulos)
+            tipoSingular = 'accesorio';
         } else if (tipo === 'skins') {
             prefijo = 'skin';
-            tipoSingular = 'skin'; // Usado para textos (títulos)
+            tipoSingular = 'skin';
         } else {
             console.error(`Tipo desconocido: ${tipo}`);
             return;
         }
 
-        // Buscamos los elementos usando el prefijo ('acc' o 'skin')
         const listaVista = document.getElementById(`${prefijo}-lista-vista`);
         const formVista = document.getElementById(`${prefijo}-form-vista`);
 
-        // **VERIFICACIÓN CRÍTICA**: Si el elemento no existe, detenemos la ejecución.
         if (!listaVista || !formVista) {
-            // Este error ya no debería aparecer si el HTML tiene 'acc-' y 'skin-'
             console.error(`Error de JavaScript: No se encontró el DIV de vista para ${prefijo}.`);
             return;
         }
@@ -132,26 +129,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const formId = document.getElementById(`${prefijo}-id`);
         const form = document.getElementById(`form-${prefijo}`);
 
-        // Lógica de Ocultar/Mostrar
         if (vista === 'lista') {
-            // Mostrar la lista
             listaVista.classList.remove('oculto');
             formVista.classList.add('oculto');
-
             if (form) form.reset();
-            cargarDatosCRUD(tipo); // Recargar la lista al volver
-
+            cargarDatosCRUD(tipo);
         } else if (vista === 'form') {
-            // Mostrar el formulario (CREAR/EDITAR)
             listaVista.classList.add('oculto');
             formVista.classList.remove('oculto');
 
-            if (datos) { // Modo Editar
+            if (datos) {
                 if (formTitulo) formTitulo.textContent = `Editar ${tipoSingular.charAt(0).toUpperCase() + tipoSingular.slice(1)}: ${datos.nombre}`;
                 if (formSubmitBtn) formSubmitBtn.textContent = 'Guardar Cambios';
-                if (formId) formId.value = datos.id;
+                if (formId) formId.value = datos.id || '';
 
-                // Asignar valores a los campos de input si existen
                 const nombreInput = document.getElementById(`${prefijo}-nombre`);
                 const urlInput = document.getElementById(`${prefijo}-url`);
                 const precioInput = document.getElementById(`${prefijo}-precio`);
@@ -159,19 +150,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (nombreInput) nombreInput.value = datos.nombre || '';
                 if (urlInput) urlInput.value = datos.url_imagen || '';
                 if (precioInput) precioInput.value = datos.precio || 0;
-
-            } else { // Modo Crear
+            } else {
                 if (formTitulo) formTitulo.textContent = `Agregar Nuevo ${tipoSingular.charAt(0).toUpperCase() + tipoSingular.slice(1)}`;
                 if (formSubmitBtn) formSubmitBtn.textContent = `Crear ${tipoSingular.charAt(0).toUpperCase() + tipoSingular.slice(1)}`;
                 if (formId) formId.value = '';
-                // Limpiar explícitamente los campos por si form.reset() no llega a limpiar todo
-                const nombreInput = document.getElementById(`${prefijo}-nombre`);
-                const urlInput = document.getElementById(`${prefijo}-url`);
-                const precioInput = document.getElementById(`${prefijo}-precio`);
                 if (form) form.reset();
-                if (nombreInput) nombreInput.value = '';
-                if (urlInput) urlInput.value = '';
-                if (precioInput) precioInput.value = '';
             }
         }
     }
@@ -298,43 +281,48 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /// Accesorio
-    document.getElementById('form-accesorio').addEventListener('submit', function (event) {
-        event.preventDefault();
-        const form = event.target;
-        const id = document.getElementById('acc-id').value;
-        const formData = new FormData(form);
-        const accion = id ? 'Actualizar' : 'Crear';
-        const url = id ? `/api/tienda/accesorios/editar/${id}` : '/api/tienda/accesorios/crear';
+    /// Accesorio (solo si el formulario existe)
+    const formAccesorioEl = document.getElementById('form-accesorio');
+    if (formAccesorioEl) {
+        formAccesorioEl.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const form = event.target;
+            const id = document.getElementById('acc-id').value;
+            const formData = new FormData(form);
+            const accion = id ? 'Actualizar' : 'Crear';
+            const url = id ? `/api/tienda/accesorios/editar/${id}` : '/api/tienda/accesorios/crear';
 
-        mostrarConfirmacion(
-            `⚠️ ¿Deseas ${accion.toLowerCase()} este accesorio?`,
-            async () => {
-                try {
-                    console.log('[DEBUG] submit accessory form ->', url);
-                    for (let pair of formData.entries()) console.log('  ', pair[0], pair[1]);
-                    const response = await fetch(url, { method: 'POST', body: formData });
-                    const data = await response.json();
-                    console.log('[DEBUG] response', response.status, data);
-                    if (data.success) {
-                        alert(`✅ Accesorio ${accion} con éxito. ID: ${data.id || id}`);
-                        mostrarVista('accesorios', 'lista');
-                        cargarDatosCRUD('accesorios');
-                        if (modalAccesorio) cerrarModal(modalAccesorio, 'accesorios');
-                    } else {
-                        alert(`❌ Error al ${accion.toLowerCase()}: ${data.message || JSON.stringify(data)}`);
+            mostrarConfirmacion(
+                `⚠️ ¿Deseas ${accion.toLowerCase()} este accesorio?`,
+                async () => {
+                    try {
+                        console.log('[DEBUG] submit accessory form ->', url);
+                        for (let pair of formData.entries()) console.log('  ', pair[0], pair[1]);
+                        const response = await fetch(url, { method: 'POST', body: formData });
+                        const data = await response.json();
+                        console.log('[DEBUG] response', response.status, data);
+                        if (data.success) {
+                            alert(`✅ Accesorio ${accion} con éxito. ID: ${data.id || id}`);
+                            mostrarVista('accesorios', 'lista');
+                            cargarDatosCRUD('accesorios');
+                            if (modalAccesorio) cerrarModal(modalAccesorio, 'accesorios');
+                        } else {
+                            alert(`❌ Error al ${accion.toLowerCase()}: ${data.message || JSON.stringify(data)}`);
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert(`Error al ${accion.toLowerCase()}. Revisa la consola y la pestaña Network para más detalles.`);
                     }
-                } catch (err) {
-                    console.error(err);
-                    alert(`Error al ${accion.toLowerCase()}. Revisa la consola y la pestaña Network para más detalles.`);
                 }
-            }
-        );
-    });
+            );
+        });
+    }
 
     // Skin
-    document.getElementById('form-skin').addEventListener('submit', function (event) {
-        event.preventDefault();
+    const formSkinEl = document.getElementById('form-skin');
+    if (formSkinEl) {
+        formSkinEl.addEventListener('submit', function (event) {
+            event.preventDefault();
         const form = event.target;
         const id = document.getElementById('skin-id').value;
         const formData = new FormData(form);
@@ -365,7 +353,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         );
-    });
+        });
+    } else {
+        console.log('[INFO] form-skin no presente en esta vista, omitiendo bindings.');
+    }
 
     // Referencias
     const modalConfirm = document.getElementById('modal-confirm');
@@ -373,7 +364,72 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnConfirmOk = document.getElementById('modal-confirm-ok');
     const btnConfirmCancel = document.getElementById('modal-confirm-cancel');
 
+    // Result modals (success / error)
+    const modalSuccess = document.getElementById('modal-success');
+    const modalSuccessText = document.getElementById('modal-success-text');
+    const modalSuccessTitle = document.getElementById('modal-success-title');
+    const modalSuccessOk = document.getElementById('modal-success-ok');
+
+    const modalError = document.getElementById('modal-error');
+    const modalErrorText = document.getElementById('modal-error-text');
+    const modalErrorTitle = document.getElementById('modal-error-title');
+    const modalErrorOk = document.getElementById('modal-error-ok');
+
+    // Helpers para mostrar/ocultar modales de resultado
+    function showSuccessModal(title, text) {
+        try {
+            if (modalSuccessTitle) modalSuccessTitle.textContent = title || 'Éxito';
+            if (modalSuccessText) modalSuccessText.textContent = text || '';
+            if (modalSuccess) {
+                modalSuccess.classList.remove('oculto');
+                try { modalSuccess.style.display = 'flex'; } catch (e) {}
+            }
+        } catch (e) { console.warn('[MODAL] showSuccessModal error', e); }
+    }
+
+    function hideSuccessModal() {
+        try { if (modalSuccess) { modalSuccess.classList.add('oculto'); modalSuccess.style.display = 'none'; } } catch (e) {}
+    }
+
+    function showErrorModal(title, text) {
+        try {
+            if (modalErrorTitle) modalErrorTitle.textContent = title || 'Error';
+            if (modalErrorText) modalErrorText.textContent = text || '';
+            if (modalError) {
+                modalError.classList.remove('oculto');
+                try { modalError.style.display = 'flex'; } catch (e) {}
+            }
+        } catch (e) { console.warn('[MODAL] showErrorModal error', e); }
+    }
+
+    function hideErrorModal() {
+        try { if (modalError) { modalError.classList.add('oculto'); modalError.style.display = 'none'; } } catch (e) {}
+    }
+
+    // Bind cierre de modales de resultado
+    try {
+        if (modalSuccessOk) modalSuccessOk.addEventListener('click', hideSuccessModal);
+        if (modalErrorOk) modalErrorOk.addEventListener('click', hideErrorModal);
+        // Cerrar si se hace click fuera del contenido
+        if (modalSuccess) modalSuccess.addEventListener('click', function (ev) { if (ev.target === modalSuccess) hideSuccessModal(); });
+        if (modalError) modalError.addEventListener('click', function (ev) { if (ev.target === modalError) hideErrorModal(); });
+    } catch (e) { console.warn('[MODAL] binding result modal buttons failed', e); }
+
     function mostrarConfirmacion(mensaje, callbackAceptar) {
+    // Si no existe el modal en esta vista, usar fallback con confirm() y ejecutar callback directamente
+    if (!modalConfirm || !modalConfirmText || !btnConfirmOk || !btnConfirmCancel) {
+        console.warn('[WARN] modalConfirm o sus controles no están presentes, usando fallback window.confirm');
+        try {
+            const ok = window.confirm(mensaje);
+            if (ok) {
+                Promise.resolve(callbackAceptar()).catch(e => console.error('[ERROR] callbackAceptar (fallback):', e));
+            }
+        } catch (e) {
+            console.error('[ERROR] fallback confirm failed:', e);
+        }
+        return;
+    }
+
     modalConfirmText.textContent = mensaje;
     console.log('[DEBUG] mostrarConfirmacion -> show modal');
     // Forzar el estilo display para evitar reglas CSS que pongan display:none en .modal
@@ -492,4 +548,292 @@ document.addEventListener('DOMContentLoaded', function () {
         return card;
     }
 
+    // Handler global para clicks en botones de comprar (incluye botones renderizados en servidor)
+    document.body.addEventListener('click', async function (ev) {
+        const btn = ev.target.closest && ev.target.closest('.btn-comprar');
+        if (!btn) return;
+        // Si ya está marcado como adquirido, no hacer nada
+        if (btn.classList.contains('adquirido') || btn.disabled) return;
+
+        const tipo = btn.getAttribute('data-tipo');
+        const id = btn.getAttribute('data-id');
+        if (!tipo || !id) {
+            console.warn('[tienda] botón comprar sin data-tipo/data-id');
+            return;
+        }
+
+        // Confirmación usando el modal estilo app (mostrarConfirmacion está implementado más arriba)
+        mostrarConfirmacion(
+            `⚠️ ¿Deseas comprar este ítem por ${btn.getAttribute('data-precio') || ''} monedas?`,
+            async () => {
+                try {
+                    const payload = { tipo: tipo, id: id };
+                    const response = await fetch('/api/tienda/comprar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    if (!response.ok) {
+                        showErrorModal('Error de compra', data.message || 'No se pudo completar la compra.');
+                        return;
+                    }
+
+                    if (data.adquirido) {
+                        // Actualizar botón a estado 'Adquirido'
+                        btn.classList.add('adquirido');
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="icono">🪙</i> Adquirido';
+
+                        // Actualizar saldo mostrado si viene en la respuesta
+                        if (data.nuevo_saldo !== undefined) {
+                            const saldoEl = document.getElementById('cant-monedas-display');
+                            if (saldoEl) saldoEl.textContent = data.nuevo_saldo;
+                        }
+
+                        // Mostrar modal de éxito
+                        try { showSuccessModal('Compra realizada', 'Tu compra se realizó correctamente.'); } catch (e) { console.warn(e); }
+                    } else {
+                        showErrorModal('Compra', data.message || 'Respuesta inesperada del servidor.');
+                    }
+
+                } catch (err) {
+                    console.error('Error realizando compra:', err);
+                    showErrorModal('Error de red', 'Error de red al intentar la compra.');
+                }
+            }
+        );
+    });
+
+    // --- Inicialización del slider de precio (noUiSlider preferido, fallback al doble input) ---
+    (function initPriceSlider() {
+    // --- Constantes de Configuración ---
+    const MIN_PRICE = 0;
+    const MAX_PRICE = 2000;
+    const DEFAULT_START_PRICE = 0;
+    const DEFAULT_END_PRICE = 500;
+    const SUBMIT_DEBOUNCE_MS = 300; // 300ms de espera antes de enviar el form
+
+    // --- Elementos del DOM ---
+    const priceSliderEl = document.getElementById('price-slider');
+    const minDisplay = document.getElementById('range-min-display');
+    const maxDisplay = document.getElementById('range-max-display');
+    const minInput = document.getElementById('min_price_input');
+    const maxInput = document.getElementById('max_price_input');
+    const filtersForm = document.getElementById('filters-form');
+
+    // --- Funciones Helper ---
+
+    /**
+     * Helper para parsear valores iniciales desde inputs (si vienen por querystring)
+     */
+    const parseInitial = (el, fallback) => {
+        if (!el) return fallback;
+        const v = parseInt(el.value, 10);
+        return isNaN(v) ? fallback : v;
+    };
+
+    /**
+     * Helper Debounce: Retrasa la ejecución de una función
+     */
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    /**
+     * Función para enviar el formulario
+     */
+    const submitFiltersForm = () => {
+        try {
+            if (filtersForm) filtersForm.submit();
+        } catch (e) {
+            console.warn('No se pudo enviar el formulario automáticamente.', e);
+        }
+    };
+    
+    // Función de envío con debounce
+    const debouncedSubmit = debounce(submitFiltersForm, SUBMIT_DEBOUNCE_MS);
+
+    /**
+     * Formatea el valor máximo para mostrar (ej: 1000+)
+     */
+    const formatMaxDisplay = (value) => {
+        return (value >= MAX_PRICE) ? `${value}+` : value;
+    };
+
+    // --- Lógica Principal ---
+
+    // 1. Intento con noUiSlider (Librería)
+    if (window.noUiSlider && priceSliderEl) {
+        try {
+            const startMin = parseInitial(minInput, DEFAULT_START_PRICE);
+            const startMax = parseInitial(maxInput, DEFAULT_END_PRICE);
+
+            if (priceSliderEl.noUiSlider) {
+                priceSliderEl.noUiSlider.destroy();
+            }
+
+            noUiSlider.create(priceSliderEl, {
+                start: [startMin, startMax],
+                connect: true,
+                // Se desactivan los tooltips para evitar números flotantes desalineados sobre el slider
+                tooltips: false,
+                range: { min: MIN_PRICE, max: MAX_PRICE },
+                step: 1,
+                format: {
+                    to: v => Math.round(v),
+                    from: v => Number(v)
+                }
+            });
+
+            // Evento 'update' (mientras se mueve)
+            priceSliderEl.noUiSlider.on('update', function (values) {
+                const a = Math.round(values[0]);
+                const b = Math.round(values[1]);
+                if (minDisplay) minDisplay.textContent = a;
+                if (maxDisplay) maxDisplay.textContent = formatMaxDisplay(b);
+                if (minInput) minInput.value = a;
+                if (maxInput) maxInput.value = b;
+            });
+
+            // Evento 'change' (al soltar) -> Envía formulario con debounce
+            priceSliderEl.noUiSlider.on('change', debouncedSubmit);
+
+        } catch (e) {
+            console.warn('[WARN] noUiSlider init failed, falling back to native ranges', e);
+        }
+        return; // Termina si noUiSlider se inicializó
+    }
+
+    // 2. Fallback (Inputs Nativos)
+    try {
+        const rangeMin = document.getElementById('range-min');
+        const rangeMax = document.getElementById('range-max');
+        const container = rangeMin ? rangeMin.parentElement : null;
+
+        if (!rangeMin || !rangeMax || !minDisplay || !maxDisplay || !minInput || !maxInput || !container) {
+            return; // Salir si faltan elementos
+        }
+
+        // Valores iniciales coherentes
+        let minVal = parseInitial(minInput, parseInt(rangeMin.value || DEFAULT_START_PRICE, 10));
+        let maxVal = parseInitial(maxInput, parseInt(rangeMax.value || DEFAULT_END_PRICE, 10));
+        if (minVal > maxVal) [minVal, maxVal] = [maxVal, minVal]; // Swap
+
+        // Settear valores iniciales
+        rangeMin.value = minVal;
+        rangeMax.value = maxVal;
+        rangeMin.min = MIN_PRICE;
+        rangeMin.max = MAX_PRICE;
+        rangeMax.min = MIN_PRICE;
+        rangeMax.max = MAX_PRICE;
+
+        const updateUI = () => {
+            let a = parseInt(rangeMin.value, 10);
+            let b = parseInt(rangeMax.value, 10);
+
+            // Asegurar que min no pase a max y viceversa
+            if (a > b) {
+                if (document.activeElement === rangeMin) {
+                    rangeMin.value = b;
+                    a = b;
+                } else {
+                    rangeMax.value = a;
+                    b = a;
+                }
+            }
+
+            // Actualizar displays e inputs hidden
+            minDisplay.textContent = a;
+            maxDisplay.textContent = formatMaxDisplay(b);
+            minInput.value = a;
+            maxInput.value = b;
+
+            // *** MEJORA: Actualizar variables CSS en lugar de style.background ***
+            const rangeWidth = MAX_PRICE - MIN_PRICE;
+            const percentA = ((a - MIN_PRICE) / rangeWidth) * 100;
+            const percentB = ((b - MIN_PRICE) / rangeWidth) * 100;
+
+            container.style.setProperty('--min-percent', `${percentA}%`);
+            container.style.setProperty('--max-percent', `${percentB}%`);
+        };
+
+        // Listeners para 'input' (actualiza UI mientras se mueve)
+        rangeMin.addEventListener('input', updateUI);
+        rangeMax.addEventListener('input', updateUI);
+        
+        // Listeners para 'change' (envía form al soltar)
+        rangeMin.addEventListener('change', debouncedSubmit);
+        rangeMax.addEventListener('change', debouncedSubmit);
+
+        // Inicializar UI
+        updateUI();
+
+    } catch (e) {
+        console.warn('[WARN] slider fallback failed', e);
+    }
+})();
+
+    // --- Auto-submit para selects de filtros (tienda e inventario) ---
+    (function enableAutoSubmitFilters() {
+        try {
+            // Tienda
+            const filtersForm = document.getElementById('filters-form');
+            if (filtersForm) {
+                const selectCat = filtersForm.querySelector('select[name="categoria"]');
+                const btnFiltrar = filtersForm.querySelector('.btn-filtrar');
+                if (selectCat) {
+                    selectCat.addEventListener('change', function (ev) {
+                        console.log('[AUTO-FILTER] tienda select categoria changed ->', ev.target.value);
+                        try {
+                            if (typeof filtersForm.requestSubmit === 'function') filtersForm.requestSubmit();
+                            else filtersForm.submit();
+                        } catch (e) {
+                            console.warn('No se pudo enviar filters-form automáticamente', e);
+                            // Fallback: reconstruir querystring mínimo
+                            try {
+                                const val = encodeURIComponent(ev.target.value || '');
+                                const action = filtersForm.getAttribute('action') || window.location.pathname;
+                                window.location.href = action + (action.includes('?') ? '&' : '?') + 'categoria=' + val;
+                            } catch (e2) { console.warn('Fallback de redirección falló', e2); }
+                        }
+                    });
+                }
+                // Ocultar el botón si existe (no es necesario ahora)
+                if (btnFiltrar) btnFiltrar.style.display = 'none';
+            }
+
+            // Inventario
+            const filtersFormInv = document.getElementById('filters-form-inv');
+            if (filtersFormInv) {
+                const selectCatInv = filtersFormInv.querySelector('select[name="categoria"]');
+                const btnFiltrarInv = filtersFormInv.querySelector('.btn-filtrar');
+                if (selectCatInv) {
+                    selectCatInv.addEventListener('change', function (ev) {
+                        console.log('[AUTO-FILTER] inventario select categoria changed ->', ev.target.value);
+                        try {
+                            if (typeof filtersFormInv.requestSubmit === 'function') filtersFormInv.requestSubmit();
+                            else filtersFormInv.submit();
+                        } catch (e) {
+                            console.warn('No se pudo enviar filters-form-inv automáticamente', e);
+                            try {
+                                const val = encodeURIComponent(ev.target.value || '');
+                                const action = filtersFormInv.getAttribute('action') || window.location.pathname;
+                                window.location.href = action + (action.includes('?') ? '&' : '?') + 'categoria=' + val;
+                            } catch (e2) { console.warn('Fallback de redirección (inv) falló', e2); }
+                        }
+                    });
+                }
+                if (btnFiltrarInv) btnFiltrarInv.style.display = 'none';
+            }
+        } catch (e) { console.warn('[WARN] enableAutoSubmitFilters failed', e); }
+    })();
 });

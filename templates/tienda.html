@@ -7,6 +7,8 @@
     <title>Tienda - EduQuiz</title>
     <link rel="stylesheet" href="../static/css/tienda.css">
         <link rel="stylesheet" href="/static/css/global.css">
+        <!-- noUiSlider CSS (CDN) -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css">
         <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
         <link rel="icon" href="/static/img/icono.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -80,12 +82,12 @@
                     <a href="{{ url_for('tienda.inventario_index') }}" class="btn-inventory"><i class="fa-solid fa-box-open"></i> Inventario</a>
                     <!-- Créditos y Perfil (Estilo del wireframe) -->
                     <div class="credits-box">
-                        <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
+                        <span id="cant-monedas-display" class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
                         <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
                     </div>
                    
                     <div class="profile-box" id="profile-box" style="cursor:pointer; position: relative;">
-                        <img src="/static/img/avatar.jpeg" class="profile-img">
+                        <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or '/static/img/avatar.jpeg' }}" class="profile-img">
                         <span class="profile-text">{{ logged_in_user.username }}</span>
                         <i class="fas fa-caret-down profile-caret" aria-hidden="true"></i>
 
@@ -101,37 +103,50 @@
             </header>
                 {% if logged_in_user and logged_in_user.get('tipo_usuario') == 'G' %}
                 <div class="crud-botones">
-                    <button id="btn-crud-accesorios" type="button">CRUD de Accesorios</button>
                     <button id="btn-crud-skins" type="button">CRUD de Skins</button>
                 </div>
                 {% endif %}
-                <h2>Accesorios</h2>
-                <div class="items-grid" id="accesorios-container">
-                    {% for accesorio in accesorios %}
-                    <div class="item-card">
-                        <div class="item-imagen" style="background-color: #d1e7dd;">
-                            <img src="{{ accesorio.url_imagen }}" alt="{{ accesorio.nombre }}">
-                        </div>
-                        <p class="item-nombre">{{ accesorio.nombre }}</p>
-                        <button class="btn-comprar">
-                            <i class="icono">🪙</i> {{ accesorio.precio }}
-                        </button>
-                    </div>
-                    {% else %}
-                    <p>No hay accesorios disponibles en la tienda en este momento.</p>
-                    {% endfor %}
-                </div>
-
                 <h2>Skins</h2>
+
+                <form id="filters-form" method="get" action="{{ url_for('tienda.tienda_index') }}" class="filters-form">
+                    <label class="filter-label">Categoria:
+                        <select name="categoria">
+                            <option value="" {% if not selected_categoria %}selected{% endif %}>Todos</option>
+                            <option value="N" {% if selected_categoria == 'N' %}selected{% endif %}>Normal</option>
+                            <option value="E" {% if selected_categoria == 'E' %}selected{% endif %}>Especial</option>
+                            <option value="L" {% if selected_categoria == 'L' %}selected{% endif %}>Legendario</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-label">Precio:
+                        <div class="range-slider noui-wrapper" aria-hidden="false">
+                            <div class="range-values">
+                                <span id="range-min-display">{{ min_price or '0' }}</span>
+                                <span class="range-sep">—</span>
+                                <span id="range-max-display">{{ max_price or '500+' }}</span>
+                            </div>
+                            <div id="price-slider"></div>
+                            <input type="hidden" name="min_price" id="min_price_input" value="{{ min_price or '' }}">
+                            <input type="hidden" name="max_price" id="max_price_input" value="{{ max_price or '' }}">
+                        </div>
+                    </label>
+
+                    <!-- Botón eliminado: el filtro se aplica automáticamente al cambiar los controles -->
+                </form>
+
                 <div class="items-grid" id="skins-container">
                     {% for skin in skins %}
                     <div class="item-card">
-                        <div class="item-imagen" style="background-color: #cce5ff;">
-                            <img src="{{ skin.url_imagen }}" alt="{{ skin.nombre }}">
-                        </div>
+                                <div class="item-imagen" style="background-color: #cce5ff;">
+                                    <div class="composite-container">
+                                        <img class="composite-skin" src="{{ skin.skin_url or skin.url_imagen }}" alt="{{ skin.nombre }}">
+                                    </div>
+                                </div>
                         <p class="item-nombre">{{ skin.nombre }}</p>
-                        <button class="btn-comprar">
-                            <i class="icono">🪙</i> {{ skin.precio }}
+                        {% set skin_id_var = skin.skin_id or skin.id %}
+                        {% set skin_owned = owned_skins and (skin_id_var in owned_skins) %}
+                        <button class="btn-comprar {% if skin_owned %}adquirido{% endif %}" data-tipo="skin" data-id="{{ skin_id_var }}" data-precio="{{ skin.precio }}" {% if skin_owned %}disabled{% endif %}>
+                            <i class="icono">🪙</i> {% if skin_owned %}Adquirido{% else %}{{ skin.precio }}{% endif %}
                         </button>
                     </div>
                     {% else %}
@@ -143,51 +158,9 @@
         </main>
     </div>
 
-    <div id="modal-accesorio" class="modal">
-        <div class="modal-contenido">
-            <span class="cerrar-modal">&times;</span>
-            <div class="crud-vista-lista" id="acc-lista-vista">
-                <h3>Gestión de Accesorios (CRUD)</h3>
-                <button id="btn-acc-abrir-crear" class="btn-agregar" type="button">➕ Agregar Nuevo Accesorio</button>
+    
 
-                <div class="tabla-contenedor">
-                    <table id="tabla-accesorios">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Precio</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="crud-form-vista oculto" id="acc-form-vista">
-                <button id="btn-acc-volver-lista" class="btn-volver" type="button">← Volver a la Lista</button>
-                <h3 id="acc-form-titulo">Agregar Nuevo Accesorio</h3>
-                <form id="form-accesorio">
-                    <input type="hidden" id="acc-id" name="accesorio_id" value="">
-
-                    <label for="acc-nombre">Nombre:</label>
-                    <input type="text" id="acc-nombre" name="nombre" required>
-
-                    <label for="acc-url">URL Imagen:</label>
-                    <input type="text" id="acc-url" name="url_imagen" required>
-
-                    <label for="acc-precio">Precio:</label>
-                    <input type="number" id="acc-precio" name="precio" min="0" required>
-
-                    <button type="submit" id="btn-acc-submit">Crear Accesorio</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-skin" class="modal">
+    <div id="modal-skin" class="modal oculto">
         <div class="modal-contenido">
             <span class="cerrar-modal">&times;</span>
             <div class="crud-vista-lista" id="skin-lista-vista">
@@ -243,7 +216,31 @@
         </div>
     </div>
 
+    <!-- Modal de Compra Exitosa -->
+    <div id="modal-success" class="modal oculto" aria-hidden="true">
+        <div class="modal-card">
+            <h3 id="modal-success-title">Compra exitosa</h3>
+            <p id="modal-success-text" class="modal-sub">Tu compra se realizó correctamente.</p>
+            <div style="margin-top:18px;">
+                <button id="modal-success-ok" class="btn-agregar">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Error en Compra -->
+    <div id="modal-error" class="modal oculto" aria-hidden="true">
+        <div class="modal-card modal-error-card">
+            <h3 id="modal-error-title">Error</h3>
+            <p id="modal-error-text" class="modal-sub">No se pudo completar la compra.</p>
+            <div style="margin-top:18px; display:flex; gap:8px; justify-content:center;">
+                <button id="modal-error-ok" class="btn-volver">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
         <script src="../static/js/global.js"></script>
+        <!-- noUiSlider JS (CDN) -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js"></script>
 
     <script src="../static/js/tienda.js"></script>
 </body>

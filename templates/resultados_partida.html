@@ -74,7 +74,7 @@
                     </div>
                     <a href="{{ url_for('tienda.inventario_index') }}" style="text-decoration:none;">
                         <div class="profile-box" style="cursor:pointer;">
-                            <img src="/static/img/avatar.jpeg" class="profile-img">
+                            <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or '/static/img/avatar.jpeg' }}" class="profile-img">
                         </div>
                     </a>
                 </div>

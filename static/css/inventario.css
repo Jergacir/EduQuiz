@@ -30,6 +30,66 @@
   background: #e0f2f1;
   color: #0d9488;
 }
+/* ------------------------------------------------------------------ */
+/* Estilos del combo de filtros en inventario (parche para igualar tienda) */
+/* ------------------------------------------------------------------ */
+.filters-form, .filters-form-inv {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 12px 0 18px 0;
+  flex-wrap: wrap;
+}
+.filters-form .filter-label, .filters-form-inv .filter-label {
+  font-size: 0.95rem;
+  color: #444;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.filters-form select, .filters-form-inv select {
+  height: 44px;
+  padding: 10px 38px 10px 14px;
+  border-radius: 14px;
+  min-width: 140px;
+  max-width: 320px;
+  border: none;
+  box-shadow: 0 8px 26px rgba(11, 78, 114, 0.06);
+  font-weight: 700;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  -webkit-appearance: none;
+  appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  transition: box-shadow .15s ease, transform .12s ease;
+}
+.filters-form select:focus, .filters-form-inv select:focus {
+  box-shadow: 0 12px 30px rgba(11,78,114,0.08);
+  transform: translateY(-2px);
+  outline: none;
+}
+.filters-form select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23879bb0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>"); }
+
+/* Option styling (best-effort across browsers) */
+.filters-form select option,
+.filters-form-inv select option {
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 2.3;
+}
+
+.filters-form select option:checked,
+.filters-form-inv select option:checked {
+  background: linear-gradient(90deg,#c7f0f6,#dbeefe);
+  color: #0f172a;
+}
+.filters-form select option:hover,
+.filters-form-inv select option:hover { background: rgba(59,130,246,0.06); }
+
 /* Estilos para la sección de accesorios en inventario */
 
 
@@ -108,6 +168,24 @@
 .btn-comprar:hover {
   background: linear-gradient(90deg, #2dd4bf 60%, #0d9488 100%);
   transform: scale(1.06);
+}
+
+/* Botón de equipar en inventario */
+.btn-equipar {
+  background: #ffc107;
+  color: #222;
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.08s;
+}
+.btn-equipar:hover { background: #e0a800; transform: translateY(-1px); }
+.btn-equipar.equipped, .btn-equipar[aria-pressed="true"] {
+  background: linear-gradient(90deg,#a19b85 0%,#9e8d5a 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .btn-comprar .icono {
