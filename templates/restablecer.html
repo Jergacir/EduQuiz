@@ -7,14 +7,19 @@
 
   <link rel="icon" href="/static/img/icono.png" type="image/png">
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/registro.css') }}">
+  <link rel="stylesheet" href="../static/css/global.css">
+  <link rel="stylesheet" href="../static/css/registro.css">
 
 </head>
 <body>
   <div class="contenedor">
     <div class="panel-izquierdo">
+      <div class="logo">
+        <img src="../static/img/logo.png" alt="Logo de EduQuiz">
+      </div>
       <div class="formulario-contenedor">
         <h1>Restablecer contraseña</h1>
   <form method="post" action="{{ url_for('modificarcontrasena.restablecer_post') }}">
@@ -30,11 +35,11 @@
           <button class="btn-primario" type="submit">Restablecer contraseña</button>
         </form>
         <div class="enlace-sesion">
-          <a href="{{ url_for('auth.frm_login') }}">Volver al inicio de sesión</a>
+          <a href="{{ url_for('auth.frm_login') }}"><i class="fa-solid fa-arrow-left"></i> Volver al inicio de sesión</a>
         </div>
       </div>
     </div>
-    <div class="panel-derecho">
+    <div class="panel-derecho panel-img">
       <div class="panel-derecho-contenido">
         <h2>Establece una nueva contraseña</h2>
         <p>Asegúrate de usar una contraseña segura (mínimo 8 caracteres, mayúsculas, minúsculas, número y carácter especial).</p>
