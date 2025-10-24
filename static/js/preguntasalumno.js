@@ -83,7 +83,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             if (data.finalizada) {
                 console.log("🏁 Partida finalizada");
-                window.location.href = `/resultados_alumno/${codigoPartida}`;
+                // Redirigir al podio final en lugar de la vista de resultados antigua
+                window.location.href = `/podio/${codigoPartida}`;
                 return null;
             }
 
@@ -309,7 +310,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 // Verificar si la partida finalizó
                 if (data.estado_partida === 'finalizada') {
                     detenerPolling();
-                    window.location.href = `/resultados_alumno/${codigoPartida}`;
+                    // Cuando la partida está finalizada, llevar al alumno al podio
+                    window.location.href = `/podio/${codigoPartida}`;
                 }
 
                 // Si el profesor está mostrando resultados (entre preguntas), redirigir al alumno a la vista de feedback

@@ -100,6 +100,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.warn('No se pudo obtener pregunta actual desde el servidor, usando 0', e);
         }
 
+        // Si el servidor indica un índice fuera del rango del cuestionario,
+        // finalizamos la partida y redirigimos al profesor a la página de resultados.
+        const totalPreguntas = cuestionarioData.preguntas ? cuestionarioData.preguntas.length : 0;
+        if (preguntaIndex >= totalPreguntas) {
+            console.log('ℹ️ No quedan preguntas. Finalizando partida...');
+            await finalizarPartida();
+            return;
+        }
+
         // Mostrar la pregunta correspondiente (si el index es válido)
         mostrarPregunta(preguntaIndex);
 
@@ -449,11 +458,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 console.log("✅ Partida finalizada");
                 detenerPolling();
 
-                // Redirigir a resultados
-                const data = await response.json();
-                if (data.partida_id) {
-                    window.location.href = `/resultados_partida/${data.partida_id}`;
-                }
+                // Redirigir al podio final (tanto profesor como alumnos usan /podio/<codigo>)
+                window.location.href = `/podio/${codigoPartida}`;
             }
         } catch (error) {
             console.error("Error al finalizar:", error);

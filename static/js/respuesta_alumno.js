@@ -74,12 +74,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`/api/partida/${codigo}/poll`);
                 if (!res.ok) return;
                 const data = await res.json();
-                const estado = data.estado_partida || data.estado || '';
-                if (estado === 'en_curso' || estado === 'en_juego') {
-                    // Redirigir a la vista de preguntas del alumno
-                    clearInterval(pollInterval);
-                    window.location.href = `/preguntasalumno/${codigo}`;
-                }
+                        const estado = data.estado_partida || data.estado || '';
+                        if (estado === 'en_curso' || estado === 'en_juego') {
+                            // Redirigir a la vista de preguntas del alumno
+                            clearInterval(pollInterval);
+                            window.location.href = `/preguntasalumno/${codigo}`;
+                        }
+
+                        // Si la partida fue finalizada por el profesor, llevar al alumno al podio
+                        if (estado === 'finalizada') {
+                            clearInterval(pollInterval);
+                            window.location.href = `/podio/${codigo}`;
+                        }
             } catch (e) {
                 console.warn('Error en polling respuesta_alumno:', e);
             }

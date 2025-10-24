@@ -1038,6 +1038,18 @@ def frm_resultados_partida(partida_id):
         conexion.close()
 
 
+@partidas_bp.route('/podio/<string:codigo_partida>')
+def frm_podio_partida(codigo_partida):
+    """
+    Renderiza la pantalla del podio final para una partida dada.
+    El frontend (`templates/podio.html`) se encargará de obtener el ranking real
+    mediante `/api/partida/<codigo_partida>/ranking` si necesita datos.
+    """
+    logged = _get_logged_in_user()
+    # No hacemos consultas complejas aquí; el template puede pedir los datos via AJAX
+    return render_template('podio.html', codigo_partida=codigo_partida, logged_in_user=logged)
+
+
 @partidas_bp.route('/exportar_resultados/<int:partida_id>')
 def frm_exportar_resultados(partida_id):
     conexion = dbmod.obtenerConexion()

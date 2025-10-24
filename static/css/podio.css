@@ -1,0 +1,258 @@
+:root {
+    --color-primary: #7e57c2;
+    --color-secondary: #ffc107;
+    --color-background: #f0f0f5;
+    --color-text: #333;
+    --color-light-gray: #e0e0e0;
+    --color-white: #ffffff;
+    --bar-1-color: #ffc107;
+    --bar-2-color: #4fc3f7;
+    --bar-3-color: #9575cd;
+    --color-continue-bg: #4CAF50;
+    --color-continue-hover: #45a049
+}
+
+body {
+    font-family: 'Lexend', Arial, sans-serif;
+    background-color: var(--color-light-gray);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0
+}
+
+.leaderboards-container {
+    background-color: var(--color-white);
+    width: 100%;
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, .1);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text)
+}
+
+.podium-section {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    height: 350px;
+    margin-bottom: 40px;
+    padding: 0 10px;
+    width: 380px;
+}
+
+.podium-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    width: 30%;
+    height: 100%
+}
+
+.podium-item.first {
+    order: 2
+}
+
+.podium-item.second {
+    order: 1
+}
+
+.podium-item.third {
+    order: 3
+}
+
+.avatar-container {
+    position: relative;
+    margin-bottom: 5px
+}
+
+.avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid var(--color-white);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .1)
+}
+
+.ranking-badge {
+    position: absolute;
+    bottom: 0;
+    right: -5px;
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: bold;
+    text-align: center
+}
+
+.name {
+    font-weight: bold;
+    margin: 0;
+    font-size: 14px
+}
+
+.xp {
+    font-size: 12px;
+    font-weight: bold;
+    margin: 3px 0
+}
+
+.bar {
+    width: 100%;
+    background-color: var(--color-light-gray);
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    bottom: 0;
+    z-index: 0
+}
+
+.podium-item .avatar-container {
+    z-index: 1
+}
+
+.bar-1 {
+    height: 65%;
+    background-color: var(--bar-1-color)
+}
+
+.bar-2 {
+    height: 50%;
+    background-color: var(--bar-2-color)
+}
+
+.bar-3 {
+    height: 40%;
+    background-color: var(--bar-3-color)
+}
+
+.podium-item.first .xp {
+    color: var(--bar-1-color)
+}
+
+.podium-item.second .xp {
+    color: var(--bar-2-color)
+}
+
+.podium-item.third .xp {
+    color: var(--bar-3-color)
+}
+
+.scrollable-list {
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 10px;
+    margin-bottom: 40px;
+    width: 100%;
+}
+
+.rankings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px
+}
+
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-radius: 15px
+}
+
+.list-item.current-user {
+    background-color: #fff3e0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .05)
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px
+}
+
+.list-avatar-container {
+    position: relative
+}
+
+.list-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%
+}
+
+.list-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    line-height: 18px
+}
+
+.list-name {
+    font-weight: bold;
+    margin: 0
+}
+
+.list-detail {
+    font-size: 12px;
+    color: #666;
+    margin: 0
+}
+
+.points {
+    font-weight: bold;
+    color: #999
+}
+
+.current-points {
+    color: var(--color-secondary)
+}
+
+.star {
+    font-size: 16px;
+    margin-right: 5px
+}
+
+.continue-btn {
+    width: 100%;
+    padding: 15px;
+    background-color: #0D9488;
+    color: var(--color-white);
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: background-color .3s
+}
+
+.continue-btn:hover {
+    background-color: #10645d;
+}
