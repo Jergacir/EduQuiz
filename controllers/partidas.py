@@ -355,7 +355,7 @@ def api_avanzar_pregunta(codigo_partida):
             # Si no es participante, verificar si es el profesor creador
             if not row:
                 sql_partida = """
-                    SELECT partida_id, usuario_creador_id, usuario_creador_id
+                    SELECT partida_id, usuario_creador_id, usuario_creador_id, pregunta_actual_index
                     FROM partida
                     WHERE codigo_partida = %s
                 """
@@ -367,7 +367,7 @@ def api_avanzar_pregunta(codigo_partida):
 
                 # Si es el creador, también puede avanzar
                 if partida['usuario_creador_id'] == usuario_id:
-                    nueva_index = partida['usuario_creador_id'] + 1
+                    nueva_index = partida['pregunta_actual_index'] + 1
                     sql_update = "UPDATE partida SET pregunta_actual_index = %s WHERE partida_id = %s"
                     cursor.execute(sql_update, (nueva_index, partida['partida_id']))
                     conexion.commit()
@@ -575,11 +575,14 @@ def api_poll_participantes(codigo_partida):
             """, (codigo_partida,))
             
             partida_info = cursor.fetchone()
+            print(f"[DEBUG] partida_info cruda: {partida_info}")  # <-- debug
+
             if not partida_info:
                 return jsonify({'success': False, 'error': 'Partida no encontrada'}), 404
             
             # Obtener participantes
             participantes = obtener_participantes(codigo_partida)
+            print(f"[DEBUG] Total participantes: {len(participantes)}")  # <-- debug
             
             # Timestamp
             timestamp = partidas_cache.get(codigo_partida, {}).get('last_update', datetime.now().timestamp())
@@ -592,13 +595,16 @@ def api_poll_participantes(codigo_partida):
                 'total': len(participantes)
             }
             
-            # Incluir índice de pregunta actual para que el cliente lo detecte (0-based)
-            response_data['pregunta_actual'] = partida_info.get('pregunta_actual_index', 0)
+            # Incluir índice de pregunta actual
+            pregunta_actual_index = partida_info.get('pregunta_actual_index', 0)
+            response_data['pregunta_actual'] = pregunta_actual_index
+            print(f"[DEBUG] pregunta_actual_index enviado: {pregunta_actual_index}")  # <-- debug
 
-            # Si está en curso (aceptar nombres de estado de BD y del código), incluir además el objeto pregunta
+            # Si está en curso, incluir además el objeto pregunta
             estados_en_curso = {EstadoPartida.EN_CURSO.value, 'en_juego', EstadoPartida.CUENTA_REGRESIVA.value}
             if partida_info['estado'] in estados_en_curso:
                 pregunta_obj = obtener_pregunta_actual(codigo_partida)
+                print(f"[DEBUG] pregunta_obj obtenido: {pregunta_obj}")  # <-- debug
                 if pregunta_obj:
                     response_data['pregunta_obj'] = pregunta_obj
             

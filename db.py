@@ -2,7 +2,7 @@ import pymysql.cursors
 import sys
 
 
-def obtenerConexion(host='localhost', port=3339, user='root', password='', database='bd_eduquiz'):
+def obtenerConexion(host='localhost', port=3339, user='root', password='', database='bd_eduquiz_2'):
     """Devuelve una conexión pymysql configurada con DictCursor.
     Los parámetros tienen valores por defecto; se pueden cambiar desde .env antes de usar.
     """

@@ -37,7 +37,7 @@ body {
 }
 
 .logo img {
-    height: 80px;
+    height: 120px;
     width: auto;
 }
 
@@ -291,7 +291,6 @@ h1 {
     }
 
     .logo{
-        margin: auto;
         margin-bottom: 10px;
     }
 }
