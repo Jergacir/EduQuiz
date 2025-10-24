@@ -13,8 +13,8 @@
 
 body {
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--color-primary-dark);
+    font-family: 'Lexend', sans-serif; 
+    background: linear-gradient(135deg, #6dd5ed, #2193b0);
     display: flex;
     justify-content: center;
     align-items: center;
