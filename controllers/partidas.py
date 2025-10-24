@@ -1913,7 +1913,7 @@ def api_exportar_partida(partida_id):
         return jsonify({"status": "error", "error": "Formato no soportado."}), 400
 
     # Obtener datos de la base de datos
-    conexion = dbmod.obtenerConexion()
+    conexion = dbmod.obtenerConexion() # Uso dbmod.obtenerConexion() según tu import
     if not conexion:
         return jsonify({"status": "error", "error": "No se pudo conectar a la base de datos."}), 500
 
@@ -1944,6 +1944,8 @@ def api_exportar_partida(partida_id):
             return jsonify({"status": "error", "error": "No hay datos para exportar."}), 404
 
         # Convertir a DataFrame
+        # Nota: Si estás usando MySQL Connector, rows ya puede ser una lista de diccionarios,
+        # lo cual es perfecto para DataFrame.
         df = pd.DataFrame(rows)
         
         # Filtrar solo las columnas solicitadas (que existan)
@@ -1972,6 +1974,10 @@ def api_exportar_partida(partida_id):
                 text_wrapper.flush()
             except Exception:
                 pass
+            
+            # 🔥 CORRECCIÓN CLAVE: El detach() evita que TextIOWrapper cierre el buffer subyacente.
+            text_wrapper.detach() 
+            
             buffer.seek(0)
             mimetype = "text/csv"
             extension = "csv"
@@ -1979,16 +1985,20 @@ def api_exportar_partida(partida_id):
         elif formato == "excel":
             with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
                 df.to_excel(writer, index=False, sheet_name="Resultados")
+            # El ExcelWriter gestiona correctamente el buffer sin cerrarlo
             mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             extension = "xlsx"
             
         elif formato == "pdf":
-            # Generar PDF mejorado
+            # Generar PDF mejorado. La función debe llamar a c.save() y luego buffer.seek(0).
+            # Ver la definición de generar_pdf_mejorado para el seek(0)
             generar_pdf_mejorado(buffer, df, partida_id, rows[0] if rows else {})
             mimetype = "application/pdf"
             extension = "pdf"
         
-        buffer.seek(0)
+        # Esta línea ahora es redundante para CSV y PDF si las funciones internas
+        # hacen el seek(0), pero no hace daño para Excel. La dejo por robustez.
+        buffer.seek(0) 
         filename = f"{nombre_base}.{extension}"
 
         # Log corto para depuración: tipo y tamaño
@@ -2000,6 +2010,8 @@ def api_exportar_partida(partida_id):
         
         # Si se debe subir a Drive
         if subir_a_drive and access_token:
+            # Reubicar el cursor del buffer al inicio antes de leerlo para subir
+            buffer.seek(0)
             resultado_drive = subir_archivo_a_drive(
                 buffer, 
                 filename, 
@@ -2035,8 +2047,7 @@ def api_exportar_partida(partida_id):
 
     except Exception as e:
         print(f"[ERROR] api_exportar_partida: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc()
+        traceback.print_exc(file=sys.stderr)
         return jsonify({"status": "error", "error": str(e)}), 500
     finally:
         if conexion:
@@ -2046,7 +2057,6 @@ def api_exportar_partida(partida_id):
 # ========================================================
 # GENERADOR DE PDF MEJORADO
 # ========================================================
-
 def generar_pdf_mejorado(buffer, df, partida_id, info_partida):
     """Genera un PDF profesional con los resultados"""
     c = canvas.Canvas(buffer, pagesize=letter)
@@ -2079,7 +2089,9 @@ def generar_pdf_mejorado(buffer, df, partida_id, info_partida):
         table_data.append([str(val)[:30] for val in row.values])
     
     # Crear tabla
-    col_widths = [width / len(df.columns) - 10] * len(df.columns)
+    # ColWidths: Usar el ancho de la página menos los márgenes, dividido por el número de columnas
+    col_width = (width - 100) / len(df.columns) 
+    col_widths = [col_width] * len(df.columns)
     table = Table(table_data, colWidths=col_widths)
     
     table.setStyle(TableStyle([
@@ -2094,10 +2106,13 @@ def generar_pdf_mejorado(buffer, df, partida_id, info_partida):
     ]))
     
     # Dibujar tabla
-    table.wrapOn(c, width, height)
-    table.drawOn(c, 40, y_pos - (len(table_data) * 20))
+    table.wrapOn(c, width - 100, height) # El ancho de envoltura es el ancho de la página menos los márgenes
+    table.drawOn(c, 50, y_pos - (len(table_data) * 20)) 
     
-    c.save()
+    c.save() 
+    
+    # Muy importante: Reportlab.c.save() cierra el buffer, así que lo re-abrimos y posicionamos al inicio
+    buffer.seek(0)
 
 
 # ========================================================
