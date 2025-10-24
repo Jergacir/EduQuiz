@@ -86,8 +86,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Obtener total de participantes
         await actualizarParticipantes();
 
-        // Mostrar primera pregunta
-        mostrarPregunta(0);
+        // Determinar índice de pregunta actual desde el servidor (si existe)
+        let preguntaIndex = 0;
+        try {
+            const resp = await fetch(`/api/partida/${codigoPartida}/poll`);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && typeof data.pregunta_actual !== 'undefined') {
+                    preguntaIndex = data.pregunta_actual || 0;
+                }
+            }
+        } catch (e) {
+            console.warn('No se pudo obtener pregunta actual desde el servidor, usando 0', e);
+        }
+
+        // Mostrar la pregunta correspondiente (si el index es válido)
+        mostrarPregunta(preguntaIndex);
 
         // Iniciar polling de respuestas
         iniciarPolling();
@@ -365,31 +379,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Botón Continuar
     // ===================================================================
     btnContinuar.addEventListener("click", async () => {
+        // Cuando el profesor presiona Continuar en la vista de profesor,
+        // queremos llevar al profesor a la pantalla de ranking y dejar que
+        // desde allí (ranking) sea donde se avance la pregunta.
         btnContinuar.disabled = true;
-        btnContinuar.textContent = "Avanzando...";
+        btnContinuar.textContent = "Redirigiendo a ranking...";
 
-        // Verificar si hay más preguntas
-        if (preguntaActual + 1 < cuestionarioData.preguntas.length) {
-            // Avanzar a siguiente pregunta
-            await avanzarPregunta();
-
-            // Notificar al servidor que volvemos al estado de juego
-            try {
-                await fetch(`/api/partida/${codigoPartida}/estado`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nuevo_estado: 'en_curso' })
-                });
-            } catch (e) {
-                console.warn('No se pudo notificar estado en_curso', e);
-            }
-
-            mostrarPregunta(preguntaActual + 1);
-            btnContinuar.textContent = "Continuar a Siguiente Pregunta";
-        } else {
-            // No hay más preguntas, finalizar partida
-            await finalizarPartida();
+        // Asegurarnos de que la partida esté en estado 'entre_preguntas'
+        try {
+            await fetch(`/api/partida/${codigoPartida}/estado`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nuevo_estado: 'entre_preguntas' })
+            });
+        } catch (e) {
+            console.warn('No se pudo notificar estado entre_preguntas desde btnContinuar', e);
         }
+
+        // Redirigir al profesor a la vista de ranking; los alumnos serán redirigidos por su polling
+        window.location.href = `/ranking/${codigoPartida}`;
     });
 
     // ===================================================================

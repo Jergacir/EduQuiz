@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const rankingList = document.getElementById('ranking-list');
     const continueBtn = document.getElementById('continue-btn');
+    const codigoPartida = document.body.dataset.codigoPartida;
+    const esProfesor = document.body.dataset.esProfesor === 'true';
 
     // Función para crear una tarjeta de jugador en el ranking
     function createPlayerCard(player) {
@@ -60,15 +62,119 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'p6', name: 'Jugador Muy Muy Largo Para Prueba', score: 1100, avatarUrl: 'https://via.placeholder.com/50/9E9E9E/FFFFFF?text=J6', positionChange: 'up' },
     ];
 
-    // Cargar el ranking inicial
-    updateRanking(sampleRankingData);
+    // Mostrar/ocultar botón según rol
+    if (!esProfesor && continueBtn) {
+        continueBtn.style.display = 'none';
+    }
 
-    // --- Lógica del botón Continuar ---
-    continueBtn.addEventListener('click', () => {
-        alert('Botón Continuar presionado. Aquí iría la lógica para cargar la siguiente pregunta o el resultado final.');
-        // Aquí podrías enviar una solicitud a tu backend para avanzar la partida
-        // Ejemplo: fetch('/api/partida/avanzar', { method: 'POST' });
-    });
+    // Función para cargar ranking real desde backend
+    async function loadRanking() {
+        try {
+            const resp = await fetch(`/api/partida/${codigoPartida}/ranking`);
+            if (!resp.ok) {
+                console.warn('No se pudo obtener ranking, usando demo');
+                return;
+            }
+            const data = await resp.json();
+            if (data && data.success && Array.isArray(data.ranking)) {
+                updateRanking(data.ranking);
+            }
+        } catch (err) {
+            console.error('Error cargando ranking:', err);
+        }
+    }
+
+    // Cargar ranking al inicio y cada 3 segundos
+    loadRanking();
+    const rankingInterval = setInterval(loadRanking, 3000);
+
+    // Poll pequeño para detectar cambio de estado/pregunta y redirigir a la vista de pregunta
+    let lastPreguntaIndex = null;
+    async function pollEstadoPartida() {
+        try {
+            const resp = await fetch(`/api/partida/${codigoPartida}/poll`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (!data || !data.success) return;
+
+            const estado = data.estado_partida || data.estado || '';
+            const preguntaServer = typeof data.pregunta_actual !== 'undefined' ? data.pregunta_actual : null;
+
+            // Guardar la primera vez
+            if (lastPreguntaIndex === null && preguntaServer !== null) {
+                lastPreguntaIndex = preguntaServer;
+            }
+
+            // Si el servidor indica que vuelve a en_curso, redirigir según rol
+            if (estado === 'en_curso' || estado === 'en_juego') {
+                // limpiar intervals
+                clearInterval(rankingInterval);
+                clearInterval(estadoInterval);
+                if (esProfesor) {
+                    window.location.href = `/preguntasprofesor/${codigoPartida}`;
+                } else {
+                    window.location.href = `/preguntasalumno/${codigoPartida}`;
+                }
+                return;
+            }
+
+            // Si cambió el índice de la pregunta (por ejemplo profesor avanzó), también redirigir
+            if (preguntaServer !== null && lastPreguntaIndex !== null && preguntaServer !== lastPreguntaIndex) {
+                clearInterval(rankingInterval);
+                clearInterval(estadoInterval);
+                if (esProfesor) {
+                    window.location.href = `/preguntasprofesor/${codigoPartida}`;
+                } else {
+                    window.location.href = `/preguntasalumno/${codigoPartida}`;
+                }
+                return;
+            }
+
+        } catch (err) {
+            console.error('Error polling estado desde ranking:', err);
+        }
+    }
+
+    const estadoInterval = setInterval(pollEstadoPartida, 1500);
+
+    // --- Lógica del botón Continuar (solo profesor) ---
+    if (continueBtn) {
+        continueBtn.addEventListener('click', async () => {
+            continueBtn.disabled = true;
+            continueBtn.textContent = 'Avanzando...';
+
+            try {
+                // 1) Avanzar pregunta en servidor
+                const resp = await fetch(`/api/partida/${codigoPartida}/avanzar_pregunta`, { method: 'POST' });
+                const data = await resp.json();
+
+                if (!resp.ok || !data.success) {
+                    console.error('Error al avanzar pregunta', data);
+                    continueBtn.disabled = false;
+                    continueBtn.textContent = 'Continuar';
+                    return;
+                }
+
+                // 2) Cambiar estado a 'en_curso' para que los clientes vuelvan a la pregunta
+                await fetch(`/api/partida/${codigoPartida}/estado`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nuevo_estado: 'en_curso' })
+                });
+
+                // detener el polling del ranking antes de redirigir
+                clearInterval(rankingInterval);
+
+                // 3) Redirigir al profesor a su vista de pregunta
+                window.location.href = `/preguntasprofesor/${codigoPartida}`;
+
+            } catch (error) {
+                console.error('Error al avanzar desde ranking:', error);
+                continueBtn.disabled = false;
+                continueBtn.textContent = 'Continuar';
+            }
+        });
+    }
 
     // --- Ejemplo de cómo actualizar el ranking después de un cambio ---
     // Simular una actualización después de 5 segundos (como si fuera una nueva pregunta)

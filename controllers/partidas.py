@@ -932,6 +932,38 @@ def frm_respuesta_alumno(codigo_partida):
         conexion.close()
 
 
+@partidas_bp.route('/ranking/<string:codigo_partida>')
+def frm_ranking_partida(codigo_partida):
+    """Renderiza la pantalla de ranking para la partida. Profesor ve el botón 'Continuar'."""
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        abort(500, "Error de conexión")
+
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                SELECT partida_id, codigo_partida, usuario_creador_id, estado
+                FROM partida
+                WHERE codigo_partida = %s
+            """, (codigo_partida,))
+
+            partida = cursor.fetchone()
+            if not partida:
+                abort(404, "Partida no encontrada")
+
+        logged = _get_logged_in_user()
+        es_profesor = False
+        try:
+            if logged and partida and int(logged.get('usuario_id', 0)) == int(partida.get('usuario_creador_id', 0)):
+                es_profesor = True
+        except Exception:
+            es_profesor = False
+
+        return render_template('ranking.html', codigo_partida=codigo_partida, es_profesor=es_profesor, logged_in_user=logged)
+    finally:
+        conexion.close()
+
+
 @partidas_bp.route('/api/exportar_partida/<int:partida_id>', methods=['POST'])
 def api_exportar_partida(partida_id):
     data = request.get_json() or {}
@@ -1228,6 +1260,57 @@ def api_obtener_pregunta_actual(codigo_partida):
             
     except Exception as e:
         print(f"[ERROR] api_obtener_pregunta_actual: {e}", file=sys.stderr)
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conexion.close()
+
+
+@partidas_bp.route('/api/partida/<codigo_partida>/ranking', methods=['GET'])
+def api_obtener_ranking(codigo_partida):
+    """Devuelve el ranking de la partida (lista de participantes ordenada por puntuacion_total)."""
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'success': False, 'error': 'Error de conexión'}), 500
+
+    try:
+        with conexion.cursor() as cursor:
+            # Obtener partida_id
+            cursor.execute("SELECT partida_id FROM partida WHERE codigo_partida = %s", (codigo_partida,))
+            partida = cursor.fetchone()
+            if not partida:
+                return jsonify({'success': False, 'error': 'Partida no encontrada'}), 404
+
+            partida_id = partida['partida_id']
+
+            cursor.execute("""
+                SELECT pa.participante_id, pa.usuario_id, u.nombre as nombre, COALESCE(u.url_avatar, '') as avatar,
+                       COALESCE(pa.puntuacion_total, 0) as puntuacion_total,
+                       COALESCE(pa.cant_preguntas_correctas, 0) as cant_correctas,
+                       COALESCE(pa.cant_preguntas_incorrectas, 0) as cant_incorrectas
+                FROM participante pa
+                JOIN usuario u ON pa.usuario_id = u.usuario_id
+                WHERE pa.partida_id = %s
+                ORDER BY pa.puntuacion_total DESC, u.nombre ASC
+            """, (partida_id,))
+
+            rows = cursor.fetchall() or []
+
+            ranking = []
+            for r in rows:
+                ranking.append({
+                    'participante_id': r.get('participante_id'),
+                    'usuario_id': r.get('usuario_id'),
+                    'name': r.get('nombre'),
+                    'avatarUrl': r.get('avatar') or '/static/img/avatar.jpeg',
+                    'score': r.get('puntuacion_total') or 0,
+                    'correct': r.get('cant_correctas') or 0,
+                    'incorrect': r.get('cant_incorrectas') or 0
+                })
+
+            return jsonify({'success': True, 'ranking': ranking}), 200
+
+    except Exception as e:
+        print(f"[ERROR] api_obtener_ranking: {e}", file=sys.stderr)
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         conexion.close()
