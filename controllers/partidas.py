@@ -993,7 +993,6 @@ def crear_partida():
 # ====================================================================
 # RESULTADOS Y EXPORTACIÓN
 # ====================================================================
-
 @partidas_bp.route('/resultados_partida/<int:partida_id>')
 def frm_resultados_partida(partida_id):
     conexion = dbmod.obtenerConexion()
@@ -1002,15 +1001,32 @@ def frm_resultados_partida(partida_id):
 
     try:
         with conexion.cursor() as cursor:
+            # Información de la partida
             cursor.execute("""
-                SELECT p.partida_id, p.codigo_partida, p.estado, p.tipo_partida, 
+                SELECT p.partida_id, p.codigo_partida, p.estado, p.tipo_partida, p.fecha_creacion,
                        c.nombre_cuestionario, c.descripcion
                 FROM partida p
                 JOIN cuestionario c ON p.cuestionario_id = c.cuestionario_id
                 WHERE p.partida_id = %s
             """, (partida_id,))
             partida_info = cursor.fetchone()
+            
+            if not partida_info:
+                abort(404, "Partida no encontrada")
 
+            # Estadísticas reales
+            cursor.execute("""
+                SELECT 
+                    COUNT(DISTINCT pa.participante_id) as total_jugadores,
+                    AVG(pa.puntuacion_total) as puntuacion_promedio,
+                    AVG(pa.cant_preguntas_correctas) as correctas_promedio,
+                    AVG(pa.cant_preguntas_incorrectas) as incorrectas_promedio
+                FROM participante pa
+                WHERE pa.partida_id = %s
+            """, (partida_id,))
+            stats = cursor.fetchone() or {}
+
+            # Ranking completo
             cursor.execute("""
                 SELECT 
                     u.nombre AS jugador,
@@ -1026,10 +1042,16 @@ def frm_resultados_partida(partida_id):
             ranking = cursor.fetchall() or []
 
         logged = _get_logged_in_user()
+        
+        # Agregar estadísticas al dict de partida_info
+        partida_info_dict = dict(partida_info)
+        partida_info_dict['jugadores_totales'] = stats.get('total_jugadores', 0)
+        partida_info_dict['acierto_promedio'] = f"{int(stats.get('puntuacion_promedio', 0))} pts"
+        partida_info_dict['fecha'] = partida_info['fecha_creacion'].strftime('%Y-%m-%d') if partida_info.get('fecha_creacion') else 'N/A'
 
         return render_template(
             'resultados_partida.html',
-            partida_info=partida_info,
+            partida_info=partida_info_dict,
             partida_id=partida_id,
             ranking=ranking,
             logged_in_user=logged
@@ -1038,16 +1060,63 @@ def frm_resultados_partida(partida_id):
         conexion.close()
 
 
+# En partidas.py
 @partidas_bp.route('/podio/<string:codigo_partida>')
-def frm_podio_partida(codigo_partida):
-    """
-    Renderiza la pantalla del podio final para una partida dada.
-    El frontend (`templates/podio.html`) se encargará de obtener el ranking real
-    mediante `/api/partida/<codigo_partida>/ranking` si necesita datos.
-    """
+def frm_podio(codigo_partida): # Renombrado a frm_podio para seguir el estilo de las demás rutas
+    """Muestra la vista del podio final de la partida."""
     logged = _get_logged_in_user()
-    # No hacemos consultas complejas aquí; el template puede pedir los datos via AJAX
-    return render_template('podio.html', codigo_partida=codigo_partida, logged_in_user=logged)
+    
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        abort(500, "Error de conexión")
+    
+    try:
+        with conexion.cursor() as cursor:
+            # 1. Obtener partida_id y marcar la partida como FINALIZADA
+            cursor.execute("SELECT partida_id, estado FROM partida WHERE codigo_partida = %s", (codigo_partida,))
+            partida = cursor.fetchone()
+            if not partida:
+                abort(404, "Partida no encontrada")
+                
+            # Marcar como FINALIZADA si no lo está
+            if partida['estado'] != EstadoPartida.FINALIZADA.value:
+                 cursor.execute(
+                    "UPDATE partida SET estado = %s WHERE partida_id = %s",
+                    (EstadoPartida.FINALIZADA.value, partida['partida_id'])
+                )
+                 conexion.commit()
+                 actualizar_timestamp_partida(codigo_partida)
+
+            # 2. Obtener el ranking COMPLETO en una sola consulta
+            cursor.execute("""
+                SELECT 
+                    u.nombre, 
+                    u.url_avatar, 
+                    pa.puntuacion_total, 
+                    pa.cant_preguntas_correctas
+                FROM participante pa
+                JOIN usuario u ON pa.usuario_id = u.usuario_id
+                WHERE pa.partida_id = %s
+                ORDER BY pa.puntuacion_total DESC, pa.cant_preguntas_correctas DESC
+            """, (partida['partida_id'],))
+            
+            ranking_completo = cursor.fetchall() or []
+        
+        # 3. Usar Slicing de Python para dividir la lista
+        top3 = ranking_completo[:3]  # Primeros 3 (índices 0, 1, 2)
+        resto = ranking_completo[3:] # Del 4to en adelante (índice 3 en adelante)
+        
+        return render_template('podio.html', 
+                               codigo_partida=codigo_partida, 
+                               logged_in_user=logged,
+                               top3=top3,
+                               resto=resto)
+    
+    except Exception as e:
+        print(f"[partidas] Error en frm_podio: {e}", file=sys.stderr)
+        abort(500, "Error interno del servidor al cargar el podio.")
+    finally:
+        conexion.close()
 
 
 @partidas_bp.route('/exportar_resultados/<int:partida_id>')
@@ -1493,14 +1562,13 @@ def api_obtener_pregunta_actual(codigo_partida):
 
 @partidas_bp.route('/api/partida/<codigo_partida>/ranking', methods=['GET'])
 def api_obtener_ranking(codigo_partida):
-    """Devuelve el ranking de la partida (lista de participantes ordenada por puntuacion_total)."""
+    """Devuelve el ranking REAL de la partida desde la BD."""
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({'success': False, 'error': 'Error de conexión'}), 500
 
     try:
         with conexion.cursor() as cursor:
-            # Obtener partida_id
             cursor.execute("SELECT partida_id FROM partida WHERE codigo_partida = %s", (codigo_partida,))
             partida = cursor.fetchone()
             if not partida:
@@ -1509,7 +1577,7 @@ def api_obtener_ranking(codigo_partida):
             partida_id = partida['partida_id']
 
             cursor.execute("""
-                SELECT pa.participante_id, pa.usuario_id, u.nombre as nombre, COALESCE(u.url_avatar, '') as avatar,
+                SELECT pa.participante_id, pa.usuario_id, u.nombre, COALESCE(u.url_avatar, '') as avatar,
                        COALESCE(pa.puntuacion_total, 0) as puntuacion_total,
                        COALESCE(pa.cant_preguntas_correctas, 0) as cant_correctas,
                        COALESCE(pa.cant_preguntas_incorrectas, 0) as cant_incorrectas,
@@ -1557,7 +1625,7 @@ def api_responder_pregunta():
     participante_id = data.get('participante_id')
     pregunta_id = data.get('pregunta_id')
     respuesta_id = data.get('respuesta_seleccionada_id')
-    tiempo_respuesta = data.get('tiempo_respuesta', 0)
+    tiempo_respuesta = data.get('tiempo_respuesta', 0)  # Tiempo que tardó en responder
 
     if not participante_id or not pregunta_id:
         return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
@@ -1602,7 +1670,7 @@ def api_responder_pregunta():
                 return jsonify({'success': False, 'message': 'Pregunta no encontrada'}), 404
 
             texto_pregunta = pregunta["texto_pregunta"]
-            tiempo_limite = pregunta["tiempo_limite"]
+            tiempo_limite = pregunta["tiempo_limite"] or 30
 
             # 4️⃣ Verificar si la respuesta es correcta
             correcta = 0
@@ -1616,7 +1684,19 @@ def api_responder_pregunta():
                 if respuesta and respuesta["estado_respuesta"] == 1:
                     correcta = 1
 
-            # 5️⃣ Insertar la respuesta del participante
+            # 5️⃣ CALCULAR PUNTOS SEGÚN FÓRMULA
+            puntos_ganados = 0
+            if correcta == 1:
+                # Fórmula: puntos = 1000 * (tiempo_restante / tiempo_limite)
+                # Si responde en 15s de 30s → puntos = 1000 * (15/30) = 500
+                # Si responde en 0s (instantáneo) → 1000 puntos
+                tiempo_restante = max(0, tiempo_limite - tiempo_respuesta)
+                puntos_ganados = int(1000 * (tiempo_restante / tiempo_limite))
+                
+                # Asegurar mínimo de 100 puntos si es correcta
+                puntos_ganados = max(100, puntos_ganados)
+
+            # 6️⃣ Insertar la respuesta del participante
             cursor.execute("""
                 INSERT INTO pregunta_participante (
                     participante_id, pregunta_id, respuesta_seleccionada_id,
@@ -1628,14 +1708,14 @@ def api_responder_pregunta():
                 texto_pregunta, correcta, tiempo_respuesta, tiempo_limite
             ))
 
-            # 6️⃣ Actualizar estadísticas
+            # 7️⃣ Actualizar estadísticas Y PUNTUACIÓN
             if correcta == 1:
                 cursor.execute("""
                     UPDATE participante
                     SET cant_preguntas_correctas = cant_preguntas_correctas + 1,
-                        puntuacion_total = puntuacion_total + 1000
+                        puntuacion_total = puntuacion_total + %s
                     WHERE participante_id = %s
-                """, (participante_id,))
+                """, (puntos_ganados, participante_id))
             else:
                 cursor.execute("""
                     UPDATE participante
@@ -1643,10 +1723,8 @@ def api_responder_pregunta():
                     WHERE participante_id = %s
                 """, (participante_id,))
 
-            # 7️⃣ Replicar si es líder
+            # 8️⃣ Replicar si es líder
             if lider_id == participante_id_db:
-                print(f"[DEBUG] {participante_id_db} es líder — se intentará replicar su respuesta", file=sys.stderr)
-
                 cursor.execute("""
                     SELECT participante_id
                     FROM participante
@@ -1655,9 +1733,9 @@ def api_responder_pregunta():
                       AND participante_id != %s
                 """, (participante_id_db, partida_id, participante_id_db))
                 miembros = [row["participante_id"] for row in cursor.fetchall()]
-                print(f"[DEBUG] Miembros detectados para replicar: {miembros}", file=sys.stderr)
 
                 if miembros:
+                    # Insertar respuesta para cada miembro
                     cursor.execute("""
                         INSERT INTO pregunta_participante (
                             participante_id, pregunta_id, respuesta_seleccionada_id,
@@ -1678,16 +1756,36 @@ def api_responder_pregunta():
                         tiempo_respuesta, tiempo_limite,
                         participante_id_db, partida_id, participante_id_db, pregunta_id
                     ))
-                    print("[DEBUG] Réplica ejecutada correctamente.", file=sys.stderr)
-                else:
-                    print("[DEBUG] No hay miembros para replicar.", file=sys.stderr)
+                    
+                    # Actualizar puntuación de miembros
+                    if correcta == 1:
+                        cursor.execute("""
+                            UPDATE participante
+                            SET cant_preguntas_correctas = cant_preguntas_correctas + 1,
+                                puntuacion_total = puntuacion_total + %s
+                            WHERE lider_id = %s
+                              AND partida_id = %s
+                              AND participante_id != %s
+                        """, (puntos_ganados, participante_id_db, partida_id, participante_id_db))
+                    else:
+                        cursor.execute("""
+                            UPDATE participante
+                            SET cant_preguntas_incorrectas = cant_preguntas_incorrectas + 1
+                            WHERE lider_id = %s
+                              AND partida_id = %s
+                              AND participante_id != %s
+                        """, (participante_id_db, partida_id, participante_id_db))
 
             conexion.commit()
-            return jsonify({'success': True, 'message': 'Respuesta registrada', 'correcta': bool(correcta)}), 200
+            return jsonify({
+                'success': True, 
+                'message': 'Respuesta registrada', 
+                'correcta': bool(correcta),
+                'puntos_ganados': puntos_ganados
+            }), 200
 
     except Exception as e:
         import traceback
-        print("[ERROR] api_responder_pregunta:", e)
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 

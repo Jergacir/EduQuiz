@@ -1,128 +1,76 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Podio Final - EduQuiz</title>
     <link rel="icon" href="/static/img/icono.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../static/css/podio.css">
 </head>
-
-<body data-codigo-partida="{{ codigo_partida if codigo_partida is defined else '' }}" data-es-profesor="{{ 'true' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'P') else 'false' }}">
+<body data-codigo-partida="{{ codigo_partida }}" 
+      data-es-profesor="{{ 'true' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'P') else 'false' }}">
     <div class="leaderboards-container">
         <div class="header">
             <h1>Podio Final</h1>
         </div>
-        <div class="podium-section" id="world-content">
+        
+        <div class="podium-section">
+            {% if top3|length >= 2 %}
             <div class="podium-item second">
-                <div class="avatar-container"><img src="../static/img/default.png" alt="Michael avatar"
-                        class="avatar"><span class="ranking-badge">2</span></div>
-                <p class="name">Michael</p>
-                <p class="xp">180 XP</p>
+                <div class="avatar-container">
+                    <img src="{{ top3[1].url_avatar or '/static/img/default.png' }}" alt="Avatar" class="avatar">
+                    <span class="ranking-badge">2</span>
+                </div>
+                <p class="name">{{ top3[1].nombre }}</p>
+                <p class="xp">{{ top3[1].puntuacion_total }} XP</p>
                 <div class="bar bar-2"></div>
             </div>
+            {% endif %}
 
+            {% if top3|length >= 1 %}
             <div class="podium-item first">
-                <div class="avatar-container"><img src="../static/img/default.png" alt="Jane avatar"
-                        class="avatar"><span class="ranking-badge">1</span></div>
-                <p class="name">Jane</p>
-                <p class="xp">190 XP</p>
+                <div class="avatar-container">
+                    <img src="{{ top3[0].url_avatar or '/static/img/default.png' }}" alt="Avatar" class="avatar">
+                    <span class="ranking-badge">1</span>
+                </div>
+                <p class="name">{{ top3[0].nombre }}</p>
+                <p class="xp">{{ top3[0].puntuacion_total }} XP</p>
                 <div class="bar bar-1"></div>
             </div>
+            {% endif %}
 
+            {% if top3|length >= 3 %}
             <div class="podium-item third">
-                <div class="avatar-container"><img src="../static/img/default.png" alt="Catlyne avatar"
-                        class="avatar"><span class="ranking-badge">3</span></div>
-                <p class="name">Catlyne</p>
-                <p class="xp">123 XP</p>
+                <div class="avatar-container">
+                    <img src="{{ top3[2].url_avatar or '/static/img/default.png' }}" alt="Avatar" class="avatar">
+                    <span class="ranking-badge">3</span>
+                </div>
+                <p class="name">{{ top3[2].nombre }}</p>
+                <p class="xp">{{ top3[2].puntuacion_total }} XP</p>
                 <div class="bar bar-3"></div>
             </div>
+            {% endif %}
         </div>
 
         <div class="scrollable-list">
             <div class="rankings-list">
+                {% for jugador in resto %}
                 <div class="list-item">
                     <div class="user-info">
                         <div class="list-avatar-container">
-                            <img src="../static/img/default.png" alt="Jane avatar" class="list-avatar">
-                            <span class="ranking-badge list-badge">4</span>
+                            <img src="{{ jugador.url_avatar or '/static/img/default.png' }}" alt="Avatar" class="list-avatar">
+                            <span class="ranking-badge list-badge">{{ loop.index + 3 }}</span>
                         </div>
                         <div>
-                            <p class="list-name">Jane</p>
-                            <p class="list-detail">12 Streaks</p>
+                            <p class="list-name">{{ jugador.nombre }}</p>
+                            <p class="list-detail">{{ jugador.cant_preguntas_correctas }} Correctas</p>
                         </div>
                     </div>
-                    <div class="points"><span class="star">⭐</span> 190 points</div>
+                    <div class="points"><span class="star">⭐</span> {{ jugador.puntuacion_total }} points</div>
                 </div>
-                <div class="list-item">
-                    <div class="user-info">
-                        <div class="list-avatar-container">
-                            <img src="../static/img/default.png" alt="Michael avatar" class="list-avatar">
-                            <span class="ranking-badge list-badge">5</span>
-                        </div>
-                        <div>
-                            <p class="list-name">Michael</p>
-                            <p class="list-detail">16 Streaks</p>
-                        </div>
-                    </div>
-                    <div class="points"><span class="star">⭐</span> 180 points</div>
-                </div>
-                <div class="list-item current-user">
-                    <div class="user-info">
-                        <div class="list-avatar-container">
-                            <img src="../static/img/default.png" alt="Catlyne avatar" class="list-avatar">
-                            <span class="ranking-badge list-badge">6</span>
-                        </div>
-                        <div>
-                            <p class="list-name">Catlyne</p>
-                            <p class="list-detail">9 Streaks</p>
-                        </div>
-                    </div>
-                    <div class="points current-points"><span class="star">⭐</span> 123 points</div>
-                </div>
-                <div class="list-item">
-                    <div class="user-info">
-                        <div class="list-avatar-container">
-                            <img src="../static/img/default.png" alt="Amoora avatar" class="list-avatar">
-                            <span class="ranking-badge list-badge">7</span>
-                        </div>
-                        <div>
-                            <p class="list-name">Amoora</p>
-                            <p class="list-detail">7 Streaks</p>
-                        </div>
-                    </div>
-                    <div class="points"><span class="star">⭐</span> 110 points</div>
-                </div>
-                <div class="list-item">
-                    <div class="user-info">
-                        <div class="list-avatar-container">
-                            <img src="../static/img/default.png" alt="Otro avatar" class="list-avatar">
-                            <span class="ranking-badge list-badge">8</span>
-                        </div>
-                        <div>
-                            <p class="list-name">Otro Usuario</p>
-                            <p class="list-detail">5 Streaks</p>
-                        </div>
-                    </div>
-                    <div class="points"><span class="star">⭐</span> 100 points</div>
-                </div>
-                <div class="list-item">
-                    <div class="user-info">
-                        <div class="list-avatar-container">
-                            <img src="../static/img/default.png" alt="Último avatar" class="list-avatar">
-                            <span class="ranking-badge list-badge">9</span>
-                        </div>
-                        <div>
-                            <p class="list-name">Último</p>
-                            <p class="list-detail">3 Streaks</p>
-                        </div>
-                    </div>
-                    <div class="points"><span class="star">⭐</span> 90 points</div>
-                </div>
+                {% endfor %}
             </div>
         </div>
 
@@ -130,5 +78,4 @@
     </div>
     <script src="../static/js/podio.js"></script>
 </body>
-
 </html>
