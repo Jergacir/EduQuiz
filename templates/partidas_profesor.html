@@ -70,7 +70,7 @@
                     </div>
                     <a href="{{ url_for('tienda.inventario_index') }}">
                         <div class="profile-box">
-                            <img src="/static/img/avatar.jpeg" class="profile-img">
+                            <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or '/static/img/avatar.jpeg' }}" class="profile-img">
                             <span class="profile-text" style="display: none;">Mi Perfil</span>
                         </div>
                     </a>

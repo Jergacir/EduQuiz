@@ -15,7 +15,7 @@ body {
 .contenedor {
     display: flex;
     width: 100%;
-    height: 100%;
+    min-height: 100vh;
     background-color: #ffffff;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -28,10 +28,11 @@ body {
     flex-direction: column;
     padding: 40px;
     box-sizing: border-box;
+    justify-content: center;
+    align-items: center;
 }
 
 .logo {
-    align-self: flex-start;
     margin-bottom: 10px;
 }
 
@@ -45,6 +46,7 @@ body {
     align-items: center;
     gap: 10px;
     margin-bottom: 40px;
+    width: 100%;
 }
 
 .paso {
@@ -88,7 +90,7 @@ body {
 .formulario-contenedor {
     width: 100%;
     margin: 10px auto;
-    max-width: 320px;
+    max-width: 340px;
 }
 
 h1 {
@@ -226,6 +228,12 @@ h1 {
 
 .punto-carrusel.activo {
     background-color: #ffffff;
+}
+
+.panel-img{
+    background: url(../img/reestablecer_contrasena.png);
+    background-size: cover;
+    background-position: center;
 }
 
 /* Modal de registro (usado por static/js/registro.js) */

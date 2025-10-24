@@ -92,7 +92,7 @@
                     </div>
                    
                     <div class="profile-box" id="profile-box" style="cursor:pointer; position: relative;">
-                        <img src="/static/img/avatar.jpeg" class="profile-img">
+                        <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or '/static/img/avatar.jpeg' }}" class="profile-img">
                         <span class="profile-text">{{ logged_in_user.username }}</span>
                         <i class="fas fa-caret-down profile-caret" aria-hidden="true"></i>
 

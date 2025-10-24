@@ -1,56 +1,80 @@
--- DDL (Data Definition Language) para crear la estructura de la BD
-
--- 1. Tabla Tipo_accesorio (Slots/Regiones)
+-- 1. Tabla Tipo_accesorio (Estaba correcta)
 CREATE TABLE Tipo_accesorio (
     id_tipo_accesorio INT PRIMARY KEY,
     nombre_tipo VARCHAR(100) NOT NULL
 );
 
--- 2. Tabla Accesorios (Catálogo de Ítems Individuales)
-CREATE TABLE Accesorios (
-    id_accesorio INT PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    url_imagen VARCHAR(200) NOT NULL,
-    precio INT,
-    vigencia BOOLEAN, -- Campo 'vigencia' para disponibilidad
-    id_tipo_accesorio INT NOT NULL,
-    FOREIGN KEY (id_tipo_accesorio) REFERENCES Tipo_accesorio(id_tipo_accesorio)
-);
+-- 2. Modificar 'accesorios' (Corregido para tablas con datos)
+
+-- CORRECCIÓN (Paso A): Añade la columna permitiendo nulos
+ALTER TABLE `accesorios`
+    ADD COLUMN `id_tipo_accesorio` INT NULL;
+
+/*
+-- CORRECCIÓN (Paso B): ¡IMPORTANTE!
+-- Antes del siguiente paso, debes actualizar tus datos.
+-- Reemplaza el '1' por un ID que SÍ exista en tu tabla 'Tipo_accesorio'.
+UPDATE `accesorios` SET `id_tipo_accesorio` = 1 WHERE `id_tipo_accesorio` IS NULL;
+*/
+
+-- CORRECCIÓN (Paso C): Ahora que no hay nulos, modifica la columna a NOT NULL
+ALTER TABLE `accesorios`
+    MODIFY COLUMN `id_tipo_accesorio` INT NOT NULL;
+
+-- CORRECCIÓN (Paso D): Añade la clave foránea
+ALTER TABLE `accesorios`
+    ADD CONSTRAINT `fk_accesorios_tipo`
+        FOREIGN KEY (`id_tipo_accesorio`)
+        REFERENCES `Tipo_accesorio`(`id_tipo_accesorio`);
+
+-- CORRECCIÓN (Paso E): Renombra la tabla para que coincida con las referencias
+-- La tabla SkinAccesorio la llama 'Accesorios' (mayúscula)
+RENAME TABLE `accesorios` TO `Accesorios`;
+
 
 -- 3. Tabla Skin (Bases Visuales)
+-- CORRECCIÓN: Esta tabla faltaba. Es necesaria ANTES de crear SkinAccesorio.
 CREATE TABLE Skin (
-    id_skin INT PRIMARY KEY,
-    nombre VARCHAR(200) NOT NULL,
-    descripcion VARCHAR(200),
-    url_imagen VARCHAR(200) NOT NULL,
-    precio INT,
-    vigencia BOOLEAN -- Campo 'vigencia' para disponibilidad
+    skin_id INT PRIMARY KEY,
+    nombre_skin VARCHAR(100) NOT NULL
+    -- ...Otras columnas que necesites para la skin...
 );
 
+
 -- 4. Tabla SkinAccesorio (Composición Default)
--- Clave compuesta (id_skin, id_accesorio) para asegurar unicidad
+-- Esta tabla ahora funcionará porque 'Accesorios' y 'Skin' existen.
 CREATE TABLE SkinAccesorio (
     id_accesorio INT NOT NULL,
     id_skin INT NOT NULL,
-    default_accesorio BOOLEAN, -- Renombrado de 'default' para evitar conflicto con palabra reservada
+    default_accesorio BOOLEAN,
     PRIMARY KEY (id_accesorio, id_skin),
-    FOREIGN KEY (id_accesorio) REFERENCES Accesorios(id_accesorio),
-    FOREIGN KEY (id_skin) REFERENCES Skin(id_skin)
+    FOREIGN KEY (id_accesorio) REFERENCES Accesorios(accesorio_id),
+    FOREIGN KEY (id_skin) REFERENCES Skin(skin_id)
 );
 
+-- 5. Tabla Usuario (Necesaria para Inventario)
+-- CORRECCIÓN: Esta tabla faltaba. Es necesaria ANTES de crear Inventario.
+CREATE TABLE Usuario (
+    usuario_id INT PRIMARY KEY,
+    nombre_usuario VARCHAR(100) NOT NULL
+    -- ...Otras columnas de usuario...
+);
+
+
 -- 6. Tabla Inventario (Inventario Universal y Equipamiento)
+-- Esta tabla ahora funcionará porque 'Usuario' existe.
 CREATE TABLE Inventario (
     id_inventario INT PRIMARY KEY,
     usuario_id INT NOT NULL,
     equipada BOOLEAN,
     fecha_adquisicion DATE,
-    id_item INT NOT NULL, -- FK a Skin o Accesorios
-    tipo_item VARCHAR(20) NOT NULL, -- 'SKIN' o 'ACCESORIO'
+    id_item INT NOT NULL,
+    tipo_item VARCHAR(20) NOT NULL,
     FOREIGN KEY (usuario_id) REFERENCES Usuario(usuario_id),
-    -- Nota: Las FK a Skin y Accesorios para id_item deben ser gestionadas
-    -- a nivel de aplicación, ya que el campo id_item es polimórfico.
-    CHECK (tipo_item IN ('SKIN', 'ACCESORIO'))
+    CHECK(tipo_item IN ('SKIN', 'ACCESORIO'))
 );
+
+-- CORRECCIÓN: Se eliminó el texto basura (');p` WHERE 1') que estaba al final.
 
 CREATE VIEW Inventario_Completo AS
 SELECT
@@ -117,3 +141,20 @@ INSERT INTO `usuario`
   (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verificado, vigencia)
 VALUES
   ('gestor', 'Gestor Ejemplo', '<HASH_BCRYPT>', 'gestor@example.com', '87654321', 'G', 0, 1, 1);
+
+
+
+
+
+
+ INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`, `skinDefault`, `categoria`) VALUES
+(1, 'Skin default chico', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761277844/Skin_default_hombre_dd8uud.png', 250, 1, 1, 'N'),
+(2, 'Skin Default Chica', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761277843/Skin_default_chica_tdx1wn.png', 0, 1, 1, 'N'),
+(3, 'Skin ing. Civil', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761265960/ingcivil_l70gwl.png', 250, 1, 0, 'N'),
+(4, 'Skin Doctor', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761266435/a81241a9-bc7e-44cb-add3-3567c2272bc5.png', 250, 1, 0, 'N'),
+(5, 'Skin Developer', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761267295/4b793a2c-ce12-4fd2-b018-40a4facc7373.png', 250, 1, 0, 'N'),
+(7, 'Skin Abogado', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761266580/8374a853-3de9-4793-9f76-849d73ffa400.png', 250, 1, 0, 'N'),
+(10, 'Skin Enfermera', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761267158/873b8b0a-75b9-4d24-92a5-caee3fde709f.png', 250, 1, 0, 'N'),
+(12, 'Rockero / Metalero', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278458/Rockero_waaq9r.png', 1000, 1, 0, 'E'),
+(14, 'L. Messi', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278797/GOAT_wrvpzy.png', 1500, 1, 0, 'L'),
+(15, 'C. Ronaldo', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278947/CR7_qb6rro.png', 1500, 1, 0, 'L');

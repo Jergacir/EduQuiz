@@ -83,7 +83,7 @@
                     </div>
                    
                     <div class="profile-box" id="profile-box" style="cursor:pointer; position: relative;">
-                        <img src="/static/img/avatar.jpeg" class="profile-img">
+                        <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or '/static/img/avatar.jpeg' }}" class="profile-img">
                         <span class="profile-text">{{ logged_in_user.username }}</span>
                         <i class="fas fa-caret-down profile-caret" aria-hidden="true"></i>
 
@@ -98,49 +98,35 @@
                 </div>
                 </header>
                 
+                
+                <form id="filters-form-inv" method="get" action="{{ url_for('tienda.inventario_index') }}" class="filters-form">
+                    <label class="filter-label">Categoria:
+                        <select name="categoria">
+                            <option value="" {% if not selected_categoria %}selected{% endif %}>Todos</option>
+                            <option value="N" {% if selected_categoria == 'N' %}selected{% endif %}>Normal</option>
+                            <option value="E" {% if selected_categoria == 'E' %}selected{% endif %}>Especial</option>
+                            <option value="L" {% if selected_categoria == 'L' %}selected{% endif %}>Legendario</option>
+                        </select>
+                    </label>
+                    <!-- Botón eliminado: el filtro se aplica automáticamente al cambiar el select -->
+                </form>
 
-                <!-- Slide bar de tabs -->
-                <div class="slidebar-tabs">
-                    <button id="tab-accesorios" class="slidebar-tab active">Accesorios</button>
-                    <button id="tab-skins" class="slidebar-tab">Skins</button>
-                </div>
-
-                <!-- Contenido de Accesorios -->
-                <div id="accesorios-section">
-                    <div class="items-grid" id="accesorios-container">
-                        {% for accesorio in accesorios %}
-                        <div class="item-card">
-                            <div class="item-imagen" style="background-color: #d1e7dd;">
-                                <img src="{{ accesorio.url_imagen }}" alt="{{ accesorio.nombre }}">
+                <div class="items-grid" id="skins-container">
+                    {% for skin in skins %}
+                    <div class="item-card" data-inventory-id="{{ skin.inventory_id }}">
+                        <div class="item-imagen" style="background-color: #cce5ff;">
+                            <div class="composite-container">
+                                <img class="composite-skin" src="{{ skin.skin_url or skin.url_imagen }}" alt="{{ skin.nombre }}">
                             </div>
-                            <p class="item-nombre">{{ accesorio.nombre }}</p>
-                            <button class="btn-comprar">
-                                Equipar
-                            </button>
                         </div>
-                        {% else %}
-                        <p>No hay accesorios disponibles en la tienda en este momento.</p>
-                        {% endfor %}
+                        <p class="item-nombre">{{ skin.nombre }}</p>
+                          <button class="btn-equipar" data-inventory-id="{{ skin.inventory_id }}" data-tipo="skin" aria-pressed="{{ 'true' if skin.equipada else 'false' }}">
+                            {% if skin.equipada %}Equipada{% else %}Equipar{% endif %}
+                        </button>
                     </div>
-                </div>
-
-                <!-- Contenido de Skins -->
-                <div id="skins-section" style="display:none;">
-                    <div class="items-grid" id="skins-container">
-                        {% for skin in skins %}
-                        <div class="item-card">
-                            <div class="item-imagen" style="background-color: #cce5ff;">
-                                <img src="{{ skin.url_imagen }}" alt="{{ skin.nombre }}">
-                            </div>
-                            <p class="item-nombre">{{ skin.nombre }}</p>
-                              <button class="btn-comprar">
-                                Equipar
-                            </button>
-                        </div>
-                        {% else %}
-                        <p>No hay skins disponibles en la tienda en este momento.</p>
-                        {% endfor %}
-                    </div>
+                    {% else %}
+                    <p>No hay skins disponibles en el inventario en este momento.</p>
+                    {% endfor %}
                 </div>
 
 

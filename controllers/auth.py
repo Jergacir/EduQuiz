@@ -257,6 +257,54 @@ def procesar_verificacion():
                           temp['dni'], temp['tipo_usuario'], temp['cant_monedas']))
 
                     cursor.execute("DELETE FROM registro_temp WHERE temp_id=%s", (temp['temp_id'],))
+                    # Asignar skins por defecto a este nuevo usuario (si existen)
+                    try:
+                        # Obtener el id del usuario recién insertado de forma robusta
+                        cursor.execute("SELECT usuario_id FROM usuario WHERE correo=%s", (temp['correo'],))
+                        new_user = cursor.fetchone()
+                        new_user_id = new_user.get('usuario_id') if new_user else None
+                        if new_user_id:
+                            # Determinar nombre de la tabla inventario (mayúsc/minúsc)
+                            inventario_table = 'inventario'
+                            try:
+                                cursor.execute("SELECT 1 FROM inventario LIMIT 1")
+                            except Exception:
+                                inventario_table = 'Inventario'
+
+                            # Obtener skins por defecto (skinDefault = 1)
+                            try:
+                                cursor.execute("SELECT skin_id FROM skin WHERE COALESCE(skinDefault, 0) = 1")
+                                default_skins = cursor.fetchall() or []
+                            except Exception:
+                                default_skins = []
+
+                            # Si no hay skins explícitamente marcadas como default, usar un fallback
+                            # (por ejemplo, la primera skin activa encontrada) para garantizar
+                            # que los usuarios reciban al menos una skin inicial.
+                            if not default_skins:
+                                try:
+                                    cursor.execute("SELECT skin_id FROM skin WHERE vigencia = 1 ORDER BY skin_id ASC LIMIT 1")
+                                    fallback = cursor.fetchall() or []
+                                    if fallback:
+                                        default_skins = fallback
+                                        print("Info: no se encontraron skins con skinDefault=1; usando fallback (primera skin activa).")
+                                except Exception:
+                                    # mantener default_skins vacío si falla el fallback
+                                    default_skins = []
+
+                            for ds in default_skins:
+                                try:
+                                    sk_id = ds.get('skin_id') or ds.get('id') or ds
+                                    # Verificar que no exista ya en el inventario del usuario
+                                    check_sql = f"SELECT 1 FROM {inventario_table} WHERE usuario_id=%s AND id_item=%s AND tipo_item='SKIN'"
+                                    cursor.execute(check_sql, (new_user_id, sk_id))
+                                    if not cursor.fetchone():
+                                        insert_sql = f"INSERT INTO {inventario_table} (usuario_id, id_item, tipo_item, equipada, fecha_adquisicion) VALUES (%s, %s, %s, %s, NOW())"
+                                        cursor.execute(insert_sql, (new_user_id, sk_id, 'SKIN', 0))
+                                except Exception as e:
+                                    print(f"Warning asignando skin por defecto (usuario {new_user_id}): {e}")
+                    except Exception as e:
+                        print(f"Warning al asignar skins por defecto: {e}")
                     conexion.commit()
 
                     if data:

@@ -14,6 +14,299 @@ body {
     padding-bottom: 10px;
 }
 
+/* Filtros (categoria / precio) - aspecto limpio y compacto */
+.filters-form, .filters-form-inv {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin: 12px 0 18px 0;
+    flex-wrap: wrap;
+}
+.filter-label {
+    font-size: 0.95rem;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Estilo del combo para parecerse al card del slider */
+.filters-form select, .filters-form-inv select {
+    height: 44px;
+    padding: 10px 38px 10px 14px; /* espacio para arrow */
+    border-radius: 14px;
+    /* ancho flexible para adaptarse a distintas pantallas y alinearse con el slider */
+    min-width: 140px;
+    max-width: 320px;
+    border: none;
+    box-shadow: 0 8px 26px rgba(11, 78, 114, 0.06);
+    font-weight: 700;
+    color: #0f172a;
+    /* Forzar color del texto del select (evita que el elemento seleccionado quede en blanco) */
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    -webkit-appearance: none;
+    appearance: none;
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    transition: box-shadow .15s ease, transform .12s ease;
+}
+.filters-form select:focus, .filters-form-inv select:focus {
+    box-shadow: 0 12px 30px rgba(11,78,114,0.08);
+    transform: translateY(-2px);
+    outline: none;
+}
+
+/* ----- Estilos para los items del dropdown (options) ----- */
+/* Nota: muchos navegadores limitan la personalización de <option>,
+   pero estas reglas mejoran color, fuente y altura donde sea soportado. */
+.filters-form select option,
+.filters-form-inv select option {
+    background: #ffffff;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 0.95rem;
+    /* line-height controla la altura visible del item en muchos browsers */
+    line-height: 2.3;
+}
+
+/* Estado seleccionado y hover (soportado en navegadores modernos) */
+.filters-form select option:checked,
+.filters-form-inv select option:checked {
+    /* Use a lighter gradient for the dropdown selection and keep dark text
+       to avoid the closed select showing white-on-white in some browsers */
+    background: linear-gradient(90deg,#c7f0f6,#dbeefe);
+    color: #0f172a;
+}
+.filters-form select option:hover,
+.filters-form-inv select option:hover {
+    background: rgba(59,130,246,0.06);
+}
+
+/* Ocultar flecha nativa en IE/Edge y dejar la nuestra */
+.filters-form select::-ms-expand,
+.filters-form-inv select::-ms-expand {
+    display: none;
+}
+
+/* Mejorar foco visible para accesibilidad */
+.filters-form select:focus-visible,
+.filters-form-inv select:focus-visible {
+    outline: 3px solid rgba(59,130,246,0.12);
+    outline-offset: 2px;
+}
+
+/* Custom arrow for selects (SVG data URL) */
+.filters-form select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23879bb0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>"); }
+.filters-form-inv select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23879bb0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>"); }
+.btn-filtrar {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: linear-gradient(90deg,#06b6d4,#3b82f6);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+.btn-filtrar:hover { opacity: 0.95; }
+
+/* ================================================================== */
+/* 1. ESTILOS PARA noUiSlider (La librería principal)                  */
+/* (Estos estilos faltaban en tu original)                         */
+/* ================================================================== */
+
+/* Contenedor principal del slider */
+#price-slider.noUi-target {
+    background: #e6eef8; /* Color de la pista inactiva */
+    border-radius: 10px;
+    height: 10px;
+    border: none;
+    box-shadow: none;
+}
+
+/* Barra de conexión (rango activo) */
+#price-slider .noUi-connect {
+    /* Mismo gradiente que el fallback */
+    background: linear-gradient(90deg, 
+        #28a745, 
+        #28a745(59, 130, 246, 0.22)
+    );
+}
+
+/* "Handles" o "Thumbs" (los círculos para arrastrar) */
+#price-slider .noUi-handle {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    /* Mismo gradiente que el fallback */
+    background: linear-gradient(180deg, #157e35, #125a2f);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.16);
+    border: none;
+    right: -9px; /* Mitad del ancho para centrarlo */
+    top: -4px; /* (10px alto pista - 18px alto handle) / 2 */
+    cursor: pointer;
+    transition: transform 0.12s ease;
+}
+
+/* Ocultar pseudo-elementos ::before y ::after (no los necesitamos) */
+#price-slider .noUi-handle::before,
+#price-slider .noUi-handle::after {
+    display: none;
+}
+
+/* Efecto "active" al arrastrar el handle */
+#price-slider .noUi-handle:active,
+#price-slider .noUi-handle:focus {
+    transform: scale(1.12);
+    outline: none;
+}
+
+/* Estilos para los Tooltips (los valores encima de los handles) */
+#price-slider .noUi-tooltip {
+    border: none;
+    background: #0f172a;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transform: translate(-50%, -150%); /* Posicionar arriba */
+}
+
+/* ================================================================== */
+/* 2. ESTILOS PARA EL FALLBACK (Inputs nativos)                       */
+/* (Tu CSS original, pero modificado para usar Variables CSS)      */
+/* ================================================================== */
+
+/* Contenedor principal (tarjeta) */
+.range-slider {
+    width: 320px;
+    padding: 10px 18px;
+    background: linear-gradient(180deg, #ffffff, #fbfdff);
+    border-radius: 14px;
+    box-shadow: 0 8px 26px rgba(11, 78, 114, 0.06);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.range-slider:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(11, 78, 114, 0.08);
+}
+
+/* Contenedor de los valores (ej: "0 - 1000+") */
+.range-values {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 0.95rem;
+}
+.range-sep {
+    color: #94a3b8;
+}
+
+/* Contenedor de los inputs "range" (el slider) */
+.range-inputs {
+    position: relative;
+    height: 36px;
+    border-radius: 10px;
+    overflow: visible;
+
+    /* --- MEJORA: El fondo ahora usa Variables CSS --- */
+    /* Estas variables son controladas por el JS */
+    --min-percent: 0%;
+    --max-percent: 100%;
+
+    /* Este gradiente dibuja 3 secciones:
+      1. Inactiva (izquierda): #e6eef8
+      2. Activa (centro): gradiente de color
+      3. Inactiva (derecha): #e6eef8
+    */
+    background: linear-gradient(
+        90deg,
+        #e6eef8 var(--min-percent),
+        rgba(6, 182, 212, 0.18) var(--min-percent),
+        rgba(59, 130, 246, 0.22) var(--max-percent),
+        #e6eef8 var(--max-percent)
+    );
+    /* --- Fin de la mejora --- */
+}
+
+/* Estilos de los inputs nativos */
+.range-inputs input[type='range'] {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 8px; /* Centrado vertical (36px - 10px alto track) / 2  ... ? No, 8px está bien */
+    width: 100%;
+    pointer-events: none; /* El input es transparente, solo los thumbs son clickables */
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent; /* El fondo lo maneja el .range-inputs */
+}
+
+/* Pista (Track) del slider - WebKit (Chrome, Safari) */
+.range-inputs input[type='range']::-webkit-slider-runnable-track {
+    height: 10px;
+    /* La pista es transparente para que se vea el fondo del .range-inputs */
+    background: transparent; 
+    border-radius: 10px;
+}
+
+/* "Thumb" (círculo) del slider - WebKit */
+.range-inputs input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #06b6d4, #3b82f6);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.16);
+    margin-top: -4px; /* (10px alto pista - 18px alto thumb) / 2 */
+    pointer-events: auto; /* IMPORTANTE: El thumb sí es clickable */
+    transition: transform 0.12s ease;
+    cursor: pointer;
+}
+
+/* Efecto "active" al arrastrar - WebKit */
+.range-inputs input[type='range']:active::-webkit-slider-thumb {
+    transform: scale(1.12);
+}
+
+/* Pista (Track) del slider - Mozilla (Firefox) */
+.range-inputs input[type='range']::-moz-range-track {
+    height: 10px;
+    background: transparent;
+    border-radius: 10px;
+}
+
+/* "Thumb" (círculo) del slider - Mozilla */
+.range-inputs input[type='range']::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #06b6d4, #3b82f6);
+    border: none;
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.16);
+    pointer-events: auto;
+    transition: transform 0.12s ease;
+    cursor: pointer;
+}
+
+/* Efecto "active" al arrastrar - Mozilla */
+.range-inputs input[type='range']:active::-moz-range-thumb {
+    transform: scale(1.12);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .range-slider {
+        width: 100%;
+    }
+
+}
+
 .items-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -48,8 +341,8 @@ body {
 }
 
 .item-imagen img {
-    max-width: 70px;
-    max-height: 70px;
+    max-width: 140px;
+    max-height: 140px;
 }
 
 .item-nombre {
@@ -79,6 +372,15 @@ body {
 .btn-comprar:hover {
     background-color: #e0a800;
 }
+
+/* Estado cuando el item ya fue adquirido por el usuario */
+.btn-comprar.adquirido {
+    background-color: #6c757d !important; /* gris */
+    color: #fff !important;
+    cursor: default;
+    opacity: 0.95;
+}
+.btn-comprar.adquirido:hover { background-color: #6c757d !important; }
 
 .btn-comprar-real {
     background-color: #28a745;
@@ -188,7 +490,7 @@ body {
 }
 
 .btn-agregar {
-    background-color: #008000; /* Verde para agregar */
+    background-color: #0D9488; /* Verde para agregar */
     color: white;
 }
 
@@ -231,6 +533,33 @@ body {
 .modal-contenido tbody tr:nth-child(even) {
     background-color: #f8f9fa;
 }
+
+/* Overlay modals (success / error) */
+.modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1200;
+}
+.modal.oculto { display: none !important; }
+.modal[aria-hidden="false"], .modal:not(.oculto) {
+    display: flex;
+}
+.modal-card {
+    background: #fff;
+    padding: 20px 24px;
+    border-radius: 12px;
+    max-width: 540px;
+    width: calc(100% - 40px);
+    text-align: center;
+    box-shadow: 0 12px 30px rgba(2,6,23,0.18);
+}
+.modal-card h3 { margin: 0 0 8px 0; color: var(--color-text-dark); }
+.modal-sub { color: var(--color-text-light); margin-top: 8px; }
+.modal-error-card { border: 1px solid rgba(220, 38, 38, 0.12); }
 
 /* Botones de Acción (Editar/Eliminar) */
 .btn-accion {
@@ -285,3 +614,24 @@ body {
     justify-content: center;
     align-items: center;
 }
+
+/* Contenedor compuesto para superponer skin + accesorio */
+.composite-container {
+    position: relative;
+    width: 70px; /* ancho coherente con .item-imagen img */
+    height: 70px;
+    display: block;
+    margin: 0 auto; /* centrar horizontalmente dentro de .item-imagen */
+}
+.composite-container img {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* centrar perfectamente */
+    width: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    display: block;
+}
+.composite-skin { z-index: 1; }
+.composite-acc { z-index: 2; }

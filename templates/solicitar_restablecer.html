@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,16 +8,22 @@
 
   <link rel="icon" href="/static/img/icono.png" type="image/png">
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/registro.css') }}">
+  <link rel="stylesheet" href="../static/css/global.css">
+  <link rel="stylesheet" href="../static//css/registro.css">
 </head>
+
 <body>
   <div class="contenedor">
     <div class="panel-izquierdo">
+      <div class="logo">
+        <img src="../static/img/logo.png" alt="Logo de EduQuiz">
+      </div>
       <div class="formulario-contenedor">
         <h1>Recuperar contraseña</h1>
-  <form method="post" action="{{ url_for('modificarcontrasena.solicitar_restablecer') }}">
+        <form method="post" action="{{ url_for('modificarcontrasena.solicitar_restablecer') }}">
           <div class="grupo-formulario">
             <label for="email">Correo electrónico</label>
             <input id="email" name="email" type="email" required placeholder="correo@dominio.com">
@@ -24,11 +31,11 @@
           <button class="btn-primario" type="submit">Enviar instrucciones</button>
         </form>
         <div class="enlace-sesion">
-          <a href="{{ url_for('auth.frm_login') }}">Volver al inicio de sesión</a>
+          <a href="{{ url_for('auth.frm_login') }}"><i class="fa-solid fa-arrow-left"></i> Volver al inicio de sesión</a>
         </div>
       </div>
     </div>
-    <div class="panel-derecho">
+    <div class="panel-derecho panel-img">
       <div class="panel-derecho-contenido">
         <h2>Recupera el acceso</h2>
         <p>Te enviaremos un enlace seguro para restablecer tu contraseña si el correo existe en nuestro sistema.</p>
@@ -41,28 +48,29 @@
   {% endfor %}
   <div id="login-url" data-url="{{ url_for('auth.frm_login') }}" style="display:none"></div>
   <script>
-    (function(){
+    (function () {
       try {
         var nodes = document.querySelectorAll('.flash-msg');
-        for (var i=0;i<nodes.length;i++){
+        for (var i = 0; i < nodes.length; i++) {
           var n = nodes[i];
           var cat = n.getAttribute('data-cat');
           var msg = n.getAttribute('data-msg');
-          if (cat === 'reset_info'){
+          if (cat === 'reset_info') {
             var loginEl = document.getElementById('login-url');
             var loginUrl = loginEl ? loginEl.getAttribute('data-url') : '/login';
-            if (typeof showModal === 'function') showModal('Enviado', msg, { onClose: function(){ window.location.href = loginUrl; } });
+            if (typeof showModal === 'function') showModal('Enviado', msg, { onClose: function () { window.location.href = loginUrl; } });
             else { alert(msg); window.location.href = loginUrl; }
             break;
           }
-          if (cat === 'reset_warning'){
+          if (cat === 'reset_warning') {
             if (typeof showModal === 'function') showModal('Advertencia', msg);
             else alert(msg);
             break;
           }
         }
-      } catch(e){ console.error(e); }
+      } catch (e) { console.error(e); }
     })();
   </script>
 </body>
+
 </html>
