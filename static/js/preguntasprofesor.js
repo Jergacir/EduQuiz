@@ -129,6 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ===================================================================
     // Mostrar pregunta (definición dentro del scope)
     // ===================================================================
+    let preguntaActiva = false;
     function mostrarPregunta(index) {
         if (!cuestionarioData || !cuestionarioData.preguntas) return;
 
@@ -166,7 +167,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnContinuar.disabled = true;
         responseIndicator.classList.remove("complete");
         responseIndicator.textContent = "Esperando respuestas...";
-
+        todosRespondieron = false;
+        respondidos.textContent = 0;
+        progressPercent.textContent = '0%';
+        const circumference = 2 * Math.PI * 52;
+        progressCircle.style.strokeDashoffset = circumference;
+        preguntaActiva = true;
         // Iniciar timer
         iniciarTimer();
     }
@@ -199,13 +205,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ===================================================================
     function tiempoAgotado() {
         console.log("⏰ Tiempo agotado");
-        
+
         // Marcar respuestas no contestadas como incorrectas
         marcarRespuestasNoContestadas();
-        
+
         // Mostrar respuestas correctas
         mostrarRespuestasCorrectas();
-        
+
         // Habilitar botón continuar
         btnContinuar.disabled = false;
         responseIndicator.textContent = "¡Tiempo agotado! Puedes continuar.";
@@ -218,6 +224,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nuevo_estado: 'entre_preguntas' })
             }).then(res => res.json()).then(d => console.log('Estado cambiado a entre_preguntas', d)).catch(err => console.warn('No se pudo notificar estado:', err));
+            preguntaActiva = false;
         } catch (e) {
             console.warn('Error notificando estado entre_preguntas', e);
         }
@@ -270,43 +277,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Polling de respuestas recibidas
     // ===================================================================
     async function actualizarParticipantes() {
-        try {
-            const response = await fetch(`/api/partida/${codigoPartida}/poll`);
-            if (!response.ok) return;
+    // Solo actualizar si hay una pregunta activa
+    if (!preguntaActiva) return;
 
-            const data = await response.json();
-            if (!data.success) return;
+    try {
+        // Obtener info general de la partida
+        const response = await fetch(`/api/partida/${codigoPartida}/poll`);
+        if (!response.ok) return;
 
-            // Actualizar total de participantes
-            const total = data.total || 0;
-            totalParticipantes.textContent = total;
-            totalAlumnos.textContent = total;
+        const data = await response.json();
+        if (!data.success) return;
 
-            // Obtener respuestas recibidas de la pregunta actual
-            const respuestasRecibidas = await obtenerRespuestasRecibidas();
+        // Total de participantes
+        const total = data.total || 0;
+        totalParticipantes.textContent = total;
+        totalAlumnos.textContent = total;
 
-            // Actualizar UI
-            respondidos.textContent = respuestasRecibidas;
-            
-            // Calcular porcentaje
-            const porcentaje = total > 0 ? Math.round((respuestasRecibidas / total) * 100) : 0;
-            progressPercent.textContent = `${porcentaje}%`;
+        // Obtener respuestas recibidas de la pregunta actual
+        const respuestasRecibidas = await obtenerRespuestasRecibidas();
 
-            // Actualizar círculo de progreso
-            const circumference = 2 * Math.PI * 52; // radio = 52
-            const offset = circumference - (porcentaje / 100) * circumference;
-            progressCircle.style.strokeDashoffset = offset;
+        // Actualizar UI
+        respondidos.textContent = respuestasRecibidas;
 
-            // Verificar si todos respondieron
-            if (respuestasRecibidas >= total && total > 0 && !todosRespondieron) {
-                todosRespondieron = true;
-                todosHanRespondido();
-            }
+        // Calcular porcentaje
+        const porcentaje = total > 0 ? Math.round((respuestasRecibidas / total) * 100) : 0;
+        progressPercent.textContent = `${porcentaje}%`;
 
-        } catch (error) {
-            console.error("Error en polling:", error);
+        // Actualizar círculo de progreso
+        const circumference = 2 * Math.PI * 52; // radio = 52
+        const offset = circumference - (porcentaje / 100) * circumference;
+        progressCircle.style.strokeDashoffset = offset;
+
+        // Debug: ver valores en consola
+        console.log("Polling:", { total, respuestasRecibidas, todosRespondieron });
+
+        // Verificar si todos respondieron
+        if (total > 0 && respuestasRecibidas >= total && !todosRespondieron) {
+            todosHanRespondido();
         }
+
+    } catch (error) {
+        console.error("Error en polling:", error);
     }
+}
 
     // ===================================================================
     // Obtener cantidad de respuestas recibidas
@@ -328,6 +341,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Todos han respondido
     // ===================================================================
     function todosHanRespondido() {
+        if (todosRespondieron) return; // <--- evita que se ejecute varias veces
+    todosRespondieron = true;
+    preguntaActiva = false;
         console.log("✅ Todos han respondido");
 
         // Detener timer
@@ -432,7 +448,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (response.ok) {
                 console.log("✅ Partida finalizada");
                 detenerPolling();
-                
+
                 // Redirigir a resultados
                 const data = await response.json();
                 if (data.partida_id) {
@@ -458,48 +474,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     inicializarPartida();
 
     console.log("✅ Vista profesor inicializada");
-}); 
-    // ===================================================================
-    function mostrarPregunta(index) {
-        if (!cuestionarioData || !cuestionarioData.preguntas) return;
-
-        const pregunta = cuestionarioData.preguntas[index];
-        if (!pregunta) {
-            console.error("❌ Pregunta no encontrada en índice:", index);
-            return;
-        }
-
-        preguntaActual = index;
-
-        // Actualizar contador
-        preguntaActualSpan.textContent = index + 1;
-
-        // Mostrar texto
-        preguntaTexto.textContent = pregunta.texto_pregunta || pregunta.texto || "Pregunta sin texto";
-
-        // Mostrar imagen si existe
-        if (pregunta.media_url) {
-            preguntaMedia.src = pregunta.media_url;
-            preguntaMedia.style.display = "block";
-        } else {
-            preguntaMedia.style.display = "none";
-        }
-
-        // Mostrar respuestas
-        mostrarRespuestas(pregunta.respuestas || []);
-
-        // Obtener tiempo límite
-        tiempoRestante = pregunta.tiempo_limite || 30;
-
-        // Resetear estado
-        todosRespondieron = false;
-        btnContinuar.disabled = true;
-        responseIndicator.classList.remove("complete");
-        responseIndicator.textContent = "Esperando respuestas...";
-
-        // Iniciar timer
-        iniciarTimer();
-    }
-
-    // ===================================================================
-    // Mostrar
+});

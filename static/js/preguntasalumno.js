@@ -26,6 +26,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     let yaRespondi = false;
     let esLider = false;
 
+    let modoGrupal = false;
+
     // ===================================================================
     // Verificar si el usuario es líder (modo grupal)
     // ===================================================================
@@ -37,6 +39,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             const data = await response.json();
             if (!data.success) return false;
 
+            // Determinar si la partida es grupal
+            modoGrupal = data.participantes.some(p => p.lider_id !== null && p.lider_id !== p.participante_id);
+            console.log("🔍 Modo grupal:", modoGrupal);
             const miParticipante = data.participantes.find(
                 p => p.usuario_id === parseInt(usuarioId)
             );
@@ -44,9 +49,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (!miParticipante) return false;
 
             esLider = miParticipante.lider_id === miParticipante.participante_id;
-            
+
             if (esLider) {
                 leaderIndicator.classList.add("show");
+            } else {
+                leaderIndicator.classList.remove("show");
             }
 
             return esLider;
@@ -68,7 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             const data = await response.json();
-            
+
             if (!data.success) {
                 console.error("❌ Error en respuesta:", data.error);
                 return null;
@@ -93,7 +100,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ===================================================================
     async function mostrarPregunta() {
         const pregunta = await cargarPreguntaActual();
-        
+
         if (!pregunta) {
             questionText.textContent = "Error al cargar pregunta";
             return;
@@ -147,7 +154,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             `;
 
             // Solo permitir responder si es líder (modo grupal) o modo individual
-            if (esLider || !leaderIndicator.classList.contains("show")) {
+            if (esLider || !modoGrupal) {
                 btn.addEventListener("click", () => seleccionarRespuesta(btn, respuesta, index));
             } else {
                 btn.disabled = true;
@@ -157,6 +164,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             answersContainer.appendChild(btn);
         });
+
+        // 🔹 Mostrar aviso visual si no eres líder
+        if (esLider || !modoGrupal) {
+            waitingScreen.classList.add("active");
+            waitingScreen.querySelector(".waiting-text").textContent = "Esperando al líder del grupo...";
+            waitingScreen.querySelector(".waiting-subtext").textContent = "Solo el líder puede responder por el grupo.";
+        } else {
+            waitingScreen.classList.remove("active");
+        }
     }
 
     // ===================================================================
@@ -283,7 +299,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (data.success) {
                 // Verificar si cambió la pregunta actual
                 const preguntaServer = data.pregunta_actual || 0;
-                
+
                 if (preguntaServer !== preguntaActual) {
                     console.log(`🔄 Avanzando a pregunta ${preguntaServer + 1}`);
                     preguntaActual = preguntaServer;

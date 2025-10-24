@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const isGroupGame = JSON.parse(body.dataset.isGroupGame || "false");
     const numGrupos = parseInt(body.dataset.numGrupos || "3");
     const codigoPartida = document.querySelector(".game-code")?.textContent.trim();
-    
+
     const esProfesor = loggedUser && loggedUser.tipo_usuario === 'P';
 
     console.log("📋 Config:", { loggedUser, isGroupGame, numGrupos, codigoPartida, esProfesor });
@@ -82,13 +82,60 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===================================================================
     const startBtn = document.querySelector(".start-game-button");
     if (startBtn && esProfesor) {
-        startBtn.addEventListener("click", async () => {
+        startBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
             console.log("🚀 Iniciando partida...");
-            
-            // Deshabilitar botón
+
+            // Deshabilitar botón temporalmente
             startBtn.disabled = true;
             startBtn.textContent = "Iniciando...";
-            
+
+            // === NUEVA VALIDACIÓN ===
+            if (isGroupGame) {
+                const grupos = {};
+                const tarjetas = document.querySelectorAll(".usuario-en-grupo");
+
+                tarjetas.forEach(tarjeta => {
+                    const col = tarjeta.closest(".group-column");
+                    const grupoId = col?.dataset.grupoId;
+                    if (!grupoId || grupoId === "0") return; // ignorar "sin asignar"
+
+                    if (!grupos[grupoId]) grupos[grupoId] = { participantes: 0, lideres: 0 };
+
+                    grupos[grupoId].participantes++;
+                    if (tarjeta.querySelector(".lider-icon")) {
+                        grupos[grupoId].lideres++;
+                    }
+                });
+
+                // Validar cada grupo existente
+                for (let i = 1; i <= numGrupos; i++) {
+                    const g = grupos[i];
+                    if (!g || g.participantes === 0) {
+                        alert(`⚠️ El grupo ${i} no tiene participantes asignados.`);
+                        startBtn.disabled = false;
+                        startBtn.textContent = "Iniciar Partida";
+                        return; // 👈 esto ahora sale de toda la función
+                    }
+                    if (g.lideres === 0) {
+                        alert(`⚠️ El grupo ${i} no tiene líder designado.`);
+                        startBtn.disabled = false;
+                        startBtn.textContent = "Iniciar Partida";
+                        return; // 👈 igual aquí, corta toda la ejecución
+                    }
+                }
+
+                // 🔸 Verificar si hay participantes sin asignar
+                const sinAsignar = document.querySelectorAll('.group-column[data-grupo-id="0"] .usuario-en-grupo').length;
+                if (sinAsignar > 0) {
+                    alert("⚠️ Hay participantes sin asignar. Asigna todos antes de iniciar la partida.");
+                    startBtn.disabled = false;
+                    startBtn.textContent = "Iniciar Partida";
+                    return;
+                }
+            }
+
+            // === SI PASA LA VALIDACIÓN, CONTINÚA CON NORMALIDAD ===
             try {
                 const response = await fetch(`/api/partida/${codigoPartida}/estado`, {
                     method: 'POST',
@@ -100,7 +147,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (data.success) {
                     console.log("✅ Estado cambiado a cuenta_regresiva");
-                    // El polling detectará el cambio y redirigirá
                 } else {
                     console.error("❌ Error al cambiar estado:", data.message);
                     alert("Error al iniciar partida: " + data.message);
@@ -140,7 +186,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const colNoGroup = document.createElement('div');
             colNoGroup.classList.add('group-column', 'no-group');
             // Usaremos el ID 0 o 'null' para identificar este grupo
-            colNoGroup.dataset.grupoId = '0'; 
+            colNoGroup.dataset.grupoId = '0';
             colNoGroup.innerHTML = `<h3 class="group-title no-group-title">Sin Asignar (0)</h3>`;
             groupView.appendChild(colNoGroup);
 
@@ -164,7 +210,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // ... (código para MODO INDIVIDUAL sin cambios)
         if (!isGroupGame && individualView) {
-            // ... (código sin cambios)
+            individualView.innerHTML = ''; // limpiar lista
+
+            if (participantes.length === 0) {
+                individualView.innerHTML = '<p class="no-participants">Aún no hay participantes conectados.</p>';
+                return;
+            }
+
+            participantes.forEach(usuario => {
+                const tarjeta = document.createElement("div");
+                tarjeta.classList.add("tarjeta-usuario");
+                tarjeta.title = usuario.nombre;
+
+                tarjeta.innerHTML = `
+            <div class="usuario-info">
+                <img src="${usuario.url_avatar || '/static/img/avatar.jpeg'}" alt="Avatar">
+                <span>${usuario.nombre}</span>
+            </div>
+        `;
+
+                individualView.appendChild(tarjeta);
+            });
+
             return;
         }
 
@@ -182,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             participantes.forEach(usuario => {
                 // Si grupo_id es NULL, lo mapeamos al grupo 0 ("Sin Asignar")
-                const grupoId = usuario.grupo_id || '0'; 
+                const grupoId = usuario.grupo_id || '0';
                 let targetColumn;
 
                 // La condición para el grupo objetivo ahora incluye el grupo 0
@@ -226,7 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                 } else if (grupoId == '0') {
                     // Estilo distinto o simplemente no es clickeable si está "Sin Asignar"
-                    tarjeta.style.backgroundColor = '#f0f0f0'; 
+                    tarjeta.style.backgroundColor = '#f0f0f0';
                 }
 
                 targetColumn.appendChild(tarjeta);
@@ -298,25 +365,25 @@ document.addEventListener("DOMContentLoaded", () => {
     // NUEVA: Manejar transiciones de estado
     // ===================================================================
     function manejarCambioEstado(nuevoEstado) {
-        switch(nuevoEstado) {
+        switch (nuevoEstado) {
             case 'cuenta_regresiva':
                 console.log("⏱️ Iniciando cuenta regresiva...");
                 detenerPolling();
                 redirigirACuentaRegresiva();
                 break;
-            
+
             case 'en_curso':
                 console.log("🎮 Partida en curso");
                 detenerPolling();
                 redirigirAJuego();
                 break;
-            
+
             case 'finalizada':
                 console.log("🏁 Partida finalizada");
                 detenerPolling();
                 redirigirAResultados();
                 break;
-            
+
             default:
                 console.log(`Estado: ${nuevoEstado}`);
         }
@@ -330,7 +397,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (window.musicaGlobal) {
             window.musicaGlobal.pause();
         }
-        
+
         // Redirigir a cuenta regresiva
         window.location.href = `/cuentaregresiva/${codigoPartida}`;
     }
@@ -388,10 +455,10 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("❌ No se encontró código de partida");
     } else {
         console.log("🔄 Iniciando AJAX Polling cada 2 segundos...");
-        
+
         // Primera carga inmediata
         pollParticipantes();
-        
+
         // Polling cada 2 segundos
         pollingInterval = setInterval(pollParticipantes, 2000);
     }
@@ -407,37 +474,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
-    // ===================================================================
-    // REDIRIGIRME A CUENTAREGRESIVA
-    // ===================================================================
-    const startGameButton = document.querySelector('.start-game-button');
-    const gameCode = document.querySelector('.game-code').textContent.trim(); 
-    // ... otras variables de setup ...
 
-    startGameButton.addEventListener('click', async () => {
-        // 1. Llamar al backend para cambiar el estado de la partida
-        try {
-            const response = await fetch('/api/partida/iniciar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codigo_partida: gameCode })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                console.log("Partida iniciada en el backend. Redirigiendo a la cuenta regresiva.");
-                
-                // 2. Redirigir a la nueva ruta
-                window.location.href = `/cuentaregresiva/${gameCode}`;
-            } else {
-                alert("Error al iniciar la partida: " + (data.message || 'Error desconocido'));
-            }
-        } catch (error) {
-            console.error("Error de red al iniciar partida:", error);
-            alert("Ocurrió un error al intentar conectar con el servidor.");
-        }
-    });
 
 
     // ===================================================================

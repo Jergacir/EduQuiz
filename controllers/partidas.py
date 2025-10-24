@@ -223,6 +223,281 @@ def frm_cuenta_regresiva(codigo_partida):
         logged_in_user=logged # logged_in_user DEBE contener 'tipo_usuario'
     )
 
+
+@partidas_bp.route('/api/partida/<string:codigo_partida>/estado')
+def api_estado_partida(codigo_partida):
+    logged = _get_logged_in_user()
+    if not logged or not logged.get('usuario_id'):
+        return {"success": False, "message": "Usuario no logueado"}, 401
+
+    usuario_id = logged['usuario_id']
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return {"success": False, "message": "No se pudo conectar a la base de datos"}, 500
+
+    try:
+        with conexion.cursor() as cursor:
+            # Obtenemos info de participante y partida
+            sql = """
+                SELECT par.participante_id, par.lider_id, par.partida_id,
+                       part.pregunta_actual_index, part.estado
+                FROM participante par
+                JOIN partida part ON par.partida_id = part.partida_id
+                WHERE par.usuario_id = %s AND part.codigo_partida = %s
+            """
+            cursor.execute(sql, (usuario_id, codigo_partida))
+            row = cursor.fetchone()
+            if not row:
+                return {"success": False, "message": "No estás en esta partida"}, 404
+
+            # Solo devolver info necesaria al cliente
+            return {
+                "success": True,
+                "pregunta_actual_index": row['pregunta_actual_index'],
+                "es_lider": row['participante_id'] == row['lider_id'],
+                "estado_partida": row['estado']
+            }
+    finally:
+        conexion.close()
+
+@partidas_bp.route('/api/partida/<string:codigo_partida>/estado_usuario', methods=['GET'])
+def api_estado_usuario(codigo_partida):
+    """
+    Retorna información sobre el estado de un usuario dentro de una partida:
+    - participante_id
+    - grupo_id
+    - es_lider (bool)
+    - estado_partida
+    - tipo_partida ('I' o 'G')
+    - pregunta_actual_index
+    - tiempo_inicio_pregunta
+    """
+    logged = _get_logged_in_user()
+    if not logged or not logged.get('usuario_id'):
+        return {"success": False, "message": "Usuario no logueado"}, 401
+
+    usuario_id = logged['usuario_id']
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return {"success": False, "message": "No se pudo conectar a la base de datos"}, 500
+
+    try:
+        with conexion.cursor() as cursor:
+            sql = """
+                SELECT 
+                    part.partida_id,
+                    part.estado AS estado_partida,
+                    part.pregunta_actual_index,
+                    part.tiempo_inicio_pregunta,
+                    part.tipo_partida,          
+                    par.participante_id,
+                    par.grupo_id,
+                    par.lider_id
+                FROM participante par
+                JOIN partida part ON par.partida_id = part.partida_id
+                WHERE par.usuario_id = %s AND part.codigo_partida = %s
+            """
+            cursor.execute(sql, (usuario_id, codigo_partida))
+            row = cursor.fetchone()
+
+            if not row:
+                return {"success": False, "message": "Usuario no está en la partida"}, 404
+
+            es_lider = row['participante_id'] == row['lider_id']
+
+            # Convertimos tipo_partida a algo más claro para el frontend
+            modalidad = 'grupal' if row['tipo_partida'] == 'G' else 'individual'
+
+            return {
+                "success": True,
+                "participante_id": row['participante_id'],
+                "grupo_id": row['grupo_id'],
+                "es_lider": es_lider,
+                "estado_partida": row['estado_partida'],
+                "pregunta_actual_index": row['pregunta_actual_index'],
+                "modalidad": modalidad,  
+                "tiempo_inicio_pregunta": (
+                    row['tiempo_inicio_pregunta'].isoformat()
+                    if row['tiempo_inicio_pregunta'] else None
+                )
+            }
+
+    except Exception as e:
+        print(f"[api_estado_usuario] Error: {e}")
+        return {"success": False, "message": "Error interno"}, 500
+    finally:
+        conexion.close()
+
+
+@partidas_bp.route('/api/partida/<string:codigo_partida>/avanzar', methods=['POST'])
+def api_avanzar_pregunta(codigo_partida):
+    logged = _get_logged_in_user()
+    if not logged or not logged.get('usuario_id'):
+        return {"success": False, "message": "Usuario no logueado"}, 401
+
+    usuario_id = logged['usuario_id']
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return {"success": False, "message": "No se pudo conectar a la base de datos"}, 500
+
+    try:
+        with conexion.cursor() as cursor:
+            # Verificar si el usuario es participante (líder o no)
+            sql = """
+                SELECT par.participante_id, par.lider_id, part.partida_id, part.pregunta_actual_index, part.usuario_creador_id
+                FROM participante par
+                JOIN partida part ON par.partida_id = part.partida_id
+                WHERE par.usuario_id = %s AND part.codigo_partida = %s
+            """
+            cursor.execute(sql, (usuario_id, codigo_partida))
+            row = cursor.fetchone()
+
+            # Si no es participante, verificar si es el profesor creador
+            if not row:
+                sql_partida = """
+                    SELECT partida_id, usuario_creador_id, usuario_creador_id
+                    FROM partida
+                    WHERE codigo_partida = %s
+                """
+                cursor.execute(sql_partida, (codigo_partida,))
+                partida = cursor.fetchone()
+
+                if not partida:
+                    return {"success": False, "message": "Partida no encontrada"}, 404
+
+                # Si es el creador, también puede avanzar
+                if partida['usuario_creador_id'] == usuario_id:
+                    nueva_index = partida['usuario_creador_id'] + 1
+                    sql_update = "UPDATE partida SET pregunta_actual_index = %s WHERE partida_id = %s"
+                    cursor.execute(sql_update, (nueva_index, partida['partida_id']))
+                    conexion.commit()
+                    return {"success": True, "nueva_pregunta_index": nueva_index}
+                else:
+                    return {"success": False, "message": "Usuario no está en la partida"}, 404
+
+            # Si sí es participante, verificar que sea líder
+            participante_id, lider_id, partida_id, pregunta_actual_index, usuario_creador_id = row
+
+            if participante_id != lider_id:
+                return {"success": False, "message": "Solo el líder puede avanzar"}, 403
+
+            # Avanzar la pregunta
+            nueva_index = pregunta_actual_index + 1
+            sql_update = "UPDATE partida SET pregunta_actual_index = %s WHERE partida_id = %s"
+            cursor.execute(sql_update, (nueva_index, partida_id))
+            conexion.commit()
+
+            return {"success": True, "nueva_pregunta_index": nueva_index}
+
+    except Exception as e:
+        print(f"[api_avanzar_pregunta] Error: {e}")
+        return {"success": False, "message": "Error interno"}, 500
+    finally:
+        conexion.close()
+
+
+@partidas_bp.route('/api/partida/<string:codigo_partida>/marcar_no_respondidas', methods=['POST'])
+def api_marcar_no_respondidas(codigo_partida):
+    logged = _get_logged_in_user()
+    if not logged or not logged.get('usuario_id'):
+        return {"success": False, "message": "Usuario no logueado"}, 401
+
+    usuario_id = logged['usuario_id']
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return {"success": False, "message": "No se pudo conectar a la base de datos"}, 500
+
+    try:
+        with conexion.cursor() as cursor:
+            # 1️⃣ Obtener partida y cuestionario
+            sql = """
+                SELECT partida_id, cuestionario_id
+                FROM partida
+                WHERE codigo_partida = %s
+            """
+            cursor.execute(sql, (codigo_partida,))
+            partida = cursor.fetchone()
+            if not partida:
+                return {"success": False, "message": "Partida no encontrada"}, 404
+
+            partida_id = partida['partida_id']
+            cuestionario_id = partida['cuestionario_id']
+            print(f"➡️ Partida encontrada: partida_id={partida_id}, cuestionario_id={cuestionario_id}")
+
+            # 2️⃣ Obtener participantes
+            cursor.execute("""
+                SELECT participante_id, cant_preguntas_incorrectas
+                FROM participante
+                WHERE partida_id = %s
+            """, (partida_id,))
+            participantes = cursor.fetchall()
+            print(f"➡️ Participantes encontrados: {participantes}")
+
+            if not participantes:
+                print("⚠️ No hay participantes en esta partida.")
+                return {"success": False, "message": "No hay participantes en la partida"}, 404
+
+            # 3️⃣ Obtener todas las preguntas del cuestionario
+            cursor.execute("""
+                SELECT pregunta_id, texto_pregunta, tiempo_limite
+                FROM pregunta
+                WHERE cuestionario_id = %s
+                ORDER BY pregunta_id ASC
+            """, (cuestionario_id,))
+            preguntas = cursor.fetchall()
+            print(f"➡️ Preguntas encontradas: {preguntas}")
+
+            if not preguntas:
+                print("⚠️ No hay preguntas en este cuestionario.")
+                return {"success": False, "message": "No hay preguntas en el cuestionario"}, 404
+
+            # 4️⃣ Recorrer cada participante y marcar pregunta como no respondida si no existe
+            for participante in participantes:
+                participante_id = participante['participante_id']
+                cant_incorrectas = participante['cant_preguntas_incorrectas']
+
+                for pregunta in preguntas:
+                    pregunta_id = pregunta['pregunta_id']
+                    texto_pregunta = pregunta['texto_pregunta']
+                    tiempo_maximo = pregunta['tiempo_limite'] or 30  # valor por defecto si es NULL
+
+                    # Verificar si ya existe
+                    cursor.execute("""
+                        SELECT COUNT(*) AS total
+                        FROM pregunta_participante
+                        WHERE participante_id = %s AND pregunta_id = %s
+                    """, (participante_id, pregunta_id))
+                    existe = cursor.fetchone()['total']
+                    print(f"participante_id={participante_id}, pregunta_id={pregunta_id}, existe={existe}")
+
+                    if existe == 0:
+                        # Insertar como no respondida
+                        cursor.execute("""
+                            INSERT INTO pregunta_participante (
+                                participante_id, pregunta_id, respuesta_seleccionada_id,
+                                texto_pregunta, correcta, tiempo_pregunta, tiempo_maximo_pregunta
+                            ) VALUES (%s, %s, NULL, %s, 0, %s, %s)
+                        """, (participante_id, pregunta_id, texto_pregunta, tiempo_maximo, tiempo_maximo))
+                        print(f"✅ Insertado pregunta_participante para participante {participante_id}, pregunta {pregunta_id}")
+
+                        # Actualizar participante: incrementar cant_preguntas_incorrectas
+                        cursor.execute("""
+                            UPDATE participante
+                            SET cant_preguntas_incorrectas = cant_preguntas_incorrectas + 1
+                            WHERE participante_id = %s
+                        """, (participante_id,))
+                        print(f"🔺 Actualizado participante {participante_id}: cant_preguntas_incorrectas +1")
+
+            conexion.commit()
+            return {"success": True, "message": "Preguntas no respondidas marcadas correctamente"}
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": "Error interno del servidor"}, 500
+    finally:
+        conexion.close()
+
 # ====================================================================
 # API ENDPOINTS PARA AJAX POLLING
 # ====================================================================
@@ -942,7 +1217,7 @@ def frm_ranking_partida(codigo_partida):
     try:
         with conexion.cursor() as cursor:
             cursor.execute("""
-                SELECT partida_id, codigo_partida, usuario_creador_id, estado
+                SELECT partida_id, codigo_partida, usuario_creador_id, estado, tipo_partida
                 FROM partida
                 WHERE codigo_partida = %s
             """, (codigo_partida,))
@@ -953,13 +1228,16 @@ def frm_ranking_partida(codigo_partida):
 
         logged = _get_logged_in_user()
         es_profesor = False
+        
         try:
             if logged and partida and int(logged.get('usuario_id', 0)) == int(partida.get('usuario_creador_id', 0)):
                 es_profesor = True
         except Exception:
             es_profesor = False
+        # Determinar si la partida es grupal
+        es_grupal = partida.get('tipo_partida', 'I') == 'G'
 
-        return render_template('ranking.html', codigo_partida=codigo_partida, es_profesor=es_profesor, logged_in_user=logged)
+        return render_template('ranking.html', codigo_partida=codigo_partida, es_profesor=es_profesor, es_grupal=es_grupal,logged_in_user=logged)
     finally:
         conexion.close()
 
@@ -1056,7 +1334,7 @@ def api_obtener_respuestas_recibidas(codigo_partida):
     
     try:
         with conexion.cursor() as cursor:
-            # Obtener partida_id
+            # Obtener partida
             cursor.execute("""
                 SELECT partida_id, pregunta_actual_index, cuestionario_id
                 FROM partida
@@ -1067,7 +1345,7 @@ def api_obtener_respuestas_recibidas(codigo_partida):
             if not partida:
                 return jsonify({'success': False, 'error': 'Partida no encontrada'}), 404
             
-            # Obtener pregunta actual
+            # Obtener pregunta actual según índice
             cursor.execute("""
                 SELECT pregunta_id
                 FROM pregunta
@@ -1080,13 +1358,14 @@ def api_obtener_respuestas_recibidas(codigo_partida):
             if not pregunta:
                 return jsonify({'success': False, 'error': 'Pregunta no encontrada'}), 404
             
-            # Contar respuestas recibidas
+            # Contar solo respuestas que realmente se enviaron
             cursor.execute("""
                 SELECT COUNT(DISTINCT pp.participante_id) as total
                 FROM pregunta_participante pp
                 JOIN participante p ON pp.participante_id = p.participante_id
                 WHERE p.partida_id = %s
-                AND pp.pregunta_id = %s
+                  AND pp.pregunta_id = %s
+                  AND pp.respuesta_seleccionada_id IS NOT NULL
             """, (partida['partida_id'], pregunta['pregunta_id']))
             
             result = cursor.fetchone()
@@ -1103,77 +1382,6 @@ def api_obtener_respuestas_recibidas(codigo_partida):
     finally:
         conexion.close()
 
-
-@partidas_bp.route('/api/partida/<codigo_partida>/avanzar_pregunta', methods=['POST'])
-def api_avanzar_pregunta(codigo_partida):
-    """
-    Avanza a la siguiente pregunta (solo profesor)
-    """
-    usuario = _get_logged_in_user()
-    
-    if not usuario or usuario['tipo_usuario'] != 'P':
-        return jsonify({'success': False, 'message': 'Solo profesores pueden avanzar preguntas'}), 403
-    
-    conexion = dbmod.obtenerConexion()
-    if not conexion:
-        return jsonify({'success': False, 'error': 'Error de conexión'}), 500
-    
-    try:
-        with conexion.cursor() as cursor:
-            # Obtener partida
-            cursor.execute("""
-                SELECT partida_id, pregunta_actual_index, cuestionario_id
-                FROM partida
-                WHERE codigo_partida = %s
-            """, (codigo_partida,))
-            
-            partida = cursor.fetchone()
-            if not partida:
-                return jsonify({'success': False, 'error': 'Partida no encontrada'}), 404
-            
-            # Contar preguntas totales
-            cursor.execute("""
-                SELECT COUNT(*) as total
-                FROM pregunta
-                WHERE cuestionario_id = %s
-            """, (partida['cuestionario_id'],))
-            
-            total_preguntas = cursor.fetchone()['total']
-            
-            # Avanzar o finalizar
-            nuevo_index = partida['pregunta_actual_index'] + 1
-            
-            if nuevo_index < total_preguntas:
-                # Avanzar a siguiente pregunta
-                cursor.execute("""
-                    UPDATE partida
-                    SET pregunta_actual_index = %s,
-                        tiempo_inicio_pregunta = NOW()
-                    WHERE codigo_partida = %s
-                """, (nuevo_index, codigo_partida))
-                
-                conexion.commit()
-                actualizar_timestamp_partida(codigo_partida)
-                
-                return jsonify({
-                    'success': True,
-                    'message': 'Pregunta avanzada',
-                    'pregunta_actual': nuevo_index
-                }), 200
-            else:
-                # No hay más preguntas, finalizar partida
-                return jsonify({
-                    'success': True,
-                    'message': 'No hay más preguntas',
-                    'finalizada': True
-                }), 200
-                
-    except Exception as e:
-        print(f"[ERROR] api_avanzar_pregunta: {e}", file=sys.stderr)
-        conexion.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
-    finally:
-        conexion.close()
 
 
 # =========================================================================
@@ -1286,7 +1494,11 @@ def api_obtener_ranking(codigo_partida):
                 SELECT pa.participante_id, pa.usuario_id, u.nombre as nombre, COALESCE(u.url_avatar, '') as avatar,
                        COALESCE(pa.puntuacion_total, 0) as puntuacion_total,
                        COALESCE(pa.cant_preguntas_correctas, 0) as cant_correctas,
-                       COALESCE(pa.cant_preguntas_incorrectas, 0) as cant_incorrectas
+                       COALESCE(pa.cant_preguntas_incorrectas, 0) as cant_incorrectas,
+                    CASE 
+                        WHEN pa.lider_id IS NULL OR pa.lider_id = pa.participante_id THEN 1
+                        ELSE 0
+                    END AS es_lider
                 FROM participante pa
                 JOIN usuario u ON pa.usuario_id = u.usuario_id
                 WHERE pa.partida_id = %s
@@ -1304,7 +1516,8 @@ def api_obtener_ranking(codigo_partida):
                     'avatarUrl': r.get('avatar') or '/static/img/avatar.jpeg',
                     'score': r.get('puntuacion_total') or 0,
                     'correct': r.get('cant_correctas') or 0,
-                    'incorrect': r.get('cant_incorrectas') or 0
+                    'incorrect': r.get('cant_incorrectas') or 0,
+                    'es_lider': bool(r.get('es_lider', 0))
                 })
 
             return jsonify({'success': True, 'ranking': ranking}), 200
@@ -1317,140 +1530,149 @@ def api_obtener_ranking(codigo_partida):
 
 
 # =========================================================================
-# NUEVO ENDPOINT: Registrar respuesta de participante
+# NUEVO ENDPOINT: Registrar respuesta de participante (versión 100% diccionario)
 # =========================================================================
 @partidas_bp.route('/api/juego/responder', methods=['POST'])
 def api_responder_pregunta():
-    """
-    Registra la respuesta de un participante a una pregunta.
-    Body: {
-        participante_id: int,
-        pregunta_id: int,
-        respuesta_seleccionada_id: int (puede ser null),
-        tiempo_respuesta: int (en segundos)
-    }
-    """
     data = request.get_json() or {}
-    
+
     participante_id = data.get('participante_id')
     pregunta_id = data.get('pregunta_id')
     respuesta_id = data.get('respuesta_seleccionada_id')
     tiempo_respuesta = data.get('tiempo_respuesta', 0)
-    
+
     if not participante_id or not pregunta_id:
-        return jsonify({
-            'success': False, 
-            'message': 'Faltan datos requeridos'
-        }), 400
-    
+        return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({'success': False, 'message': 'Error de conexión'}), 500
-    
+
     try:
         with conexion.cursor() as cursor:
-            # Verificar que el participante existe
+            # 1️⃣ Obtener participante
             cursor.execute("""
-                SELECT participante_id, lider_id 
-                FROM participante 
+                SELECT participante_id, lider_id, partida_id, grupo_id
+                FROM participante
                 WHERE participante_id = %s
             """, (participante_id,))
-            
             participante = cursor.fetchone()
             if not participante:
-                return jsonify({
-                    'success': False, 
-                    'message': 'Participante no encontrado'
-                }), 404
-            
-            # Verificar si ya respondió esta pregunta
+                return jsonify({'success': False, 'message': 'Participante no encontrado'}), 404
+
+            participante_id_db = participante["participante_id"]
+            lider_id = participante["lider_id"]
+            partida_id = participante["partida_id"]
+            grupo_id = participante["grupo_id"]
+
+            # 2️⃣ Verificar si ya respondió
             cursor.execute("""
-                SELECT pregunta_participante_id 
-                FROM pregunta_participante 
+                SELECT 1 FROM pregunta_participante
                 WHERE participante_id = %s AND pregunta_id = %s
             """, (participante_id, pregunta_id))
-            
             if cursor.fetchone():
-                return jsonify({
-                    'success': False, 
-                    'message': 'Ya respondiste esta pregunta'
-                }), 400
-            
-            # Obtener datos de la pregunta
+                return jsonify({'success': False, 'message': 'Ya respondiste esta pregunta'}), 400
+
+            # 3️⃣ Obtener texto y límite de tiempo de la pregunta
             cursor.execute("""
-                SELECT texto_pregunta, tiempo_limite 
-                FROM pregunta 
+                SELECT texto_pregunta, tiempo_limite
+                FROM pregunta
                 WHERE pregunta_id = %s
             """, (pregunta_id,))
-            
             pregunta = cursor.fetchone()
             if not pregunta:
-                return jsonify({
-                    'success': False, 
-                    'message': 'Pregunta no encontrada'
-                }), 404
-            
-            # Verificar si la respuesta es correcta
-            correcta = False
+                return jsonify({'success': False, 'message': 'Pregunta no encontrada'}), 404
+
+            texto_pregunta = pregunta["texto_pregunta"]
+            tiempo_limite = pregunta["tiempo_limite"]
+
+            # 4️⃣ Verificar si la respuesta es correcta
+            correcta = 0
             if respuesta_id:
                 cursor.execute("""
                     SELECT estado_respuesta 
-                    FROM respuesta 
-                    WHERE respuesta_id = %s
-                """, (respuesta_id,))
-                
+                    FROM respuesta
+                    WHERE respuesta_id = %s AND pregunta_id = %s
+                """, (respuesta_id, pregunta_id))
                 respuesta = cursor.fetchone()
-                if respuesta:
-                    correcta = respuesta['estado_respuesta'] == 1
-            
-            # Insertar la respuesta del participante
+                if respuesta and respuesta["estado_respuesta"] == 1:
+                    correcta = 1
+
+            # 5️⃣ Insertar la respuesta del participante
             cursor.execute("""
                 INSERT INTO pregunta_participante (
-                    participante_id,
-                    pregunta_id,
-                    respuesta_seleccionada_id,
-                    texto_pregunta,
-                    correcta,
-                    tiempo_pregunta,
-                    tiempo_maximo_pregunta
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    participante_id, pregunta_id, respuesta_seleccionada_id,
+                    texto_pregunta, correcta, tiempo_pregunta, tiempo_maximo_pregunta
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
-                participante_id,
-                pregunta_id,
-                respuesta_id,
-                pregunta['texto_pregunta'],
-                correcta,
-                tiempo_respuesta,
-                pregunta['tiempo_limite']
+                participante_id, pregunta_id, respuesta_id,
+                texto_pregunta, correcta, tiempo_respuesta, tiempo_limite
             ))
-            
-            # Actualizar estadísticas del participante
-            if correcta:
+
+            # 6️⃣ Actualizar estadísticas
+            if correcta == 1:
                 cursor.execute("""
                     UPDATE participante
                     SET cant_preguntas_correctas = cant_preguntas_correctas + 1,
-                        puntuacion_total = puntuacion_total + %s
+                        puntuacion_total = puntuacion_total + 1000
                     WHERE participante_id = %s
-                """, (1000, participante_id))  # 1000 puntos por correcta
+                """, (participante_id,))
             else:
                 cursor.execute("""
                     UPDATE participante
                     SET cant_preguntas_incorrectas = cant_preguntas_incorrectas + 1
                     WHERE participante_id = %s
                 """, (participante_id,))
-            
+
+            # 7️⃣ Replicar si es líder
+            if lider_id == participante_id_db:
+                print(f"[DEBUG] {participante_id_db} es líder — se intentará replicar su respuesta", file=sys.stderr)
+
+                cursor.execute("""
+                    SELECT participante_id
+                    FROM participante
+                    WHERE lider_id = %s
+                      AND partida_id = %s
+                      AND participante_id != %s
+                """, (participante_id_db, partida_id, participante_id_db))
+                miembros = [row["participante_id"] for row in cursor.fetchall()]
+                print(f"[DEBUG] Miembros detectados para replicar: {miembros}", file=sys.stderr)
+
+                if miembros:
+                    cursor.execute("""
+                        INSERT INTO pregunta_participante (
+                            participante_id, pregunta_id, respuesta_seleccionada_id,
+                            texto_pregunta, correcta, tiempo_pregunta, tiempo_maximo_pregunta
+                        )
+                        SELECT p.participante_id, %s, %s, %s, %s, %s, %s
+                        FROM participante p
+                        WHERE p.lider_id = %s
+                          AND p.partida_id = %s
+                          AND p.participante_id != %s
+                          AND NOT EXISTS (
+                              SELECT 1 FROM pregunta_participante pp
+                              WHERE pp.participante_id = p.participante_id
+                                AND pp.pregunta_id = %s
+                          )
+                    """, (
+                        pregunta_id, respuesta_id, texto_pregunta, correcta,
+                        tiempo_respuesta, tiempo_limite,
+                        participante_id_db, partida_id, participante_id_db, pregunta_id
+                    ))
+                    print("[DEBUG] Réplica ejecutada correctamente.", file=sys.stderr)
+                else:
+                    print("[DEBUG] No hay miembros para replicar.", file=sys.stderr)
+
             conexion.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'Respuesta registrada',
-                'correcta': correcta
-            }), 200
-            
+            return jsonify({'success': True, 'message': 'Respuesta registrada', 'correcta': bool(correcta)}), 200
+
     except Exception as e:
-        print(f"[ERROR] api_responder_pregunta: {e}", file=sys.stderr)
-        conexion.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        import traceback
+        print("[ERROR] api_responder_pregunta:", e)
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
     finally:
         conexion.close()
 

@@ -402,6 +402,25 @@ body {
     background: rgba(255, 220, 220, 0.8);
 }
 
+.individual-layout {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    padding: 20px;
+}
+
+.tarjeta-usuario {
+    flex: 1 1 45%; /* aprox dos por fila */
+    max-width: 300px;
+    border-radius: 12px;
+    background-color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    text-align: center;
+    padding: 12px;
+}
+
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
     .group-column {

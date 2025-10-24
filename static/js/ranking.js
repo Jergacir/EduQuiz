@@ -3,7 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const continueBtn = document.getElementById('continue-btn');
     const codigoPartida = document.body.dataset.codigoPartida;
     const esProfesor = document.body.dataset.esProfesor === 'true';
+    const esGrupal = document.body.dataset.esGrupal === 'true';
 
+    console.log("¿Es grupal?:", esGrupal);
     // Función para crear una tarjeta de jugador en el ranking
     function createPlayerCard(player) {
         const card = document.createElement('div');
@@ -77,7 +79,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const data = await resp.json();
             if (data && data.success && Array.isArray(data.ranking)) {
-                updateRanking(data.ranking);
+                let jugadores = data.ranking;
+                // 🔍 Mostrar ranking recibido
+                
+                // Si la partida es grupal, solo mostrar líderes
+                if (esGrupal) {
+                   const lideres = jugadores.filter(j => j.es_lider === true);
+                    
+                    jugadores = lideres;
+                }
+
+                updateRanking(jugadores);
             }
         } catch (err) {
             console.error('Error cargando ranking:', err);
@@ -145,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 // 1) Avanzar pregunta en servidor
-                const resp = await fetch(`/api/partida/${codigoPartida}/avanzar_pregunta`, { method: 'POST' });
+                const resp = await fetch(`/api/partida/${codigoPartida}/avanzar`, { method: 'POST' });
                 const data = await resp.json();
 
                 if (!resp.ok || !data.success) {
