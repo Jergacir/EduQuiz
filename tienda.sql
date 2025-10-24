@@ -147,8 +147,14 @@ VALUES
 
 
 
-  INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`) VALUES ('9', 'Skin Developer', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761267295/4b793a2c-ce12-4fd2-b018-40a4facc7373.png', '250', '1');
-INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`) VALUES ('10', 'Skin Enfermera', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761267158/873b8b0a-75b9-4d24-92a5-caee3fde709f.png', '250', '1');
-INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`) VALUES ('7', 'Skin Abogado', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761266580/8374a853-3de9-4793-9f76-849d73ffa400.png', '250', '1');
-INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`) VALUES ('8', 'Skin Doctor', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761266435/a81241a9-bc7e-44cb-add3-3567c2272bc5.png', '250', '1');
-
+ INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`, `skinDefault`, `categoria`) VALUES
+(1, 'Skin default chico', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761277844/Skin_default_hombre_dd8uud.png', 250, 1, 1, 'N'),
+(2, 'Skin Default Chica', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761277843/Skin_default_chica_tdx1wn.png', 0, 1, 1, 'N'),
+(3, 'Skin ing. Civil', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761265960/ingcivil_l70gwl.png', 250, 1, 0, 'N'),
+(4, 'Skin Doctor', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761266435/a81241a9-bc7e-44cb-add3-3567c2272bc5.png', 250, 1, 0, 'N'),
+(5, 'Skin Developer', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761267295/4b793a2c-ce12-4fd2-b018-40a4facc7373.png', 250, 1, 0, 'N'),
+(7, 'Skin Abogado', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761266580/8374a853-3de9-4793-9f76-849d73ffa400.png', 250, 1, 0, 'N'),
+(10, 'Skin Enfermera', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761267158/873b8b0a-75b9-4d24-92a5-caee3fde709f.png', 250, 1, 0, 'N'),
+(12, 'Rockero / Metalero', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278458/Rockero_waaq9r.png', 1000, 1, 0, 'E'),
+(14, 'L. Messi', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278797/GOAT_wrvpzy.png', 1500, 1, 0, 'L'),
+(15, 'C. Ronaldo', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278947/CR7_qb6rro.png', 1500, 1, 0, 'L');
