@@ -18,7 +18,7 @@
 </head>
 
 <body data-partida-id="{{ partida_id }}">
-    
+
     <button id="menu-button" class="menu-button lg:hidden">
         <i class="fas fa-bars"></i>
     </button>
@@ -122,7 +122,156 @@
                     </div>
                 </div>
             </section>
+            <!-- AGREGAR DESPUÉS DE LA SECCIÓN DE CAMPOS (antes de export-action-footer) -->
+            <section class="export-section drive-section">
+                <h3 class="section-title">
+                    <i class="fa-brands fa-google-drive"></i>
+                    3. Guardar en Google Drive (Opcional)
+                </h3>
 
+                <div class="drive-config-box">
+                    <div class="drive-info">
+                        <i class="fa-solid fa-info-circle"></i>
+                        <p>Sube automáticamente el archivo a tu Google Drive personal.
+                            Ingresa tu correo <strong>@gmail.com</strong></p>
+                    </div>
+
+                    <div class="gmail-input-group">
+                        <label for="gmailInput" class="gmail-label">
+                            <i class="fa-brands fa-google"></i> Correo de Gmail:
+                        </label>
+                        <input type="email" id="gmailInput" placeholder="tupersonal@gmail.com" class="gmail-input">
+                        <small class="gmail-hint">Debe ser una cuenta @gmail.com</small>
+                    </div>
+
+                    <div class="drive-checkbox-group">
+                        <input type="checkbox" id="subirADrive">
+                        <label for="subirADrive">
+                            <i class="fa-solid fa-cloud-upload-alt"></i>
+                            Subir archivo a Google Drive después de generarlo
+                        </label>
+                    </div>
+
+                    <div id="driveStatusBox" class="drive-status-box" style="display: none;">
+                        <!-- Se mostrará el estado de conexión aquí -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- CSS para la nueva sección -->
+            <style>
+                .drive-section {
+                    margin-top: 30px;
+                }
+
+                .drive-config-box {
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    border: 2px solid #dee2e6;
+                    border-radius: 12px;
+                    padding: 24px;
+                }
+
+                .drive-info {
+                    display: flex;
+                    align-items: start;
+                    gap: 12px;
+                    padding: 12px;
+                    background: #fff3cd;
+                    border-left: 4px solid #ffc107;
+                    border-radius: 8px;
+                    margin-bottom: 20px;
+                }
+
+                .drive-info i {
+                    color: #ffc107;
+                    font-size: 1.2rem;
+                    margin-top: 2px;
+                }
+
+                .drive-info p {
+                    margin: 0;
+                    color: #856404;
+                    font-size: 0.95rem;
+                }
+
+                .gmail-input-group {
+                    margin-bottom: 20px;
+                }
+
+                .gmail-label {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-weight: 600;
+                    color: #2D3047;
+                    margin-bottom: 8px;
+                }
+
+                .gmail-input {
+                    width: 100%;
+                    padding: 12px 16px;
+                    border: 2px solid #ced4da;
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    transition: all 0.3s ease;
+                }
+
+                .gmail-input:focus {
+                    outline: none;
+                    border-color: #4285F4;
+                    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+                }
+
+                .gmail-hint {
+                    display: block;
+                    margin-top: 6px;
+                    color: #6c757d;
+                    font-size: 0.85rem;
+                }
+
+                .drive-checkbox-group {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 12px;
+                    background: white;
+                    border-radius: 8px;
+                    cursor: pointer;
+                }
+
+                .drive-checkbox-group input[type="checkbox"] {
+                    width: 20px;
+                    height: 20px;
+                    cursor: pointer;
+                }
+
+                .drive-checkbox-group label {
+                    cursor: pointer;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin: 0;
+                }
+
+                .drive-status-box {
+                    margin-top: 16px;
+                    padding: 12px;
+                    background: white;
+                    border-radius: 8px;
+                    border-left: 4px solid #28a745;
+                }
+
+                .drive-status-box.connected {
+                    border-color: #28a745;
+                    background: #d4edda;
+                }
+
+                .drive-status-box.error {
+                    border-color: #dc3545;
+                    background: #f8d7da;
+                }
+            </style>
             <div class="export-action-footer">
                 <p id="export-status-message" class="hidden"></p>
                 <button class="btn-primary btn-exportar-final" id="btnExportar">
@@ -135,4 +284,5 @@
     <script src="/static/js/global.js"></script>
     <script src="/static/js/exportar_resultados.js"></script>
 </body>
+
 </html>

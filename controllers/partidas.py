@@ -7,6 +7,27 @@ import string
 import json
 from enum import Enum
 
+# ========================================================
+# API DE EXPORTACIÓN MEJORADA CON INTEGRACIÓN A DRIVE
+# ========================================================
+# pip install pandas
+# pip install openpyxl
+# pip install reportlab
+from flask import send_file
+from io import BytesIO
+import pandas as pd #
+import sys
+
+# Para PDF
+from reportlab.lib.pagesizes import letter #
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.platypus import Table, TableStyle
+
+# Para integración con Google Drive y OneDrive
+import requests
+
 class EstadoPartida(Enum):
     """Estados posibles de una partida"""
     ESPERA = 'espera'           # Esperando jugadores
@@ -1329,14 +1350,6 @@ def frm_ranking_partida(codigo_partida):
         conexion.close()
 
 
-@partidas_bp.route('/api/exportar_partida/<int:partida_id>', methods=['POST'])
-def api_exportar_partida(partida_id):
-    data = request.get_json() or {}
-    formato = data.get('formato', 'csv')
-    campos = data.get('campos', [])
-    print(f"Exportando partida #{partida_id} a {formato} con campos: {campos}")
-    return jsonify({'success': True, 'message': f'Partida {partida_id} exportada como {formato}.'})
-
 
 # ====================================================================
 # NUEVO: Endpoint para cambiar estado de partida
@@ -1845,4 +1858,570 @@ def api_finalizar_partida():
         return jsonify({'success': False, 'message': str(e)}), 500
     finally:
         conexion.close()
+
+
+
+# ========================================================
+# ENDPOINT PRINCIPAL DE EXPORTACIÓN
+# ========================================================
+
+@partidas_bp.route('/api/exportar_partida/<int:partida_id>', methods=['POST'])
+def api_exportar_partida(partida_id):
+    """
+    Exporta los resultados de una partida en formato CSV, Excel o PDF.
+    Opcionalmente los sube a OneDrive o Google Drive.
+    
+    Body JSON:
+    {
+        "formato": "csv" | "excel" | "pdf",
+        "campos": ["nombre", "puntaje_final", ...],
+        "subir_a_drive": true/false,  # NUEVO
+        "drive_tipo": "onedrive" | "google_drive",  # NUEVO
+        "access_token": "token_del_usuario"  # NUEVO (si subir_a_drive=true)
+    }
+    """
+    data = request.get_json() or {}
+    formato = data.get("formato", "csv").lower()
+    campos = data.get("campos", [])
+    subir_a_drive = data.get("subir_a_drive", False)
+    drive_tipo = data.get("drive_tipo", "")
+    access_token = data.get("access_token", "")
+
+    # Aceptar nombres de campo antiguos/alias que puede enviar el cliente.
+    # Mapearlos a las columnas reales que devuelve la consulta SQL.
+    alias_map = {
+        'puntuacion_total': 'puntaje_final',
+        'puntaje_final': 'puntaje_final',
+        'cant_preguntas_correctas': 'respuestas_correctas',
+        'cant_preguntas_incorrectas': 'respuestas_incorrectas',
+        'respuestas_correctas': 'respuestas_correctas',
+        'respuestas_incorrectas': 'respuestas_incorrectas',
+        'nombre': 'nombre',
+        'codigo_partida': 'codigo_partida',
+        'nombre_cuestionario': 'nombre_cuestionario',
+        'fecha_creacion': 'fecha_creacion'
+    }
+
+    # Normalizar campos solicitados usando el mapa de alias
+    campos = [alias_map.get(c, c) for c in campos]
+
+    # Validaciones
+    if not campos:
+        return jsonify({"status": "error", "error": "No se seleccionaron campos."}), 400
+    
+    if formato not in ["csv", "excel", "pdf"]:
+        return jsonify({"status": "error", "error": "Formato no soportado."}), 400
+
+    # Obtener datos de la base de datos
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({"status": "error", "error": "No se pudo conectar a la base de datos."}), 500
+
+    try:
+        with conexion.cursor() as cursor:
+            # Consulta mejorada con alias correctos
+            cursor.execute("""
+                SELECT 
+                    u.nombre,
+                    pa.puntuacion_total AS puntaje_final,
+                    pa.cant_preguntas_correctas AS respuestas_correctas,
+                    pa.cant_preguntas_incorrectas AS respuestas_incorrectas,
+                    p.codigo_partida,
+                    c.nombre_cuestionario,
+                    p.fecha_creacion
+                FROM participante pa
+                JOIN usuario u ON u.usuario_id = pa.usuario_id
+                JOIN partida p ON p.partida_id = pa.partida_id
+                JOIN cuestionario c ON c.cuestionario_id = p.cuestionario_id
+                WHERE pa.partida_id = %s
+                ORDER BY pa.puntuacion_total DESC
+            """, (partida_id,))
+            
+            rows = cursor.fetchall()
+
+        # Validar que hay datos
+        if not rows:
+            return jsonify({"status": "error", "error": "No hay datos para exportar."}), 404
+
+        # Convertir a DataFrame
+        df = pd.DataFrame(rows)
+        
+        # Filtrar solo las columnas solicitadas (que existan)
+        campos_validos = [campo for campo in campos if campo in df.columns]
+        if not campos_validos:
+            return jsonify({"status": "error", "error": "Ningún campo válido seleccionado."}), 400
+            
+        df = df[campos_validos]
+
+        # Generar nombre de archivo
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_base = f"resultados_partida_{partida_id}_{timestamp}"
+        
+        # Generar archivo según formato
+        buffer = BytesIO()
+        mimetype = ""
+        extension = ""
+        
+        if formato == "csv":
+            # Usar TextIOWrapper para escribir texto en un BytesIO correctamente
+            from io import TextIOWrapper
+            text_wrapper = TextIOWrapper(buffer, encoding="utf-8-sig", newline="", write_through=True)
+            df.to_csv(text_wrapper, index=False)
+            # Asegurarse de volcar el buffer y posicionarlo al inicio
+            try:
+                text_wrapper.flush()
+            except Exception:
+                pass
+            buffer.seek(0)
+            mimetype = "text/csv"
+            extension = "csv"
+            
+        elif formato == "excel":
+            with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+                df.to_excel(writer, index=False, sheet_name="Resultados")
+            mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            extension = "xlsx"
+            
+        elif formato == "pdf":
+            # Generar PDF mejorado
+            generar_pdf_mejorado(buffer, df, partida_id, rows[0] if rows else {})
+            mimetype = "application/pdf"
+            extension = "pdf"
+        
+        buffer.seek(0)
+        filename = f"{nombre_base}.{extension}"
+
+        # Log corto para depuración: tipo y tamaño
+        try:
+            size = len(buffer.getvalue())
+        except Exception:
+            size = 'unknown'
+        print(f"[EXPORT] filename={filename} mimetype={mimetype} size={size}")
+        
+        # Si se debe subir a Drive
+        if subir_a_drive and access_token:
+            resultado_drive = subir_archivo_a_drive(
+                buffer, 
+                filename, 
+                mimetype, 
+                drive_tipo, 
+                access_token
+            )
+            
+            if resultado_drive.get("success"):
+                return jsonify({
+                    "status": "success",
+                    "message": "Archivo exportado y subido a Drive",
+                    "drive_url": resultado_drive.get("url"),
+                    "drive_id": resultado_drive.get("file_id")
+                }), 200
+            else:
+                # Si falla el Drive, aún permitir descargar
+                buffer.seek(0)
+                return send_file(
+                    buffer,
+                    as_attachment=True,
+                    download_name=filename,
+                    mimetype=mimetype
+                )
+        
+        # Descarga normal
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype=mimetype
+        )
+
+    except Exception as e:
+        print(f"[ERROR] api_exportar_partida: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return jsonify({"status": "error", "error": str(e)}), 500
+    finally:
+        if conexion:
+            conexion.close()
+
+
+# ========================================================
+# GENERADOR DE PDF MEJORADO
+# ========================================================
+
+def generar_pdf_mejorado(buffer, df, partida_id, info_partida):
+    """Genera un PDF profesional con los resultados"""
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    
+    # Header
+    c.setFillColor(colors.HexColor('#2D3047'))
+    c.rect(0, height - 80, width, 80, fill=True, stroke=False)
+    
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 24)
+    c.drawString(50, height - 50, f"Resultados - Partida #{partida_id}")
+    
+    c.setFont("Helvetica", 12)
+    c.drawString(50, height - 70, f"Cuestionario: {info_partida.get('nombre_cuestionario', 'N/A')}")
+    
+    # Información general
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 11)
+    y_pos = height - 110
+    c.drawString(50, y_pos, f"Fecha: {info_partida.get('fecha_creacion', 'N/A')}")
+    c.drawString(50, y_pos - 20, f"Total de participantes: {len(df)}")
+    
+    # Tabla de resultados
+    y_pos -= 60
+    
+    # Preparar datos para la tabla
+    table_data = [df.columns.tolist()]  # Headers
+    for _, row in df.iterrows():
+        table_data.append([str(val)[:30] for val in row.values])
+    
+    # Crear tabla
+    col_widths = [width / len(df.columns) - 10] * len(df.columns)
+    table = Table(table_data, colWidths=col_widths)
+    
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#419D78')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    # Dibujar tabla
+    table.wrapOn(c, width, height)
+    table.drawOn(c, 40, y_pos - (len(table_data) * 20))
+    
+    c.save()
+
+
+# ========================================================
+# INTEGRACIÓN CON ONEDRIVE Y GOOGLE DRIVE
+# ========================================================
+
+def subir_archivo_a_drive(buffer, filename, mimetype, drive_tipo, access_token):
+    """
+    Sube un archivo a OneDrive o Google Drive.
+    
+    Returns:
+        dict: {"success": bool, "url": str, "file_id": str, "error": str}
+    """
+    try:
+        if drive_tipo == "onedrive":
+            return subir_a_onedrive(buffer, filename, access_token)
+        elif drive_tipo == "google_drive":
+            return subir_a_google_drive(buffer, filename, mimetype, access_token)
+        else:
+            return {"success": False, "error": "Tipo de Drive no válido"}
+    except Exception as e:
+        print(f"[ERROR] subir_archivo_a_drive: {e}", file=sys.stderr)
+        return {"success": False, "error": str(e)}
+
+
+def subir_a_onedrive(buffer, filename, access_token):
+    """Sube archivo a OneDrive usando Microsoft Graph API"""
+    try:
+        buffer.seek(0)
+        file_content = buffer.read()
+        
+        # Endpoint de OneDrive
+        url = f"https://graph.microsoft.com/v1.0/me/drive/root:/EduQuiz/{filename}:/content"
+        
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/octet-stream"
+        }
+        
+        response = requests.put(url, headers=headers, data=file_content)
+        
+        if response.status_code in [200, 201]:
+            data = response.json()
+            return {
+                "success": True,
+                "url": data.get("webUrl", ""),
+                "file_id": data.get("id", ""),
+                "drive_type": "onedrive"
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Error {response.status_code}: {response.text}"
+            }
+            
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def subir_a_google_drive(buffer, filename, mimetype, access_token):
+    """Sube archivo a Google Drive dentro de la carpeta 'EduQuiz' usando la API v3"""
+    try:
+        buffer.seek(0)
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json"
+        }
+
+        # 1️⃣ Buscar o crear carpeta "EduQuiz"
+        folder_id = None
+        query = "mimeType='application/vnd.google-apps.folder' and trashed=false and name='EduQuiz'"
+        search = requests.get(
+            "https://www.googleapis.com/drive/v3/files",
+            headers=headers,
+            params={"q": query, "fields": "files(id,name)"}
+        )
+
+        if search.status_code == 200 and search.json().get("files"):
+            folder_id = search.json()["files"][0]["id"]
+        else:
+            # Crear carpeta si no existe
+            metadata_folder = {
+                "name": "EduQuiz",
+                "mimeType": "application/vnd.google-apps.folder"
+            }
+            create_folder = requests.post(
+                "https://www.googleapis.com/drive/v3/files",
+                headers=headers,
+                json=metadata_folder
+            )
+            if create_folder.status_code in [200, 201]:
+                folder_id = create_folder.json()["id"]
+
+        if not folder_id:
+            return {"success": False, "error": "No se pudo crear o encontrar carpeta EduQuiz"}
+
+        # 2️⃣ Subir el archivo dentro de la carpeta
+        metadata = {
+            "name": filename,
+            "mimeType": mimetype,
+            "parents": [folder_id]
+        }
+
+        files = {
+            "data": ("metadata", json.dumps(metadata), "application/json; charset=UTF-8"),
+            "file": (filename, buffer, mimetype)
+        }
+
+        upload = requests.post(
+            "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+            headers={"Authorization": f"Bearer {access_token}"},
+            files=files
+        )
+
+        if upload.status_code in [200, 201]:
+            data = upload.json()
+            file_id = data.get("id", "")
+            return {
+                "success": True,
+                "url": f"https://drive.google.com/file/d/{file_id}/view",
+                "file_id": file_id,
+                "drive_type": "google_drive"
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Error {upload.status_code}: {upload.text}"
+            }
+
+    except Exception as e:
+        print(f"[ERROR] subir_a_google_drive: {e}", file=sys.stderr)
+        return {"success": False, "error": str(e)}
+
+
+# ========================================================
+# ENDPOINTS PARA AUTENTICACIÓN DE DRIVE (OAuth)
+# ========================================================
+
+@partidas_bp.route('/api/auth/onedrive/url', methods=['GET'])
+def obtener_url_auth_onedrive():
+    """Retorna la URL para autenticar con OneDrive"""
+    # Configura tus credenciales en variables de entorno
+    client_id = "TU_CLIENT_ID_ONEDRIVE"
+    redirect_uri = "http://localhost:5000/api/auth/onedrive/callback"
+    scope = "Files.ReadWrite offline_access"
+    
+    auth_url = (
+        f"https://login.microsoftonline.com/common/oauth2/v2.0/authorize?"
+        f"client_id={client_id}&"
+        f"response_type=code&"
+        f"redirect_uri={redirect_uri}&"
+        f"scope={scope}"
+    )
+    
+    return jsonify({"auth_url": auth_url})
+
+import os
+
+# Configuración de Google (en .env o aquí temporalmente)
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '52705894161-h0iaill994m2somatd50kh4drlt3dsve.apps.googleusercontent.com')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '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')
+GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:5000/api/auth/google_drive/callback')
+
+
+# @partidas_bp.route('/api/auth/google_drive/url', methods=['POST'])
+# def obtener_url_auth_google():
+#     """
+#     Retorna la URL para autenticar con Google Drive
+#     Acepta un login_hint con el email del usuario
+#     """
+#     data = request.get_json() or {}
+#     login_hint = data.get('login_hint', '')
+    
+#     scope = "https://www.googleapis.com/auth/drive.file"
+    
+#     params = {
+#         'client_id': GOOGLE_CLIENT_ID,
+#         'redirect_uri': GOOGLE_REDIRECT_URI,
+#         'response_type': 'code',
+#         'scope': scope,
+#         'access_type': 'offline',
+#         'prompt': 'consent'  # Forzar pantalla de consentimiento
+#     }
+    
+#     if login_hint:
+#         params['login_hint'] = login_hint
+    
+#     from urllib.parse import urlencode
+#     auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    
+#     return jsonify({"auth_url": auth_url})
+
+@partidas_bp.route('/api/auth/google_drive/url', methods=['GET', 'POST'])
+def obtener_url_auth_google():
+    """
+    Retorna la URL para autenticar con Google Drive
+    Acepta un login_hint con el email del usuario
+    """
+    # Soportar tanto GET como POST
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        login_hint = data.get('login_hint', '')
+    else:
+        login_hint = request.args.get('login_hint', '')
+    
+    scope = "https://www.googleapis.com/auth/drive.file"
+    
+    # Construir URL
+    from urllib.parse import urlencode
+    
+    params = {
+        'client_id': GOOGLE_CLIENT_ID,
+        'redirect_uri': GOOGLE_REDIRECT_URI,
+        'response_type': 'code',
+        'scope': scope,
+        'access_type': 'offline',
+        'prompt': 'consent'
+    }
+    
+    if login_hint:
+        params['login_hint'] = login_hint
+    
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    
+    return jsonify({"success": True, "auth_url": auth_url})
+
+
+@partidas_bp.route('/api/auth/google_drive/callback')
+def callback_google_drive():
+    """
+    Recibe el código de autorización de Google y lo intercambia por access_token
+    """
+    code = request.args.get('code')
+    error = request.args.get('error')
+    
+    if error:
+        return f"""
+        <html>
+        <body>
+            <h2>Error de autenticación</h2>
+            <p>{error}</p>
+            <script>
+                window.opener.postMessage({{
+                    type: 'google_auth_error',
+                    error: '{error}'
+                }}, '*');
+                window.close();
+            </script>
+        </body>
+        </html>
+        """
+    
+    if not code:
+        return "Error: No se recibió el código de autorización", 400
+    
+    try:
+        # Intercambiar código por token
+        token_url = "https://oauth2.googleapis.com/token"
+        
+        data = {
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret': GOOGLE_CLIENT_SECRET,
+            'code': code,
+            'redirect_uri': GOOGLE_REDIRECT_URI,
+            'grant_type': 'authorization_code'
+        }
+        
+        response = requests.post(token_url, data=data)
+        
+        if response.status_code == 200:
+            token_data = response.json()
+            access_token = token_data.get('access_token')
+            
+            return f"""
+            <html>
+            <head>
+                <title>Autenticación exitosa</title>
+                <style>
+                    body {{
+                        font-family: 'Roboto', Arial, sans-serif;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        margin: 0;
+                        background: linear-gradient(135deg, #4285F4 0%, #34A853 100%);
+                    }}
+                    .success-box {{
+                        background: white;
+                        padding: 40px;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                        text-align: center;
+                    }}
+                    h2 {{ color: #333; margin: 20px 0 10px; }}
+                    p {{ color: #666; margin: 0; }}
+                </style>
+            </head>
+            <body>
+                <div class="success-box">
+                    <i class="fa-solid fa-check-circle" style="font-size: 4rem; color: #34A853;"></i>
+                    <h2>✅ Conectado a Google Drive</h2>
+                    <p>Esta ventana se cerrará automáticamente...</p>
+                </div>
+                <script>
+                    if (window.opener) {{
+                        window.opener.postMessage({{
+                            type: 'google_auth_success',
+                            access_token: '{access_token}'
+                        }}, '*');
+                    }}
+                    
+                    setTimeout(() => {{
+                        window.close();
+                    }}, 2000);
+                </script>
+            </body>
+            </html>
+            """
+        else:
+            return f"Error al obtener token: {response.text}", 500
+            
+    except Exception as e:
+        print(f"[ERROR] callback_google_drive: {e}", file=sys.stderr)
+        return f"Error: {str(e)}", 500
 
