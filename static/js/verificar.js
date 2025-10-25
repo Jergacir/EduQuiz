@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                 try {
                                     console.log(`🔹 Intentando obtener info RENIEC (Intento ${i + 1})...`);
-                                    const resp = await fetch(`https://api-eduquizz.onrender.com/api/reniec?dni=${dni}`, {
+                                    const resp = await fetch(`https://app-eduquizz.onrender.com/api/reniec?dni=${dni}`, {
                                         signal: controller.signal
                                     });
                                     clearTimeout(timeoutId);
