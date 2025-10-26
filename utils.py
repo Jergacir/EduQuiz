@@ -38,29 +38,49 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 def get_gmail_service():
     """Obtiene el servicio de Gmail autenticado usando token.pickle"""
     creds = None
-    
+
+    # Determinar rutas absolutas (buscar en el mismo directorio que utils.py)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    token_path = os.path.join(base_dir, 'token.pickle')
+    cred_path = os.path.join(base_dir, 'credentials.json')
+
+    # DEBUG: imprimir rutas para facilitar depuración en hosting (ej: PythonAnywhere)
+    print(f"[DEBUG] get_gmail_service cwd={os.getcwd()} base_dir={base_dir}")
+    print(f"[DEBUG] looking for token: {token_path} exists={os.path.exists(token_path)}")
+    print(f"[DEBUG] looking for credentials: {cred_path} exists={os.path.exists(cred_path)}")
+
     # El token se guarda en token.pickle después del primer login
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
+    if os.path.exists(token_path):
+        with open(token_path, 'rb') as token:
             creds = pickle.load(token)
-    
+
     # Si no hay credenciales válidas, hacer login
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
+    if not creds or not getattr(creds, 'valid', False):
+        if creds and getattr(creds, 'expired', False) and getattr(creds, 'refresh_token', None):
             creds.refresh(Request())
         else:
-            if not os.path.exists('credentials.json'):
+            # Preferir credentials.json en el directorio del módulo; si no existe, intentar cwd
+            if os.path.exists(cred_path):
+                credentials_file = cred_path
+            elif os.path.exists('credentials.json'):
+                credentials_file = os.path.abspath('credentials.json')
+            else:
                 raise FileNotFoundError(
-                    "credentials.json not found. Please download it from Google Cloud Console."
+                    f"credentials.json not found. Checked: {cred_path} and {os.path.abspath('credentials.json')}"
                 )
+
             flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+                credentials_file, SCOPES)
+            # run_local_server opens a browser; typically you generate token locally and upload token.pickle
             creds = flow.run_local_server(port=0)
-        
-        # Guardar credenciales para la próxima vez
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
-    
+
+        # Guardar credenciales para la próxima vez (en el mismo directorio que utils.py)
+        try:
+            with open(token_path, 'wb') as token:
+                pickle.dump(creds, token)
+        except Exception as e:
+            print(f"[WARNING] No se pudo escribir token.pickle en {token_path}: {e}")
+
     return build('gmail', 'v1', credentials=creds)
 
 
@@ -106,9 +126,17 @@ def send_verification_email(to_email: str, code: str):
     - EMAIL_PASS: contraseña o app password
     """
     # Intentar usar Gmail API primero
-    use_gmail_api = os.environ.get('USE_GMAIL_API', 'true').lower() == 'true'
-    
-    if use_gmail_api and GMAIL_API_AVAILABLE and os.path.exists('token.pickle'):
+    use_gmail_api = os.environ.get('USE_GMAIL_API', 'true').strip().lower() in ('1', 'true', 'yes', 'on')
+
+    # Comprobar token.pickle tanto en el cwd como en el directorio del módulo (WSGI puede cambiar el cwd)
+    module_dir = os.path.dirname(os.path.abspath(__file__))
+    token_paths = [os.path.join(module_dir, 'token.pickle'), os.path.abspath('token.pickle')]
+    token_exists = any(os.path.exists(p) for p in token_paths)
+
+    # DEBUG: mostrar qué ruta de token se detectó
+    print(f"[DEBUG] send_verification_email use_gmail_api={use_gmail_api} GMAIL_API_AVAILABLE={GMAIL_API_AVAILABLE} token_exists={token_exists} token_paths={token_paths}")
+
+    if use_gmail_api and GMAIL_API_AVAILABLE and token_exists:
         return _send_verification_email_via_gmail_api(to_email, code)
     else:
         return _send_verification_email_via_smtp(to_email, code)
