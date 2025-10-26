@@ -214,3 +214,17 @@
         width: 100%;
     }
 }
+
+@media (max-width: 1024px) {
+    .exportar-resultados-area { padding: 28px; }
+    .format-card { flex: 1 1 calc(50% - 20px); }
+    .fields-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+}
+
+@media (max-width: 480px) {
+    .format-card { padding: 18px 14px; }
+    .format-card i { font-size: 2.2rem; }
+    .fields-options { padding: 16px; }
+    .export-action-footer { margin-top: 20px; padding-top: 12px; }
+    .btn-exportar-final { min-width: auto; padding: 10px 14px; }
+}

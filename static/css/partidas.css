@@ -11,6 +11,7 @@
     justify-content: center;
     align-items: center;
     padding: 50px;
+    /* CLAVE: Mantengo esta altura para escritorio, pero la ajustaré en mobile */
     height: calc(100vh - 80px); 
 }
 
@@ -89,4 +90,68 @@
 
 .message-text.success {
     color: #059669; 
+}
+
+/* Tablet y Pantallas Pequeñas (max-width: 1024px) */
+@media (max-width: 1024px) {
+    .partida-area { 
+        padding: 30px; 
+        /* En pantallas más pequeñas, es mejor usar min-height para que crezca si es necesario. 
+           Si el contenido es corto, mantendrá una altura mínima (100vh - 80px) */
+        min-height: calc(100vh - 80px); 
+        height: auto; /* Dejamos que la altura la defina el contenido, manteniendo min-height */
+    }
+    .join-card { 
+        padding: 30px; 
+    }
+}
+
+/* Mobile landscape y tablets pequeñas (max-width: 768px) */
+@media (max-width: 768px) {
+    .join-card { 
+        padding: 20px; 
+        max-width: 520px; 
+    }
+    .join-card h1 {
+        font-size: 1.6rem;
+    }
+    .join-card p {
+        font-size: 0.95rem;
+        margin-bottom: 20px;
+    }
+    #gameCodeInput { 
+        font-size: 1.4rem; 
+        padding: 12px; 
+    }
+    .btn-primary { 
+        padding: 12px 20px; 
+        font-size: 1rem;
+    }
+}
+
+/* Mobile portrait (max-width: 480px) */
+@media (max-width: 480px) {
+    .partida-area {
+        padding: 20px;
+        /* Forzamos al 100% de la altura de la pantalla en mobile */
+        min-height: calc(100vh - 80px); /* Aseguramos que ocupe la pantalla, menos el sidebar/header si lo hay */
+        align-items: flex-start; /* Permite que el contenido no esté estrictamente centrado verticalmente si la altura es limitada */
+    }
+    .join-card { 
+        padding: 16px; 
+        /* Aseguramos que la tarjeta no se vea demasiado grande en pantallas muy pequeñas */
+        max-width: 100%; 
+    }
+    .join-card h1 {
+        font-size: 1.4rem;
+    }
+    #gameCodeInput { 
+        font-size: 1.2rem; 
+        padding: 10px;
+        /* Reducimos el espaciado entre letras para mejor visualización en pantallas estrechas */
+        letter-spacing: 3px; 
+    }
+    .message-text { 
+        font-size: 0.9rem; 
+    }
 }

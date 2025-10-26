@@ -387,3 +387,27 @@
   background-color: #f8d4d4;
   border-left: 4px solid #c0392b;
 }
+
+/* ===== RESPONSIVE: Tablet / Mobile ===== */
+@media (max-width: 1024px) {
+    .quiz-view-header { gap: 18px; padding: 16px; }
+    .quiz-image-placeholder { width: 140px; height: 140px; }
+    .questions-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+}
+
+@media (max-width: 768px) {
+    .quiz-view-header { flex-direction: column; align-items: center; text-align: center; }
+    .quiz-image-placeholder { width: 120px; height: 120px; margin-bottom: 10px; }
+    .quiz-details { margin-left: 0; }
+    .quiz-actions { flex-direction: row; width: 100%; justify-content: center; gap: 12px; }
+    .questions-grid { grid-template-columns: 1fr; gap: 14px; }
+    .answer-options { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+    .page-title { font-size: 1.4rem; }
+    .quiz-image-placeholder { width: 100px; height: 100px; }
+    .btn-play { padding: 8px 12px; font-size: 0.95rem; width: 100%; }
+    .question-content-placeholder { height: 120px; }
+    .answer-btn { font-size: 0.92rem; padding: 0.5rem; }
+}

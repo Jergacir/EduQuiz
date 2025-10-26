@@ -256,3 +256,23 @@ body {
 .continue-btn:hover {
     background-color: #10645d;
 }
+
+/* Responsive: tablet / mobile */
+@media (max-width: 1024px) {
+    .podium-section { width: 100%; height: 360px; }
+    .leaderboards-container { max-width: 900px; padding: 18px; }
+}
+
+@media (max-width: 768px) {
+    .podium-section { flex-direction: column; height: auto; gap: 16px; width: 100%; }
+    .podium-item { width: 80%; height: auto; }
+    .leaderboards-container { padding: 14px; border-radius: 14px; }
+    .continue-btn { width: 100%; font-size: 1rem; padding: 12px; }
+}
+
+@media (max-width: 480px) {
+    .podium-section { padding: 0 8px; }
+    .avatar { width: 50px; height: 50px; }
+    .header h1 { font-size: 1.2rem; }
+    .leaderboards-container { padding: 12px; }
+}

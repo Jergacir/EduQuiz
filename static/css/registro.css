@@ -294,3 +294,11 @@ h1 {
         margin-bottom: 10px;
     }
 }
+
+@media (max-width: 480px) {
+    .panel-izquierdo { padding: 20px; }
+    .formulario-contenedor { max-width: 320px; padding: 0 8px; }
+    .logo img { height: 90px; }
+    h1 { font-size: 1.4rem; }
+    .btn-primario { padding: 10px; font-size: 0.95rem; }
+}

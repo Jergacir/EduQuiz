@@ -379,3 +379,32 @@
         padding: 6px 12px;
     }
 }
+
+/* Safe mobile fallbacks */
+@media (max-width: 360px) {
+    .analysis-value { font-size: 1.4rem; }
+    .analysis-label { font-size: 0.85rem; }
+    .ranking-item { padding: 10px; }
+    .exportar-container { text-align: center; margin-bottom: 40px; }
+    .exportar-btn { width: 100%; max-width: none; }
+    .eduquiz-toast { right: 10px; left: 10px; transform: none; }
+}
+
+/* ✅ FIX: en pantallas pequeñas mostrar el análisis en columna */
+@media (max-width: 768px) {
+    .analysis-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow-x: visible;
+        scroll-snap-type: none;
+        padding-bottom: 0;
+    }
+
+    .analysis-card {
+        flex: none;
+        width: 100%;
+        min-width: unset;
+        scroll-snap-align: none;
+    }
+}

@@ -291,3 +291,28 @@
 .modalidad-select:hover {
     border-color: #888;
 }
+
+    /* ===== RESPONSIVE: Tablet / Mobile ===== */
+    @media (max-width: 1024px) {
+        .modal-content.large-modal { width: 92%; padding: 20px; }
+        .config-grid { grid-template-columns: 1fr; gap: 20px; }
+        .quiz-image-preview { max-width: 220px; }
+        .quiz-options-config { gap: 16px; }
+    }
+
+    @media (max-width: 768px) {
+        .modal-content.large-modal { width: 96%; padding: 16px; }
+        .quiz-image-preview { max-width: 160px; }
+        .quiz-info-config { padding-right: 0; border-right: none; }
+        .group-grupal input { width: 50px; }
+        .pin-box { width: 34px; height: 44px; }
+        .quiz-title-config { font-size: 1.05rem; }
+    }
+
+    @media (max-width: 480px) {
+        .modal-content.large-modal { width: 100%; margin: 0 8px; padding: 12px; border-radius: 8px; }
+        .quiz-image-preview { max-width: 120px; aspect-ratio: 4/3; }
+        .quiz-title-config { font-size: 1rem; }
+        .btn-empezar { width: 100%; padding: 10px; font-size: 0.95rem; }
+        .config-grid { gap: 12px; }
+    }

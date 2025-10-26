@@ -52,3 +52,9 @@ body {
     line-height: 1.5;
     margin-bottom: 2rem;
 }
+
+/* ===== RESPONSIVE FALLBACKS (tablet / mobile) ===== */
+@media (max-width: 768px) {
+    .error-box { padding: 1.5rem; max-width: 360px; }
+    .error-title { font-size: 1.5rem; }
+}

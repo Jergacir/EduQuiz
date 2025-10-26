@@ -280,6 +280,15 @@ body {
     }
 }
 
+@media (max-width: 480px) {
+    .container { padding: 16px; width: 95%; }
+    .group-column { width: 100%; min-width: unset; padding: 14px; }
+    .qr-code { width: 100px; height: 100px; }
+    .waiting-message { font-size: 1.3em; }
+    .participant-card { padding: 10px; gap: 10px; }
+    .individual-layout .participant-card { width: 100%; }
+}
+
 .tarjeta-usuario.usuario-en-grupo {
     width: 90%;
     /* padding: 4px 8px; */

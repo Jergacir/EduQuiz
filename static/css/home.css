@@ -48,6 +48,9 @@
 /* ======================================= */
 /* 5. TARJETAS (Quiz Cards) */
 /* ======================================= */
+/* ======================================= */
+/* 1. LAYOUT PRINCIPAL (Dashboard Grid) */
+/* ======================================= */
 
 .quiz-grid {
     display: grid;
@@ -55,6 +58,19 @@
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
     gap: 25px;
     padding: 0;
+}
+/* ===== RESPONSIVE FALLBACKS (tablet / mobile) ===== */
+@media (max-width: 1024px) {
+    .quiz-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+    .quiz-grid { grid-template-columns: 1fr; gap: 12px; }
+    .main-container { padding: 12px; }
+    .quiz-card { padding: 14px; }
+}
+@media (max-width: 480px) {
+    .quiz-title { font-size: 1rem; }
+    .btn-get { width: 100%; }
 }
 
 .quiz-card {

@@ -498,6 +498,71 @@ a {
     /* Hacer que el título quede después y centrado a la izquierda */
     .header h1 { order: 0; align-self: stretch; }
 
+/* =======================================================
+   GLOBAL RESPONSIVE HELPERS
+   These rules provide baseline responsive behavior for
+   pages that don't yet include detailed media queries.
+   They are intentionally conservative to avoid breaking
+   existing layouts; feel free to extend per-page as needed.
+   ======================================================= */
+
+:root {
+    --bp-desktop: 1024px;
+    --bp-tablet: 768px;
+    --bp-mobile: 480px;
+}
+
+/* Generic container utility used by templates */
+.container-fluid, .max-w-7xl {
+    width: 100%;
+    max-width: 1100px;
+    padding-left: 16px;
+    padding-right: 16px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+}
+
+/* Ensure media scale correctly */
+img, picture, video, svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Make tables scrollable on small screens */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Button helper: block on mobile */
+.btn-block-mobile { display: inline-block; }
+@media (max-width: 768px) {
+    .btn-block-mobile { display: block; width: 100%; }
+}
+
+/* Small typographic tuning for smaller screens */
+@media (max-width: 1024px) {
+    body { font-size: 15px; }
+    .header h1 { font-size: 1.6rem; }
+}
+
+@media (max-width: 768px) {
+    body { font-size: 14px; }
+    .header h1 { font-size: 1.25rem; }
+    .credits-profile-container { gap: 8px; }
+    .profile-img { width: 36px; height: 36px; }
+}
+
+@media (max-width: 480px) {
+    body { font-size: 13px; }
+    .header h1 { font-size: 1.05rem; }
+    .menu-button { display: block; }
+}
+
+
     /* Posicionar el profile-menu para que aparezca alineado a la izquierda arriba */
     .profile-box { position: relative; }
     .profile-menu {
