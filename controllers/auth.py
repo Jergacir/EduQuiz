@@ -32,7 +32,13 @@ def frm_verificar():
 
 @auth_bp.route('/logout')
 def logout():
-    session.pop('user_id', None)
+    # Limpiar toda la sesión para evitar que queden valores de avatar u otros datos
+    try:
+        session.clear()
+    except Exception:
+        # Fallback: eliminar claves conocidas si clear no funciona
+        for k in ['user_id', 'url_foto_perfil', 'url_avatar', 'username', 'cant_monedas']:
+            session.pop(k, None)
     flash('Has cerrado sesión exitosamente.', 'success')
     return redirect(url_for('auth.frm_login'))
 
@@ -156,9 +162,16 @@ def procesarlogin():
 
     try:
         with conexion.cursor() as cursor:
-            sql = 'SELECT usuario_id, contrasena, verificado, correo, vigencia FROM usuario WHERE correo=%s'
+            sql = "SELECT usuario_id, contrasena, verificado, correo, vigencia, COALESCE(url_foto_perfil,'') AS url_foto_perfil, COALESCE(url_avatar,'') AS url_avatar, username, cant_monedas, tipo_usuario FROM usuario WHERE correo=%s"
             cursor.execute(sql, (correo,))
             result = cursor.fetchone()
+
+        if not result:
+            # Correo no encontrado
+            if is_ajax:
+                return jsonify({'success': False, 'code': 'email_not_found', 'message': 'Correo no encontrado.'}), 404
+            flash('Correo no encontrado. ¿Deseas registrarte?', 'error')
+            return redirect(url_for('auth.frm_login'))
 
         if result and bcrypt_ext.check_password_hash(result['contrasena'], contrasena_plana):
             # Usuario encontrado y contraseña correcta
@@ -178,12 +191,22 @@ def procesarlogin():
 
             # Login exitoso
             session['user_id'] = result['usuario_id']
+            # Guardar datos útiles en la sesión para evitar inconsistencias en el header
+            try:
+                session['url_foto_perfil'] = result.get('url_foto_perfil') or ''
+                session['url_avatar'] = result.get('url_avatar') or ''
+                session['username'] = result.get('username') or ''
+                session['cant_monedas'] = result.get('cant_monedas') or 0
+                session['tipo_usuario'] = result.get('tipo_usuario') or ''
+            except Exception:
+                # No crítico si falla almacenar en sesión
+                pass
             if is_ajax:
                 return jsonify({'success': True, 'redirect': url_for('pages.frm_home')}), 200
             return redirect(url_for('pages.frm_home'))
 
         else:
-            # Credenciales incorrectas
+            # Credenciales incorrectas (usuario existe pero contraseña no coincide)
             if is_ajax:
                 return jsonify({'success': False, 'code': 'credentials', 'message': 'Credenciales incorrectas.'}), 401
             flash('Credenciales incorrectas.', 'error')

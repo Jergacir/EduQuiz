@@ -64,7 +64,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!btn) return;
         ev.preventDefault();
         const inventoryId = btn.getAttribute('data-inventory-id');
-        if (!inventoryId) return alert('ID de inventario faltante');
+        if (!inventoryId) {
+            try {
+                if (typeof window.showModal === 'function') window.showModal('Error', 'ID de inventario faltante');
+                else if (window.alert) window.alert('ID de inventario faltante');
+            } catch (e) { console.warn('notify failed', e); if (window.alert) window.alert('ID de inventario faltante'); }
+            return;
+        }
 
         try {
             const formData = new FormData();
@@ -73,33 +79,38 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             if (response.ok && data.success) {
                 actualizarEstadoEquipado(inventoryId, data.equipada);
-                // Si el servidor devuelve la nueva URL de la foto de perfil, actualizar el avatar en el header inmediatamente
+
+                // Mostrar modal cuando la skin ha sido equipada
                 try {
-                    console.log('[INV AVATAR UPDATE] response:', data);
-                    const newUrl = data.url_foto_perfil || data.url_avatar;
-                    if (newUrl) {
-                        // Añadir cache-buster para forzar recarga del recurso (evita mostrar imagen antigua en caché)
-                        const finalUrl = newUrl + (newUrl.indexOf('?') === -1 ? '?cb=' + Date.now() : '&cb=' + Date.now());
-                        // Buscar todos los elementos de avatar y actualizar el src
-                        document.querySelectorAll('img.profile-img').forEach(img => {
-                            try {
-                                if (img.getAttribute('src') !== finalUrl) img.setAttribute('src', finalUrl);
-                            } catch (e) { /* noop */ }
-                        });
-                        // También intentar actualizar elementos que usen background-image (por si acaso)
-                        document.querySelectorAll('.profile-img-bg').forEach(el => {
-                            try { el.style.backgroundImage = 'url("' + finalUrl + '")'; } catch (e) {}
-                        });
+                    const tipo = btn.getAttribute('data-tipo');
+                    if (tipo === 'skin' && data.equipada) {
+                        const title = 'Skin equipada';
+                        const message = 'Has equipado la skin correctamente.';
+                        if (typeof window.showModal === 'function') {
+                            // ui_modal.js showModal(title, message, options)
+                            try { window.showModal(title, message, { okText: 'Aceptar' }); } catch (e) { alert(message); }
+                        } else {
+                            alert(message);
+                        }
                     }
-                } catch (e) {
-                    console.warn('[INV AVATAR UPDATE] no se pudo actualizar el DOM del avatar', e);
-                }
+                } catch (e) { console.warn('No se pudo mostrar modal de skin equipada', e); }
+
+                // No actualizamos el avatar del header desde aquí: el usuario puede mantener su foto de perfil
+                // separada de las skins. El backend actualiza solo `url_avatar` en sesión/BD si es necesario,
+                // pero no forzamos cambios visuales en el header desde el cliente para respetar la UX.
             } else {
-                alert('Error: ' + (data.message || 'No se pudo cambiar el estado'));
+                const msg = 'Error: ' + (data.message || 'No se pudo cambiar el estado');
+                try {
+                    if (typeof window.showModal === 'function') window.showModal('Error', msg);
+                    else if (window.alert) window.alert(msg);
+                } catch (e) { console.warn('notify failed', e); if (window.alert) window.alert(msg); }
             }
         } catch (err) {
             console.error('Error al equipar:', err);
-            alert('Error en la petición. Revisa la consola.');
+            try {
+                if (typeof window.showModal === 'function') window.showModal('Error', 'Error en la petición. Revisa la consola.');
+                else if (window.alert) window.alert('Error en la petición. Revisa la consola.');
+            } catch (e) { console.warn('notify failed', e); if (window.alert) window.alert('Error en la petición. Revisa la consola.'); }
         }
     });
 

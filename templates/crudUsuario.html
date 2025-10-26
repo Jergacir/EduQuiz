@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="../static/css/global.css">
 </head>
 
-<body data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}">
+<body class="crud-usuario-page" data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}">
 
     <!-- Botón de menú para móvil -->
     <button id="menu-button" class="menu-button lg:hidden">
@@ -86,7 +86,8 @@
                     </div>
                    
                     <div class="profile-box" id="profile-box" style="cursor:pointer; position: relative;">
-                        <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or '/static/img/avatar.jpeg' }}" class="profile-img">
+                        {% set default_avatar = '/static/img/perfil_profesor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'P') else ('/static/img/perfil_gestor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'G') else '/static/img/perfil_estudiante.png') %}
+                        <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or default_avatar }}" class="profile-img">
                         <span class="profile-text">{{ logged_in_user.username }}</span>
                         <i class="fas fa-caret-down profile-caret" aria-hidden="true"></i>
 
@@ -113,13 +114,15 @@
 
             <div id="perfil" class="tab-content activo">
                 <form id="form-perfil">
-                    <!-- ID DE USUARIO (informativo) -->
+                    <!-- ID DE USUARIO (informativo) - SOLO VISIBLE PARA GESTORES -->
+                    {% if logged_in_user.tipo_usuario == 'G' %}
                     <div class="campo">
                         <label for="usuario_id" class="block text-sm font-medium text-gray-700 mb-1">ID de
                             Usuario</label>
                         <input type="text" id="usuario_id" name="usuario_id" value="Cargando..." readonly
                             class="input-deshabilitado w-full p-3 border border-gray-300 rounded-lg">
                     </div>
+                    {% endif %}
 
                     <!-- NOMBRE Y APELLIDOS -->
                     <div class="campo">
@@ -151,6 +154,23 @@
                             <span
                                 class="editar-icono absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer hover:text-blue-500 transition"
                                 onclick="habilitarEdicion('correo')">✏️</span>
+                        </div>
+                    </div>
+
+                    <!-- URL FOTO DE PERFIL (Editable) -->
+                    <div class="campo">
+                        <label for="url_foto_perfil" class="block text-sm font-medium text-gray-700 mb-1">URL de Foto de
+                            Perfil</label>
+                        <div class="input-con-icono" style="align-items: center; gap:10px;">
+                            <input type="url" id="url_foto_perfil" name="url_foto_perfil" placeholder="https://ejemplo.com/mi-avatar.png"
+                                class="w-full p-3 border border-gray-300 rounded-lg">
+                            <img id="url_foto_perfil_preview" src="/static/img/avatar.jpeg" alt="Preview"
+                                style="width:48px;height:48px;border-radius:8px;border:1px solid var(--color-borde);object-fit:cover;">
+                        </div>
+                        <div style="margin-top:8px;">
+                            <label class="block text-sm text-gray-600 mb-1">O sube una imagen desde tu dispositivo</label>
+                            <input type="file" id="url_foto_perfil_file" accept="image/*" class="w-full">
+                            <small class="text-xs text-gray-500">Archivos permitidos: png, jpg, jpeg, gif, webp. Tamaño máximo recomendado: 2MB.</small>
                         </div>
                     </div>
 
@@ -201,8 +221,71 @@
                 </form>
             </div>
 
-            <div id="contrasena" class="tab-content">...</div>
-            <div id="privacidad" class="tab-content">...</div>
+            <div id="contrasena" class="tab-content">
+                <h3>Cambiar contraseña</h3>
+                <form id="form-contrasena">
+                    <div class="campo">
+                        <label for="contrasena_actual">Contraseña actual</label>
+                        <input type="password" id="contrasena_actual" name="contrasena_actual" required class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div class="campo">
+                        <label for="nueva_contrasena">Nueva contraseña</label>
+                        <input type="password" id="nueva_contrasena" name="nueva_contrasena" required class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div class="campo">
+                        <label for="confirmar_nueva_contrasena">Confirmar nueva contraseña</label>
+                        <input type="password" id="confirmar_nueva_contrasena" name="confirmar_nueva_contrasena" required class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div class="acciones">
+                        <button type="button" class="btn-secundario" id="btn-cancelar-contrasena">Cancelar</button>
+                        <button type="submit" class="btn-principal">Cambiar contraseña</button>
+                    </div>
+                </form>
+            </div>
+            <div id="privacidad" class="tab-content">
+                <h3>Política de privacidad </h3>
+                <p>En EduQuiz tomamos en serio la privacidad de nuestros usuarios. A continuación tienes un resumen claro y breve de cómo tratamos tus datos en esta plataforma educativa:</p> <br>
+
+                <h4>1. Qué datos recopilamos</h4>
+                <ul>
+                    <li>Datos de cuenta: nombre, nombre de usuario, correo electrónico y contraseña hasheada.</li>
+                    <li>Datos de perfil: foto de perfil (URL o imagen subida), preferencias y tipo de cuenta (Alumno/Profesor/Gestor).</li>
+                    <li>Actividad en la plataforma: puntuaciones, monedas ganadas, historial de partidas y estadísticas de uso.</li>
+                    <li>Datos técnicos: dirección IP, información del navegador y datos de diagnóstico para mejorar el servicio.</li>
+                </ul> <br>
+
+                <h4>2. Para qué usamos tus datos</h4>
+                <ul>
+                    <li>Proveer y personalizar la experiencia (mostrar tu avatar, progreso y posiciones en el ranking).</li>
+                    <li>Gestionar partidas y estadísticas, y permitir la interacción entre participantes.</li>
+                    <li>Enviar comunicaciones relacionadas con la cuenta o el servicio (notificaciones, restablecimiento de contraseña).</li>
+                    <li>Detectar y prevenir fraudes o usos indebidos del servicio.</li>
+                </ul> <br>
+
+                <h4>3. Compartir datos</h4>
+                <p>No vendemos tus datos. Podemos compartir información con:</p>
+                <ul>
+                    <li>Proveedores de servicios que nos ayudan a operar la plataforma (por ejemplo: alojamiento, correo, servicios de imagen).</li>
+                    <li>Cuando la ley lo requiera o para proteger derechos legales.</li>
+                </ul> <br>
+
+                <h4>4. Imágenes y archivos</h4>
+                <p>Las fotos de perfil que subas se almacenan en nuestro servidor (o en el proveedor configurado) y se usan para mostrar tu avatar. Evita subir imágenes con información sensible o de terceros sin su consentimiento.</p>
+                <br>
+                <h4>5. Cookies y tecnologías similares</h4>
+                <p>Utilizamos cookies para mantener sesiones, preferencias y estadísticas básicas de uso. Puedes gestionar o bloquear cookies desde tu navegador, aunque algunas funcionalidades podrían dejar de funcionar correctamente.</p>
+                <br>    
+                <h4>6. Conservación de datos</h4>
+                <p>Mantenemos tus datos mientras tengas una cuenta activa o según obligaciones legales. Si solicitas la eliminación de tu cuenta, procederemos a borrarlos salvo información que debamos conservar por ley.</p>
+                <br>
+                <h4>7. Tus derechos</h4>
+                <p>Puedes solicitar acceder, rectificar o eliminar tus datos, limitar su uso u oponerte al tratamiento. Para ejercer estos derechos contacta con el equipo de soporte (ver abajo).</p>
+                <br>
+                <h4>8. Contacto</h4>
+                <p>Si tienes preguntas sobre privacidad o quieres ejercer tus derechos, escríbenos a <a href="mailto:support@example.com">support@example.com</a>. Sustituye esta dirección por la real si procede.</p>
+
+                <p class="text-xs text-gray-600">Nota: Este texto es un resumen orientativo; para cumplimiento legal completo se debe publicar una versión formal y detallada de la Política de Privacidad y los Términos del Servicio.</p>
+            </div>
 
             <div id="administracion" class="tab-content">
                 <h2>Gestión General de Usuarios</h2>
@@ -276,7 +359,33 @@
         </div>
     </main>
 
+   
+    <!-- Modal de confirmación genérico -->
+    <div id="modal-confirm" class="modal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:1000;">
+        <div class="modal-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.4);"></div>
+        <div class="modal-content" role="dialog" aria-modal="true" style="position:relative;max-width:480px;width:90%;background:white;padding:20px;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+            <h3 id="modal-confirm-title" style="margin-bottom:8px;">Confirmación</h3>
+            <p id="modal-confirm-message" style="margin-bottom:18px;">¿Estás seguro?</p>
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button id="modal-cancel-btn" class="btn-secundario">Cancelar</button>
+                <button id="modal-confirm-btn" class="btn-principal">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de mensaje simple -->
+    <div id="modal-message" class="modal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:1000;">
+        <div class="modal-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.4);"></div>
+        <div class="modal-content" role="dialog" style="position:relative;max-width:420px;width:90%;background:white;padding:20px;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+            <h3 id="modal-message-title" style="margin-bottom:8px;">Mensaje</h3>
+            <p id="modal-message-body" style="margin-bottom:18px;">Operacion completada.</p>
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button id="modal-message-ok" class="btn-principal">OK</button>
+            </div>
+        </div>
+    </div>
     <script src="../static/js/global.js"></script>
+    <script src="../static/js/ui_modal.js"></script>
     <script src="../static/js/crudusuario.js"></script>
 </body>
 

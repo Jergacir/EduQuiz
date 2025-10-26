@@ -86,7 +86,8 @@
                     <div class="profile-box">
                         <a href="{{ url_for('tienda.inventario_index') }}">
                             <div class="profile-box">
-                                <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or '/static/img/avatar.jpeg' }}" class="profile-img">
+                                {% set default_avatar = '/static/img/perfil_profesor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'P') else ('/static/img/perfil_gestor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'G') else '/static/img/perfil_estudiante.png') %}
+                                <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or default_avatar }}" class="profile-img">
                                 <span class="profile-text" style="display: none;">Mi Perfil</span>
                             </div>
                         </a>
@@ -156,18 +157,14 @@
                 </div>
 
                 <div class="question-options-sidebar">
-                    <h3>Límite de Tiempo</h3>
-                    <select class="option-select">
-                        <option value="30s">30 segundos</option>
-                        <option value="10s">10 segundos</option>
-                        <option value="60s">60 segundos</option>
-                    </select>
 
-                    <h3>Puntos</h3>
-                    <select class="option-select">
-                        <option value="standard">Puntaje</option>
-                        <option value="double">Puntaje Doble</option>
-                    </select>
+                    <div class="option-select">
+                        
+                    </div>
+
+                    <div class="option-select">
+                        
+                    </div>
                 </div>
 
             </div>

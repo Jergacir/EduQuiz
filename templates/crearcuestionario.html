@@ -61,31 +61,33 @@
         </div>
     </aside>
 
-     <!-- Overlay para móvil -->
+    <!-- Overlay para móvil -->
     <div id="sidebar-overlay" class="overlay"></div>
 
     <div class="main-content">
 
         <!-- Barra Superior del Contenido Principal (Mis Cuestionarios, Perfil) -->
-            <header class="header">
-                <h1>Panel de creación/edición</h1>
+        <header class="header">
+            <h1>Panel de creación/edición</h1>
 
-                <!-- Búsqueda, Créditos y Perfil -->
-                <div class="credits-profile-container">
-                    <!-- Créditos y Perfil (Estilo del wireframe) -->
-                    <div class="credits-box">
-                        <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
-                        <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
-                    </div>
-                    <div class="profile-box">
-                        <a href="{{ url_for('tienda.inventario_index') }}">
-                            <div class="profile-box">
-                                <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or '/static/img/avatar.jpeg' }}" class="profile-img">
-                                <span class="profile-text" style="display: none;">Mi Perfil</span>
-                            </div>
-                        </a>
+            <!-- Búsqueda, Créditos y Perfil -->
+            <div class="credits-profile-container">
+                <!-- Créditos y Perfil (Estilo del wireframe) -->
+                <div class="credits-box">
+                    <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
+                    <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
                 </div>
-            </header>
+                <div class="profile-box">
+                    <a href="{{ url_for('tienda.inventario_index') }}">
+                        <div class="profile-box">
+                            {% set default_avatar = '/static/img/perfil_profesor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'P') else ('/static/img/perfil_gestor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'G') else '/static/img/perfil_estudiante.png') %}
+                            <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or default_avatar }}"
+                                class="profile-img">
+                            <span class="profile-text" style="display: none;">Mi Perfil</span>
+                        </div>
+                    </a>
+                </div>
+        </header>
 
         <main class="content-area edit-panel-area">
 
@@ -109,7 +111,8 @@
                 <div class="question-editor">
 
                     <div class="question-media-area">
-                        <input type="text" value="¿La tierra es redonda?" class="question-text-input" placeholder="Ingrese la pregunta">
+                        <input type="text" value="¿La tierra es redonda?" class="question-text-input"
+                            placeholder="Ingrese la pregunta">
 
                         <div class="media-upload-box">
                             <i class="icon-upload"></i>
@@ -150,18 +153,29 @@
                 </div>
 
                 <div class="question-options-sidebar">
-                    <h3>Límite de Tiempo</h3>
-                    <select class="option-select">
-                        <option value="10s">10 segundos</option>
-                        <option value="30s">30 segundos</option>
-                        <option value="60s">60 segundos</option>
-                    </select>
 
-                    <h3>Puntos</h3>
-                    <select class="option-select">
-                        <option value="standard">Puntaje</option>
-                        <option value="double">Puntaje Doble</option>
-                    </select>
+                    <h3>Importar Preguntas desde Excel</h3>
+                    <div class="excel-upload-box option-select"> <i class="icon-upload"></i>
+                        <p>Arrastra tu archivo .xlsx o haz clic para seleccionar</p> <input id="excelInput" type="file"
+                            accept=".xlsx, .xls" class="hidden"> <button id="btnUploadExcel" class="btn-upload">Subir
+                            Excel</button>
+                        <p id="excelFileName" class="file-name">Ningún archivo seleccionado</p>
+                    </div>
+
+                    <h3></h3>
+                    <div class="option-select excel-format-info">
+                        <p>Formato de Excel requerido (estricto):</p>
+                        <ul>
+                            <li>Fila 1 (encabezados):
+                                <strong>Pregunta,RespuestaCorrecta,Respuesta1,Respuesta2,Respuesta3</strong>
+                            </li>
+                            <li>Cada fila siguiente representa una pregunta.</li>
+                            <li>Todas las columnas de respuesta deben estar completas.</li>
+                        </ul>
+                        <button id="btnDownloadTemplate" class="btn-upload">
+                            <i class="fa-solid fa-download"></i> Descargar plantilla formato Excel
+                        </button>
+                    </div>
                 </div>
 
             </div>
@@ -289,6 +303,8 @@
     </div>
 
     <script src="../static/js/cuestionario.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="../static/js/excelImport.js"></script>
 </body>
 
 </html>

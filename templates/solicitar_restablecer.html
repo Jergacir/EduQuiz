@@ -56,14 +56,20 @@
           var cat = n.getAttribute('data-cat');
           var msg = n.getAttribute('data-msg');
           if (cat === 'reset_info') {
+            // Cuando el servidor indica envío exitoso
             var loginEl = document.getElementById('login-url');
             var loginUrl = loginEl ? loginEl.getAttribute('data-url') : '/login';
-            if (typeof showModal === 'function') showModal('Enviado', msg, { onClose: function () { window.location.href = loginUrl; } });
-            else { alert(msg); window.location.href = loginUrl; }
+            if (typeof showModal === 'function') {
+              showModal('Correo enviado', msg, { onClose: function () { window.location.href = loginUrl; } });
+            } else {
+              alert(msg);
+              window.location.href = loginUrl;
+            }
             break;
           }
           if (cat === 'reset_warning') {
-            if (typeof showModal === 'function') showModal('Advertencia', msg);
+            // Cuando el servidor indica que el correo no existe o hay una advertencia
+            if (typeof showModal === 'function') showModal('Correo no encontrado', msg);
             else alert(msg);
             break;
           }

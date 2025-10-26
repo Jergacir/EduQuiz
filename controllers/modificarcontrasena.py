@@ -131,8 +131,8 @@ def solicitar_restablecer():
                 cursor.execute(sql, (email,))
                 user = cursor.fetchone()
                 if not user:
-                    # No revelar que el email no existe — comportarse como si se envió
-                    flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'reset_info')
+                    # Indicar explícitamente que el correo no existe en el sistema
+                    flash('El correo no existe en nuestro sistema.', 'reset_warning')
                     return redirect(url_for('modificarcontrasena.frm_solicitar_restablecer'))
 
                 usuario_id = user['usuario_id']
@@ -151,7 +151,7 @@ def solicitar_restablecer():
                 # Enviar email
                 try:
                     send_password_reset_email(email, token)
-                    flash('Si el correo existe en nuestro sistema, recibirás un email con instrucciones.', 'reset_info')
+                    flash(f'Se ha enviado un correo con instrucciones a {email}.', 'reset_info')
                     return redirect(url_for('modificarcontrasena.frm_solicitar_restablecer'))
                 except Exception as e:
                     print(f"Error enviando email de restablecimiento: {e}")

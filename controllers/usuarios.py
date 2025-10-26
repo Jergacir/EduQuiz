@@ -1,7 +1,11 @@
 from flask import Blueprint, render_template, jsonify, request, session, redirect, url_for, flash
+from flask import current_app
 import pymysql
 import sys
 import db as dbmod
+import os
+import time
+from werkzeug.utils import secure_filename
 
 usuarios_bp = Blueprint('usuarios', __name__, template_folder='../../templates')
 
@@ -25,7 +29,7 @@ def obtener_perfil_api():
 
     try:
         with conexion.cursor() as cursor:
-            sql = "SELECT usuario_id, username, nombre, correo, tipo_usuario, cant_monedas, dni, vigencia FROM usuario WHERE usuario_id=%s"
+            sql = "SELECT usuario_id, username, nombre, correo, tipo_usuario, cant_monedas, dni, vigencia, COALESCE(url_foto_perfil,'') AS url_foto_perfil, COALESCE(url_avatar,'') AS url_avatar FROM usuario WHERE usuario_id=%s"
             cursor.execute(sql, (user_id,))
             row = cursor.fetchone()
             if not row:
@@ -59,6 +63,7 @@ def actualizar_perfil_api():
     nombre = data.get('nombre')
     username = data.get('username')
     correo = data.get('correo')
+    url_foto_perfil = data.get('url_foto_perfil')
 
     if not nombre or not username or not correo:
         return jsonify({'error': 'Faltan campos requeridos.'}), 400
@@ -79,7 +84,22 @@ def actualizar_perfil_api():
                 cursor.execute('UPDATE usuario SET nombre=%s, username=%s, correo=%s WHERE usuario_id=%s', (nombre, username, correo, user_id))
                 conexion.commit()
 
-        return jsonify({'message': 'Perfil actualizado correctamente.'})
+                # Si se envió url de foto de perfil, actualizarla y la sesión
+                if url_foto_perfil is not None:
+                    with conexion.cursor() as cursor2:
+                        cursor2.execute('UPDATE usuario SET url_foto_perfil=%s WHERE usuario_id=%s', (url_foto_perfil, user_id))
+                    conexion.commit()
+                    # Actualizar session si aplica
+                    try:
+                        session['url_foto_perfil'] = url_foto_perfil
+                    except Exception:
+                        pass
+
+        response_payload = {'message': 'Perfil actualizado correctamente.'}
+        if url_foto_perfil:
+            response_payload['url_foto_perfil'] = url_foto_perfil
+
+        return jsonify(response_payload)
     except Exception as e:
         print(f"Error actualizar perfil: {e}", file=sys.stderr)
         try:
@@ -378,7 +398,137 @@ def crear_usuario_api():
                 cursor.execute(sql, (username, nombre, contrasena_cifrada, correo, dni, tipo_usuario, 0))
                 conexion.commit()
 
+    # Nota: No seteamos url_foto_perfil aquí; se puede asignar posteriormente desde el perfil o al equipar skins.
+
         return jsonify({"success": True, "message": f"Usuario '{username}' creado exitosamente."}), 201
     except Exception as e:
         print(f"Error al crear usuario (controller): {e}")
         return jsonify({"success": False, "error": "Ocurrió un error en el sistema."}), 500
+
+
+@usuarios_bp.route('/api/perfil/upload', methods=['POST'])
+def upload_foto_perfil_api():
+    """Recibe multipart/form-data con campo 'foto', guarda el archivo en static/uploads/profiles
+    y actualiza `usuario.url_foto_perfil` en la BD y la sesión. Devuelve { url_foto_perfil }.
+    """
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autenticado.'}), 401
+
+    if 'foto' not in request.files:
+        return jsonify({'error': 'No se encontró el archivo enviado (campo "foto").'}), 400
+
+    file = request.files['foto']
+    if file.filename == '':
+        return jsonify({'error': 'Nombre de archivo vacío.'}), 400
+
+    allowed = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    if ext not in allowed:
+        return jsonify({'error': 'Tipo de archivo no permitido. Solo png/jpg/jpeg/gif/webp.'}), 400
+
+    user_id = session['user_id']
+    # Ruta absoluta para guardar
+    static_folder = current_app.static_folder or os.path.join(os.path.dirname(__file__), '..', 'static')
+    upload_dir = os.path.join(static_folder, 'uploads', 'profiles')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    new_filename = f"profile_{user_id}_{int(time.time())}.{ext}"
+    save_path = os.path.join(upload_dir, new_filename)
+    try:
+        file.save(save_path)
+    except Exception as e:
+        print(f"Error guardando archivo de perfil: {e}", file=sys.stderr)
+        return jsonify({'error': 'No se pudo guardar el archivo en el servidor.'}), 500
+
+    # Construir URL pública relativa a /static/
+    public_path = f"/static/uploads/profiles/{new_filename}"
+
+    # Actualizar BD y sesión
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
+
+    try:
+        with conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute('UPDATE usuario SET url_foto_perfil=%s WHERE usuario_id=%s', (public_path, user_id))
+                conexion.commit()
+        try:
+            session['url_foto_perfil'] = public_path
+        except Exception:
+            pass
+
+        return jsonify({'url_foto_perfil': public_path, 'message': 'Foto de perfil subida y registrada.'}), 200
+    except Exception as e:
+        print(f"Error al actualizar url_foto_perfil en BD: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error interno al actualizar la base de datos.'}), 500
+
+
+@usuarios_bp.route('/api/perfil/password', methods=['PUT'])
+def cambiar_contrasena_api():
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autenticado.'}), 401
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'error': 'Cuerpo JSON vacío.'}), 400
+
+    contrasena_actual = data.get('contrasena_actual')
+    nueva_contrasena = data.get('nueva_contrasena')
+
+    if not contrasena_actual or not nueva_contrasena:
+        return jsonify({'error': 'Faltan campos obligatorios.'}), 400
+
+    if len(nueva_contrasena) < 8:
+        return jsonify({'error': 'La nueva contraseña debe tener al menos 8 caracteres.'}), 400
+
+    user_id = session['user_id']
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'Error de conexión a la base de datos.'}), 500
+
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute('SELECT contrasena FROM usuario WHERE usuario_id=%s', (user_id,))
+            row = cursor.fetchone()
+            if not row or 'contrasena' not in row:
+                return jsonify({'error': 'Usuario no encontrado.'}), 404
+            hashed = row.get('contrasena')
+
+        bcrypt = __import__('extensions').bcrypt
+        try:
+            if not bcrypt.check_password_hash(hashed, contrasena_actual):
+                return jsonify({'error': 'Contraseña actual incorrecta.'}), 403
+        except Exception:
+            # Protección extra: si el método falla, no permitir el cambio
+            return jsonify({'error': 'Error verificando la contraseña actual.'}), 500
+
+        # Evitar reutilizar la misma contraseña
+        if bcrypt.check_password_hash(hashed, nueva_contrasena):
+            return jsonify({'error': 'La nueva contraseña no puede ser igual a la actual.'}), 400
+
+        # Generar y guardar la nueva
+        try:
+            nueva_hash_bytes = bcrypt.generate_password_hash(nueva_contrasena)
+            nueva_hash = nueva_hash_bytes.decode('utf-8')
+        except Exception:
+            return jsonify({'error': 'Error al cifrar la nueva contraseña.'}), 500
+
+        try:
+            with conexion:
+                with conexion.cursor() as cursor:
+                    cursor.execute('UPDATE usuario SET contrasena=%s WHERE usuario_id=%s', (nueva_hash, user_id))
+                    conexion.commit()
+        except Exception as e:
+            print(f"Error al actualizar la contraseña en BD: {e}", file=sys.stderr)
+            try:
+                conexion.rollback()
+            except Exception:
+                pass
+            return jsonify({'error': 'Error interno al actualizar la contraseña.'}), 500
+
+        return jsonify({'message': 'Contraseña actualizada correctamente.'}), 200
+    except Exception as e:
+        print(f"Error en cambiar_contrasena_api: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error interno del servidor.'}), 500
