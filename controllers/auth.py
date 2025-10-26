@@ -273,11 +273,50 @@ def procesar_verificacion():
                     if nombre_final.strip() == dni:
                         nombre_final = "(Sin nombre RENIEC)"
 
+                    # Generar username basado en el nombre completo: Primernombre_InicialApellido1InicialApellido2
+                    def generate_username_from_fullname(fullname: str) -> str:
+                        try:
+                            parts = [p for p in fullname.strip().split() if p]
+                            if not parts:
+                                return temp.get('username') or 'user'
+                            first_name = parts[0].title()
+                            # tomar las dos últimas partes como apellidos (si existen)
+                            if len(parts) >= 3:
+                                last_parts = parts[-2:]
+                            elif len(parts) == 2:
+                                last_parts = [parts[-1]]
+                            else:
+                                last_parts = []
+
+                            initials = ''
+                            for lp in last_parts:
+                                # usar la primera letra en mayúscula, conservar caracteres como Ñ
+                                if lp:
+                                    initials += lp[0].upper()
+
+                            # Si no hay apellidos, usar la inicial del segundo token si existe
+                            username_candidate = f"{first_name}_{initials}" if initials else f"{first_name}"
+                            # Limpiar espacios y caracteres problemáticos
+                            username_candidate = username_candidate.replace(' ', '_')
+                            return username_candidate
+                        except Exception:
+                            return temp.get('username') or 'user'
+
+                    base_username = generate_username_from_fullname(nombre_final)
+                    # Asegurar unicidad en la tabla usuario
+                    username = base_username
+                    suffix = 1
+                    cursor.execute("SELECT 1 FROM usuario WHERE username=%s", (username,))
+                    while cursor.fetchone():
+                        username = f"{base_username}{suffix}"
+                        suffix += 1
+                        cursor.execute("SELECT 1 FROM usuario WHERE username=%s", (username,))
+
                     cursor.execute("""
                         INSERT INTO usuario (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verificado)
                         VALUES (%s,%s,%s,%s,%s,%s,%s,1)
-                    """, (temp['username'], nombre_final, temp['contrasena'], temp['correo'],
-                          temp['dni'], temp['tipo_usuario'], temp['cant_monedas']))
+                    """, (username, nombre_final, temp['contrasena'], temp['correo'],
+                          temp['dni'], temp['tipo_usuario'], temp.get('cant_monedas', 0)))
 
                     cursor.execute("DELETE FROM registro_temp WHERE temp_id=%s", (temp['temp_id'],))
                     # Asignar skins por defecto a este nuevo usuario (si existen)
