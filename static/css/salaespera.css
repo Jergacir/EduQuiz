@@ -292,3 +292,145 @@ h1 {
     font-weight: bold;
     margin-right: 5px;
 }
+
+/* ===== RESPONSIVE: Tablet / Mobile ===== */
+@media (max-width: 1024px) {
+    .contenedor-juego { padding: 30px; }
+    .tarjeta-usuario { padding: 12px 20px; }
+    .grupos-contenedor { gap: 20px; }
+}
+
+@media (max-width: 768px) {
+    .contenedor-juego { padding: 20px; }
+    .tarjeta-grupo { min-height: auto; padding: 12px; }
+    .tarjeta-usuario { display: block; width: 100%; white-space: normal; }
+    .boton-unirse { width: 100%; padding: 12px; }
+}
+
+@media (max-width: 480px) {
+    h1 { font-size: 1.6rem; }
+    .grupos-contenedor { grid-template-columns: 1fr; gap: 14px; }
+    .tarjeta-grupo { padding: 10px; }
+    .icono-placeholder { width: 36px; height: 36px; }
+    .boton-unirse { padding: 10px; font-size: 0.95rem; }
+}
+
+/* ======================================================= */
+/* 🧭 FIX GENERAL DE POSICIÓN Y RESPONSIVE PARA SALA DE ESPERA */
+/* ======================================================= */
+
+/* --- Botón salir fijo en esquina superior izquierda --- */
+#btnSalir {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    padding: 10px 20px;
+    background-color: var(--color-danger);
+    color: var(--color-white);
+    font-size: 15px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+#btnSalir:hover {
+    background-color: #c0392b;
+    transform: scale(1.05);
+}
+
+/* --- Ajustes para centrar mejor en móviles --- */
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .contenedor-juego {
+        width: 100%;
+        padding: 10px 0;
+    }
+
+    h1 {
+        font-size: 1.8rem;
+        margin-bottom: 25px;
+        text-align: center;
+    }
+
+    .grupos-contenedor {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .tarjeta-grupo {
+        width: 90%;
+        max-width: 350px;
+    }
+
+    #btnSalir {
+        top: 15px;
+        left: 15px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+}
+
+/* --- Extra pequeño (teléfonos muy angostos) --- */
+@media (max-width: 420px) {
+    h1 {
+        font-size: 1.4rem;
+        margin-top: 50px;
+    }
+
+    #btnSalir {
+        top: 10px;
+        left: 10px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+
+    .tarjeta-grupo {
+        width: 95%;
+    }
+}
+
+/* ======================================================= */
+/* 🎯 FIX DE ALINEACIÓN DE TARJETA-USUARIO EN MÓVIL */
+/* ======================================================= */
+
+@media (max-width: 768px) {
+    .tarjeta-usuario {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        width: 90%;
+        max-width: 350px;
+        margin: 0 auto 20px auto; /* Centrada horizontalmente */
+        text-align: center;
+        white-space: normal;
+    }
+}
+
+@media (max-width: 480px) {
+    .tarjeta-usuario {
+        flex-direction: column;
+        padding: 15px;
+        width: 95%;
+        max-width: 320px;
+    }
+
+    .icono-placeholder {
+        margin-right: 0;
+        margin-bottom: 8px;
+    }
+
+    .nombre-usuario {
+        font-size: 1.1em;
+    }
+}

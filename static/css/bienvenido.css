@@ -107,3 +107,20 @@ body {
         font-size: 0.9rem;
     }
 }
+
+/* Responsive adicional */
+@media (max-width: 768px) {
+    .contenido-principal { padding: 20px; }
+    .contenido-principal h1 { font-size: 2.2rem; }
+    .contenido-principal p { font-size: 1rem; max-width: 90%; }
+    .botones-contenedor { gap: 12px; width: 100%; }
+    .boton { padding: 12px 20px; width: 100%; box-sizing: border-box; }
+    .imagen-fondo-contenedor { background-position: center; background-size: cover; }
+}
+
+@media (max-width: 480px) {
+    .contenido-principal { padding: 14px; }
+    .contenido-principal h1 { font-size: 1.8rem; }
+    .contenido-principal p { font-size: 0.9rem; }
+    .imagen-fondo-contenedor { opacity: 0.45; }
+}

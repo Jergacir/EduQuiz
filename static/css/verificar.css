@@ -173,6 +173,14 @@ h1 {
     }
 }
 
+@media (max-width: 480px) {
+    .formulario-contenedor { max-width: 300px; padding: 0 8px; }
+    .codigo-inputs { gap: 8px; justify-content: center; }
+    .codigo-box { width: 44px; height: 48px; font-size: 20px; line-height: 48px; }
+    .panel-derecho { display: none; }
+    h1 { font-size: 1.4rem; }
+}
+
 .campo-con-dominio {
     display: flex;
     align-items: center;

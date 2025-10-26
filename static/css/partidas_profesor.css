@@ -111,3 +111,146 @@
     background-color: #047870; /* Teal-700 */
     transform: translateY(-1px);
 }
+
+/* ===== RESPONSIVE: Tablet / Mobile ===== */
+@media (max-width: 1024px) {
+    .table-responsive { padding: 12px; }
+    .partidas-table { min-width: 700px; }
+}
+
+@media (max-width: 768px) {
+    .table-responsive { margin-top: 12px; }
+    .partidas-table { min-width: 520px; }
+    .partidas-table tbody td { padding: 10px 12px; font-size: 0.88rem; }
+    .btn-ver-resultados { padding: 10px 12px; font-size: 0.9rem; width: 100%; display: block; }
+}
+
+@media (max-width: 480px) {
+    .table-responsive { border-radius: 8px; padding: 8px; }
+    .partidas-table { min-width: 420px; }
+    .partidas-table thead th { font-size: 0.85rem; padding: 10px; }
+    .partidas-table tbody td { font-size: 0.82rem; padding: 8px; }
+    .btn-ver-resultados { font-size: 0.85rem; padding: 8px 10px; }
+}
+
+/* ======================================================= */
+/* 🔧 AJUSTES RESPONSIVOS PARA BUSCADOR Y ENCABEZADO */
+/* ======================================================= */
+
+/* Contenedor superior: título, descripción y acciones */
+.header-content {
+    width: 100%;
+}
+
+/* Contenedor que agrupa el buscador y el botón */
+.actions-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap; /* Permite que el buscador baje en pantallas pequeñas */
+    margin-bottom: 20px;
+}
+
+.actions-bar input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.actions-bar input[type="text"]:focus {
+    border-color: var(--color-primary-teal);
+    outline: none;
+    box-shadow: 0 0 4px rgba(0, 150, 136, 0.3);
+}
+
+.actions-bar button {
+    flex-shrink: 0;
+}
+
+/* ========================== */
+/* 📱 Tablet y móvil */
+/* ========================== */
+
+@media (max-width: 768px) {
+    .actions-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .actions-bar input[type="text"] {
+        width: 100%;
+        min-width: unset;
+    }
+
+    .actions-bar button {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Ajustes para móviles muy pequeños */
+@media (max-width: 480px) {
+    .actions-bar {
+        gap: 8px;
+    }
+
+    .actions-bar input[type="text"] {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+    }
+
+    .actions-bar button {
+        font-size: 0.9rem;
+        padding: 10px;
+    }
+}
+
+/* ======================================================= */
+/* 🧩 FIX ESPECÍFICO: input de búsqueda desplazado entre 640px–760px */
+/* ======================================================= */
+
+/* Fuerza que el buscador y el botón se apilen verticalmente en ese rango */
+@media (min-width: 640px) and (max-width: 760px) {
+    .actions-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+    }
+
+    .actions-bar input[type="text"],
+    .actions-bar button {
+        width: 100% !important;
+        min-width: unset !important;
+    }
+}
+
+/* ✅ FIX REAL: entre 640px y 760px el buscador se apila arriba del botón */
+@media (min-width: 640px) and (max-width: 770px) {
+    .action-bar {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .action-bar .search-container {
+        width: 100%;
+    }
+
+    .action-bar .search-input {
+        width: 100%;
+        min-width: unset;
+        box-sizing: border-box;
+    }
+
+    .action-bar a.main-action-button {
+        width: 100%;
+        text-align: center;
+    }
+}

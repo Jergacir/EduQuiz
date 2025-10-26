@@ -179,3 +179,25 @@ body {
     min-width: 90px; /* Ancho mínimo para la puntuación */
     text-align: center;
 }
+
+/* Responsive: tablet / mobile */
+@media (max-width: 1024px) {
+    .ranking-container { max-width: 850px; padding: 24px; }
+}
+
+@media (max-width: 768px) {
+    .ranking-container { max-width: 100%; padding: 18px; }
+    .ranking-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+    .ranking-header h1 { font-size: 1.6rem; }
+    .player-name { max-width: 140px; }
+    .player-score { min-width: 70px; font-size: 1.1rem; padding: 8px 10px; }
+    .continue-btn { width: 100%; }
+}
+
+@media (max-width: 480px) {
+    .ranking-container { padding: 12px; }
+    .player-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .player-info { width: 100%; }
+    .player-score-container { align-self: flex-end; }
+    .ranking-header h1 { font-size: 1.3rem; }
+}

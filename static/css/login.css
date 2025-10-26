@@ -191,17 +191,63 @@ p.subtitle {
     font-weight: bold;
 }
 
+/* ... (Estilos de escritorio y generales ANTES de la media query sin cambios) ... */
+
 @media (max-width: 768px) {
+    /* Ocultar el panel izquierdo */
     .left-panel{
         display: none;
     }
 
-    .logo{
-        margin: auto;
-        margin-bottom: 10px;
+    /* Aseguramos que el contenedor ocupe la pantalla, pero ahora la alineación es clave */
+    .container {
+        /* Desactiva el flex de escritorio para que .right-panel se centre automáticamente */
+        display: block; 
+        /* En móviles, ya no queremos que ocupe todo el alto, sino que el contenido fluya */
+        height: auto; 
+        width: 100%;
+        /* Quitar sombra y bordes si quieres un look de pantalla completa en móvil */
+        box-shadow: none; 
+        border-radius: 0;
     }
+
+    /* El body ya tiene display: flex, justify-content: center, align-items: center */
+    /* Ahora, centramos el contenido del panel derecho dentro del body/container */
+    .right-panel {
+        /* Ocupar el 100% del ancho disponible */
+        width: 100%; 
+        flex: none; /* Desactivar flex: 1 */
+        /* Aseguramos el centrado vertical y horizontal */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        /* Reducir el padding */
+        padding: 30px 20px;
+        min-height: 100vh; /* Para que ocupe toda la altura y se centre en el body */
+    }
+
+    .logo{
+        /* Ya estaba auto-centrado por el right-panel */
+        margin: 0 0 20px 0; /* Ajustar margen para separarlo del título, ya que el 'margin: auto' no funciona bien con flex-direction: column */
+    }
+
+    /* Ajustes generales para la vista móvil */
+    .form-container { 
+        max-width: 320px; /* Mantener un ancho máximo para el formulario */
+        width: 100%; 
+    }
+
+    .logo img { height: 100px; } /* Ajuste de tamaño de logo */
 }
 
+@media (max-width: 480px) {
+    /* Mantener los ajustes adicionales para pantallas más pequeñas */
+    .form-container { max-width: 280px; }
+    h1 { font-size: 1.6rem; }
+}
+
+/* ... (El resto del CSS se mantiene igual) ... */
 /* Modal de login (estilo coherente con la página) */
 .modal-overlay {
     position: fixed;
