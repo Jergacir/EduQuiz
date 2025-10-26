@@ -2680,3 +2680,54 @@ def callback_google_drive():
 
 
 
+
+@partidas_bp.route("/api/subir_excel", methods=["POST"])
+def subir_excel():
+    """
+    Recibe un Excel con preguntas y respuestas, y devuelve JSON listo para tu JS.
+    La columna 'RespuestaCorrecta' se trata como cualquier otra respuesta,
+    y su índice se coloca en 'correcta'.
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "No se envió ningún archivo"}), 400
+
+    file = request.files["file"]
+
+    try:
+        df = pd.read_excel(file)
+
+        columnas_requeridas = ["Pregunta", "RespuestaCorrecta", "Respuesta1", "Respuesta2", "Respuesta3"]
+        for col in columnas_requeridas:
+            if col not in df.columns:
+                return jsonify({"error": f"Falta columna obligatoria: {col}"}), 400
+
+        preguntas = []
+
+        for _, row in df.iterrows():
+            # Limpiar NaN y convertir todo a string
+            respuestas = [
+                str(row["Respuesta1"]) if not pd.isna(row["Respuesta1"]) else "",
+                str(row["Respuesta2"]) if not pd.isna(row["Respuesta2"]) else "",
+                str(row["Respuesta3"]) if not pd.isna(row["Respuesta3"]) else "",
+                str(row["RespuestaCorrecta"]) if not pd.isna(row["RespuestaCorrecta"]) else ""
+            ]
+
+            correcta_texto = str(row["RespuestaCorrecta"]) if not pd.isna(row["RespuestaCorrecta"]) else ""
+
+            # Mezclar respuestas
+            random.shuffle(respuestas)
+
+            # Recalcular índice de la respuesta correcta
+            correcta = respuestas.index(correcta_texto)
+
+            preguntas.append({
+                "texto": str(row["Pregunta"]) if not pd.isna(row["Pregunta"]) else "",
+                "respuestas": respuestas,
+                "correcta": correcta,
+                "imagen": None
+            })
+
+        return jsonify({"preguntas": preguntas})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

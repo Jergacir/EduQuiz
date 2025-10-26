@@ -51,12 +51,36 @@ async function cargarDatosPerfil() {
     
     // Verificamos si la carga fue exitosa
     if (datosUsuarioLogueado && datosUsuarioLogueado.usuario_id) {
-        
-        // 1. Rellenar campos del formulario 'Editar perfil'
-        document.getElementById('usuario_id').value = datosUsuarioLogueado.usuario_id || '';
-        document.getElementById('nombre').value = datosUsuarioLogueado.nombre || '';
-        document.getElementById('username').value = datosUsuarioLogueado.username || '';
-        document.getElementById('correo').value = datosUsuarioLogueado.correo || '';
+        // 1. Rellenar campos del formulario 'Editar perfil' (con guards, algunos campos pueden no existir según rol)
+        const elUsuarioId = document.getElementById('usuario_id');
+        const elNombre = document.getElementById('nombre');
+        const elUsername = document.getElementById('username');
+        const elCorreo = document.getElementById('correo');
+
+        if (elUsuarioId) elUsuarioId.value = datosUsuarioLogueado.usuario_id || '';
+        if (elNombre) elNombre.value = datosUsuarioLogueado.nombre || '';
+        if (elUsername) elUsername.value = datosUsuarioLogueado.username || '';
+        if (elCorreo) elCorreo.value = datosUsuarioLogueado.correo || '';
+
+        // 2.b URL DE FOTO DE PERFIL (preview + campo)
+        const urlFotoInput = document.getElementById('url_foto_perfil');
+        const urlFotoPreview = document.getElementById('url_foto_perfil_preview');
+        const fotoUrl = datosUsuarioLogueado.url_foto_perfil || datosUsuarioLogueado.url_avatar || '';
+        if (urlFotoInput) urlFotoInput.value = fotoUrl;
+        if (urlFotoPreview) urlFotoPreview.src = fotoUrl || '/static/img/avatar.jpeg';
+
+        // 2.c Actualizar imagen de perfil en header (todas las ocurrencias) con cache-buster
+        try {
+            const imgs = document.querySelectorAll('.profile-img');
+            imgs.forEach(img => {
+                const src = fotoUrl || img.getAttribute('src') || '/static/img/avatar.jpeg';
+                // Añadir cache-buster corto
+                const cacheBusted = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                img.src = cacheBusted;
+            });
+        } catch (e) {
+            console.warn('No se pudo actualizar la imagen de header:', e);
+        }
 
         // 2. Rellenar campos no editables (DNI)
         document.getElementById('dni').value = datosUsuarioLogueado.dni || 'N/A';
@@ -100,6 +124,46 @@ async function cargarDatosPerfil() {
     } else {
         console.error("No se pudieron cargar los datos del usuario logueado. Objeto final:", datosUsuarioLogueado);
     }
+}
+
+/**
+ * Muestra un modal de confirmación y devuelve una Promise<boolean>.
+ * Usa los elementos añadidos en la plantilla: #modal-confirm
+ */
+/**
+ * Mostrar el modal usado en `solicitar_restablecer.html` si está disponible.
+ * Devuelve una Promise que se resuelve cuando el usuario cierra/acepta el modal.
+ * Para confirmaciones sencillas usamos el mismo modal (aceptar/ok).
+ */
+function showModalAsync(title, message, options) {
+    return new Promise((resolve) => {
+        // Si existe la función global showModal (ui_modal.js), la usamos
+        if (typeof window.showModal === 'function') {
+            try {
+                window.showModal(title, message, { onClose: function () { resolve(true); } });
+                return;
+            } catch (e) {
+                console.warn('showModal fallo, fallback a native', e);
+            }
+        }
+
+        // Fallbacks: si se pasa opción de confirm, usar confirm(), sino alert()
+        if (options && options.confirm) {
+            const ok = window.confirm(message);
+            resolve(!!ok);
+        } else {
+            window.alert(message);
+            resolve(true);
+        }
+    });
+}
+
+/**
+ * Muestra un modal de mensaje simple.
+ */
+function showMessageModal(title, message) {
+    // Reuse showModal if available for consistent UX
+    return showModalAsync(title, message);
 }
 
 /**
@@ -219,10 +283,36 @@ async function manejarGuardarPerfil(event) {
         return;
     }
 
+    // Primero: si el usuario subió un archivo, enviarlo al endpoint de upload
+    let uploadedUrl = null;
+    const fileInput = document.getElementById('url_foto_perfil_file');
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        const formData = new FormData();
+        formData.append('foto', fileInput.files[0]);
+        try {
+            const uploadResp = await fetch('/api/perfil/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const uploadData = await uploadResp.json();
+            if (!uploadResp.ok) {
+                throw new Error(uploadData.error || 'Error al subir la imagen de perfil.');
+            }
+            uploadedUrl = uploadData.url_foto_perfil;
+        } catch (err) {
+            console.error('Error al subir la imagen de perfil:', err.message || err);
+            // Mostrar mensaje al usuario y abortar la operación de guardado
+            alert('No se pudo subir la imagen de perfil. Intenta nuevamente.');
+            return;
+        }
+    }
+
     const perfilData = {
         nombre: nuevoNombre,
         username: nuevoUsername,
         correo: nuevoCorreo,
+        // Priorizar la URL resultante de la subida si existe
+        url_foto_perfil: uploadedUrl || (document.getElementById('url_foto_perfil') && document.getElementById('url_foto_perfil').value) || undefined,
     };
 
     try {
@@ -242,6 +332,31 @@ async function manejarGuardarPerfil(event) {
         datosUsuarioLogueado.nombre = nuevoNombre;
         datosUsuarioLogueado.username = nuevoUsername;
         datosUsuarioLogueado.correo = nuevoCorreo;
+        // Actualizar url_foto_perfil local y en header si fue retornada
+        if (data.url_foto_perfil) {
+            datosUsuarioLogueado.url_foto_perfil = data.url_foto_perfil;
+            const imgs = document.querySelectorAll('.profile-img');
+            imgs.forEach(img => {
+                const cacheBusted = data.url_foto_perfil + (data.url_foto_perfil.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                img.src = cacheBusted;
+            });
+            // También actualizar preview si existe
+            const preview = document.getElementById('url_foto_perfil_preview');
+            if (preview) preview.src = data.url_foto_perfil;
+        } else {
+            // Si backend no devolvió la URL, usar la que el usuario puso en el input
+            const inputUrl = document.getElementById('url_foto_perfil') ? document.getElementById('url_foto_perfil').value : null;
+            if (inputUrl) {
+                const imgs = document.querySelectorAll('.profile-img');
+                imgs.forEach(img => {
+                    const cacheBusted = inputUrl + (inputUrl.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                    img.src = cacheBusted;
+                });
+                const preview = document.getElementById('url_foto_perfil_preview');
+                if (preview) preview.src = inputUrl;
+                datosUsuarioLogueado.url_foto_perfil = inputUrl;
+            }
+        }
 
         // Deshabilitar edición y aplicar opacidad
         const usernameInput = document.getElementById('username');
@@ -687,6 +802,98 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (document.getElementById('contrasena_actual')) document.getElementById('contrasena_actual').value = '';
         if (document.getElementById('nueva_contrasena')) document.getElementById('nueva_contrasena').value = '';
     });
+
+    // Live preview para URL de foto de perfil (si existe el campo)
+    const urlFotoInput = document.getElementById('url_foto_perfil');
+    if (urlFotoInput) {
+        urlFotoInput.addEventListener('input', (e) => {
+            const preview = document.getElementById('url_foto_perfil_preview');
+            if (preview) preview.src = e.target.value || '/static/img/avatar.jpeg';
+        });
+    }
+
+    // Preview para archivo local seleccionado
+    const fileInput = document.getElementById('url_foto_perfil_file');
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const preview = document.getElementById('url_foto_perfil_preview');
+            const file = e.target.files && e.target.files[0];
+            if (file && preview) {
+                try {
+                    const objectUrl = URL.createObjectURL(file);
+                    preview.src = objectUrl;
+                    // Liberar el objectURL cuando la imagen cargue
+                    preview.onload = () => { URL.revokeObjectURL(objectUrl); };
+                } catch (err) {
+                    console.warn('No se pudo crear preview local:', err);
+                }
+            } else if (preview) {
+                // Si se deseleccionó, volver a la URL que esté en el campo
+                const urlInput = document.getElementById('url_foto_perfil');
+                preview.src = (urlInput && urlInput.value) ? urlInput.value : '/static/img/avatar.jpeg';
+            }
+        });
+    }
+
+    // Manejo del formulario de cambio de contraseña
+    const formContrasena = document.getElementById('form-contrasena');
+    if (formContrasena) {
+        formContrasena.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const actual = document.getElementById('contrasena_actual') ? document.getElementById('contrasena_actual').value : '';
+            const nueva = document.getElementById('nueva_contrasena') ? document.getElementById('nueva_contrasena').value : '';
+            const confirmar = document.getElementById('confirmar_nueva_contrasena') ? document.getElementById('confirmar_nueva_contrasena').value : '';
+
+            if (!actual || !nueva || !confirmar) {
+                await showMessageModal('Error', 'Completa todos los campos.');
+                return;
+            }
+            // Validación avanzada estilo restablecer.html: longitud y composición
+            const errors = [];
+            if (nueva.length < 8) errors.push('Debe tener al menos 8 caracteres.');
+            if (!/[A-Z]/.test(nueva)) errors.push('Debe contener al menos una letra Mayúscula.');
+            if (!/[a-z]/.test(nueva)) errors.push('Debe contener al menos una letra Minúscula.');
+            if (!/[0-9]/.test(nueva)) errors.push('Debe contener al menos un número.');
+            if (!/[!@#$%^&*()_+\-=[\]{};:\"\\|,.<>/?]/.test(nueva)) errors.push('Debe contener al menos un carácter especial (ej. !@#$%).');
+            if (nueva !== confirmar) errors.push('La nueva contraseña y la confirmación no coinciden.');
+
+            if (errors.length > 0) {
+                // Mostrar detalles en modal (mismo estilo que restablecer)
+                const detalle = 'La contraseña no cumple los requisitos:\n- ' + errors.join('\n- ');
+                await showModalAsync('Contraseña inválida', detalle);
+                return;
+            }
+
+            const confirmed = await showModalAsync('Confirmación', '¿Confirma que desea cambiar su contraseña?', { confirm: true });
+            if (!confirmed) return;
+
+            try {
+                const resp = await fetch('/api/perfil/password', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contrasena_actual: actual, nueva_contrasena: nueva })
+                });
+                const data = await resp.json();
+                if (!resp.ok) {
+                    await showMessageModal('Error', data.error || 'No se pudo cambiar la contraseña.');
+                    return;
+                }
+                // Éxito
+                document.getElementById('contrasena_actual').value = '';
+                document.getElementById('nueva_contrasena').value = '';
+                document.getElementById('confirmar_nueva_contrasena').value = '';
+                await showMessageModal('Éxito', data.message || 'Contraseña cambiada correctamente.');
+            } catch (err) {
+                console.error('Error cambiando contraseña:', err);
+                await showMessageModal('Error', 'Error de red o servidor. Intenta más tarde.');
+            }
+        });
+
+        const btnCancelarContrasena = document.getElementById('btn-cancelar-contrasena');
+        if (btnCancelarContrasena) btnCancelarContrasena.addEventListener('click', () => {
+            formContrasena.reset();
+        });
+    }
 
     // 3. Listeners para Administración
     const formGestion = document.getElementById('form-gestion-usuario');
