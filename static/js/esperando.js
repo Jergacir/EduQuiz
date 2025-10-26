@@ -13,18 +13,18 @@ document.addEventListener("DOMContentLoaded", () => {
             const res = await fetch(`/api/partida/${codigoPartida}/estado_usuario`);
             const data = await res.json();
 
-            if (!data.success) {
-                display.textContent = "❌ Error al consultar partida";
-                console.error(data.message);
-                return;
-            }
+            // if (!data.success) {
+            //     display.textContent = "❌ Error al consultar partida";
+            //     console.error(data.message);
+            //     return;
+            // }
 
             // Si eres líder, puedes avanzar automáticamente (o mostrar GO)
-            if (data.es_lider) {
-                display.textContent = `🔥 Tú eres el líder. Pregunta actual: ${data.pregunta_actual_index + 1}`;
-            } else {
-                display.textContent = "⏳ Esperando al líder...";
-            }
+            // if (data.es_lider) {
+            //     display.textContent = `🔥 Tú eres el líder. Pregunta actual: ${data.pregunta_actual_index + 1}`;
+            // } else {
+            //     display.textContent = "⏳ Esperando al líder...";
+            // }
 
             // Detectamos si avanzó la pregunta
             if (ultimaPreguntaIndex !== null && data.pregunta_actual_index !== ultimaPreguntaIndex) {

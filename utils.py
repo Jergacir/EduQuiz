@@ -5,6 +5,20 @@ from email.message import EmailMessage
 from flask import url_for
 import sys
 
+# Gmail API imports
+try:
+    from google.oauth2.credentials import Credentials
+    from google_auth_oauthlib.flow import InstalledAppFlow
+    from google.auth.transport.requests import Request
+    from googleapiclient.discovery import build
+    from email.mime.text import MIMEText
+    import base64
+    import pickle
+    GMAIL_API_AVAILABLE = True
+except ImportError:
+    GMAIL_API_AVAILABLE = False
+    print("[WARNING] Gmail API libraries not installed. Falling back to SMTP.")
+
 
 def mask_email(email: str) -> str:
     try:
@@ -18,34 +32,164 @@ def mask_email(email: str) -> str:
         return email
 
 
-# Funciones de envío de correo simplificadas para mantener la lógica central fuera de main.py
-# NOTA: Estas funciones usan variables de entorno y pueden lanzar excepciones si falta configuración
-def send_verification_email(to_email: str, code: str):
-    """Envía un correo con el código de verificación usando SMTP.
+# ============ GMAIL API FUNCTIONS ============
+SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
-    Configura las variables de entorno:
+def get_gmail_service():
+    """Obtiene el servicio de Gmail autenticado usando token.pickle"""
+    creds = None
+    
+    # El token se guarda en token.pickle después del primer login
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    
+    # Si no hay credenciales válidas, hacer login
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            if not os.path.exists('credentials.json'):
+                raise FileNotFoundError(
+                    "credentials.json not found. Please download it from Google Cloud Console."
+                )
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        
+        # Guardar credenciales para la próxima vez
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+    
+    return build('gmail', 'v1', credentials=creds)
+
+
+def send_email_via_gmail_api(to_email: str, subject: str, html_body: str):
+    """Envía email usando Gmail API"""
+    if not GMAIL_API_AVAILABLE:
+        raise RuntimeError("Gmail API libraries not installed")
+    
+    message = MIMEText(html_body, 'html')
+    message['to'] = to_email
+    message['subject'] = subject
+    
+    # Codificar el mensaje
+    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    
+    try:
+        service = get_gmail_service()
+        send_message = service.users().messages().send(
+            userId="me", 
+            body={'raw': raw}
+        ).execute()
+        
+        print(f"[GMAIL API] Email enviado exitosamente a {to_email}, Message ID: {send_message['id']}")
+        return send_message
+    except Exception as e:
+        print(f"[GMAIL API ERROR] {str(e)}")
+        raise
+# ============================================
+
+
+# Funciones de envío de correo simplificadas para mantener la lógica central fuera de main.py
+# NOTA: Estas funciones usan Gmail API si está disponible, sino SMTP
+def send_verification_email(to_email: str, code: str):
+    """Envía un correo con el código de verificación.
+    
+    Usa Gmail API si está disponible (requiere token.pickle y credentials.json),
+    sino usa SMTP tradicional.
+    
+    Variables de entorno para SMTP (fallback):
     - EMAIL_HOST: servidor SMTP (ej: smtp.gmail.com)
     - EMAIL_PORT: puerto (ej: 587)
     - EMAIL_USER: usuario
     - EMAIL_PASS: contraseña o app password
     """
+    # Intentar usar Gmail API primero
+    use_gmail_api = os.environ.get('USE_GMAIL_API', 'true').lower() == 'true'
+    
+    if use_gmail_api and GMAIL_API_AVAILABLE and os.path.exists('token.pickle'):
+        return _send_verification_email_via_gmail_api(to_email, code)
+    else:
+        return _send_verification_email_via_smtp(to_email, code)
+
+
+def _send_verification_email_via_gmail_api(to_email: str, code: str):
+    """Envía email de verificación usando Gmail API"""
+    # Construir enlace de verificación
+    try:
+        verify_link = url_for('frm_verificar', email=to_email, _external=True)
+    except Exception:
+        base = os.environ.get('APP_BASE_URL', '').rstrip('/')
+        verify_link = f"{base}/verificar?email={to_email}" if base else f"/verificar?email={to_email}"
+
+    subject = 'Confirma tu cuenta en EduQuiz'
+    
+    html_body = f"""
+    <!doctype html>
+    <html>
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width,initial-scale=1" />
+            <title>Confirma tu cuenta — EduQuiz</title>
+        </head>
+        <body style="margin:0;padding:0;font-family: 'Segoe UI', Roboto, Arial, sans-serif;background:#f6f9fc;color:#111;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                    <td align="center" style="padding:20px 10px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 6px 18px rgba(20,30,50,0.08);">
+                            <tr style="background:linear-gradient(90deg,#0a58ca,#3b82f6);color:#fff;">
+                                <td style="padding:28px 30px;text-align:left;font-weight:700;font-size:20px;">EduQuiz</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:28px 30px;color:#2b3440;">
+                                    <h2 style="margin:0 0 10px 0;font-size:18px;color:#111;">¡Bienvenido a EduQuiz!</h2>
+                                    <p style="margin:0 0 18px 0;color:#55606a;line-height:1.45">Gracias por registrarte — solo falta un paso para activar tu cuenta. Ingresa el siguiente código en la página de registro o pulsa el botón para verificar automáticamente.</p>
+
+                                    <div style="margin:18px 0;text-align:center;">
+                                        <div style="display:inline-block;background:#f3f6fb;padding:14px 20px;border-radius:12px;font-size:22px;letter-spacing:6px;color:#0a58ca;font-weight:600;">{code}</div>
+                                    </div>
+
+                                    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 auto;" align="center">
+                                        <tr>
+                                            <td align="center" bgcolor="#0a58ca" style="border-radius:8px;">
+                                                <a href="{verify_link}" style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-weight:600;border-radius:8px;">Verificar mi cuenta</a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:18px 30px;background:#fbfdff;color:#94a3b8;font-size:13px;text-align:center;">EduQuiz — Tu camino al éxito académico</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+    </html>
+    """
+    
+    print(f"[DEBUG] Enviando email via Gmail API a {to_email}")
+    return send_email_via_gmail_api(to_email, subject, html_body)
+
+
+def _send_verification_email_via_smtp(to_email: str, code: str):
+    """Envía email de verificación usando SMTP tradicional"""
     host = os.environ.get('EMAIL_HOST')
     port = int(os.environ.get('EMAIL_PORT', 587))
-    # EMAIL_USER se usa para autenticar contra el servidor SMTP
     smtp_user = os.environ.get('EMAIL_USER')
     smtp_pass = os.environ.get('EMAIL_PASS')
-    # EMAIL_FROM es la dirección que aparecerá en el encabezado From (debe estar verificada en el proveedor)
     from_header = os.environ.get('EMAIL_FROM') or smtp_user
     if not host or not smtp_user or not smtp_pass:
         raise RuntimeError('Configuración SMTP incompleta. Ajusta EMAIL_HOST/EMAIL_USER/EMAIL_PASS')
 
     subject = 'Confirma tu cuenta en EduQuiz'
 
-    # Construir enlace de verificación (si estamos en contexto de request, usar url_for)
+    # Construir enlace de verificación
     try:
         verify_link = url_for('frm_verificar', email=to_email, _external=True)
     except Exception:
-        # Fallback: si no hay contexto de app, intentar usar APP_BASE_URL de .env
         base = os.environ.get('APP_BASE_URL', '').rstrip('/')
         verify_link = f"{base}/verificar?email={to_email}" if base else f"/verificar?email={to_email}"
 
