@@ -130,32 +130,31 @@ async function cargarDatosPerfil() {
  * Muestra un modal de confirmación y devuelve una Promise<boolean>.
  * Usa los elementos añadidos en la plantilla: #modal-confirm
  */
-function showConfirmModal(message, title = 'Confirmación') {
+/**
+ * Mostrar el modal usado en `solicitar_restablecer.html` si está disponible.
+ * Devuelve una Promise que se resuelve cuando el usuario cierra/acepta el modal.
+ * Para confirmaciones sencillas usamos el mismo modal (aceptar/ok).
+ */
+function showModalAsync(title, message, options) {
     return new Promise((resolve) => {
-        const modal = document.getElementById('modal-confirm');
-        if (!modal) return resolve(window.confirm(message));
+        // Si existe la función global showModal (ui_modal.js), la usamos
+        if (typeof window.showModal === 'function') {
+            try {
+                window.showModal(title, message, { onClose: function () { resolve(true); } });
+                return;
+            } catch (e) {
+                console.warn('showModal fallo, fallback a native', e);
+            }
+        }
 
-        const msgEl = document.getElementById('modal-confirm-message');
-        const titleEl = document.getElementById('modal-confirm-title');
-        const btnConfirm = document.getElementById('modal-confirm-btn');
-        const btnCancel = document.getElementById('modal-cancel-btn');
-
-        titleEl.textContent = title;
-        msgEl.textContent = message;
-
-        modal.style.display = 'flex';
-
-        const cleanup = () => {
-            modal.style.display = 'none';
-            btnConfirm.removeEventListener('click', onConfirm);
-            btnCancel.removeEventListener('click', onCancel);
-        };
-
-        const onConfirm = () => { cleanup(); resolve(true); };
-        const onCancel = () => { cleanup(); resolve(false); };
-
-        btnConfirm.addEventListener('click', onConfirm);
-        btnCancel.addEventListener('click', onCancel);
+        // Fallbacks: si se pasa opción de confirm, usar confirm(), sino alert()
+        if (options && options.confirm) {
+            const ok = window.confirm(message);
+            resolve(!!ok);
+        } else {
+            window.alert(message);
+            resolve(true);
+        }
     });
 }
 
@@ -163,29 +162,8 @@ function showConfirmModal(message, title = 'Confirmación') {
  * Muestra un modal de mensaje simple.
  */
 function showMessageModal(title, message) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('modal-message');
-        if (!modal) {
-            alert(message);
-            return resolve();
-        }
-
-        const titleEl = document.getElementById('modal-message-title');
-        const bodyEl = document.getElementById('modal-message-body');
-        const okBtn = document.getElementById('modal-message-ok');
-
-        titleEl.textContent = title || 'Mensaje';
-        bodyEl.textContent = message || '';
-        modal.style.display = 'flex';
-
-        const cleanup = () => {
-            modal.style.display = 'none';
-            okBtn.removeEventListener('click', onOk);
-        };
-
-        const onOk = () => { cleanup(); resolve(); };
-        okBtn.addEventListener('click', onOk);
-    });
+    // Reuse showModal if available for consistent UX
+    return showModalAsync(title, message);
 }
 
 /**
@@ -870,16 +848,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await showMessageModal('Error', 'Completa todos los campos.');
                 return;
             }
-            if (nueva.length < 8) {
-                await showMessageModal('Error', 'La nueva contraseña debe tener al menos 8 caracteres.');
-                return;
-            }
-            if (nueva !== confirmar) {
-                await showMessageModal('Error', 'La nueva contraseña y la confirmación no coinciden.');
+            // Validación avanzada estilo restablecer.html: longitud y composición
+            const errors = [];
+            if (nueva.length < 8) errors.push('Debe tener al menos 8 caracteres.');
+            if (!/[A-Z]/.test(nueva)) errors.push('Debe contener al menos una letra Mayúscula.');
+            if (!/[a-z]/.test(nueva)) errors.push('Debe contener al menos una letra Minúscula.');
+            if (!/[0-9]/.test(nueva)) errors.push('Debe contener al menos un número.');
+            if (!/[!@#$%^&*()_+\-=[\]{};:\"\\|,.<>/?]/.test(nueva)) errors.push('Debe contener al menos un carácter especial (ej. !@#$%).');
+            if (nueva !== confirmar) errors.push('La nueva contraseña y la confirmación no coinciden.');
+
+            if (errors.length > 0) {
+                // Mostrar detalles en modal (mismo estilo que restablecer)
+                const detalle = 'La contraseña no cumple los requisitos:\n- ' + errors.join('\n- ');
+                await showModalAsync('Contraseña inválida', detalle);
                 return;
             }
 
-            const confirmed = await showConfirmModal('¿Confirma que desea cambiar su contraseña?');
+            const confirmed = await showModalAsync('Confirmación', '¿Confirma que desea cambiar su contraseña?', { confirm: true });
             if (!confirmed) return;
 
             try {

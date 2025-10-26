@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="../static/css/global.css">
 </head>
 
-<body data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}">
+<body class="crud-usuario-page" data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}">
 
     <!-- Botón de menú para móvil -->
     <button id="menu-button" class="menu-button lg:hidden">
@@ -383,7 +383,8 @@
             </div>
         </div>
     </div>
-     <script src="../static/js/global.js"></script>
+    <script src="../static/js/global.js"></script>
+    <script src="../static/js/ui_modal.js"></script>
     <script src="../static/js/crudusuario.js"></script>
 </body>
 
