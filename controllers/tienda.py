@@ -543,13 +543,13 @@ def api_inventario_equipar():
                         skin_row = cursor.fetchone()
                         skin_url = skin_row.get('url_imagen') if skin_row else None
                         if skin_url:
-                            # Actualizar avatar y foto de perfil con la URL de la skin equipada
-                            sql_update_user = "UPDATE usuario SET url_avatar = %s, url_foto_perfil = %s WHERE usuario_id = %s"
-                            cursor.execute(sql_update_user, (skin_url, skin_url, user_id))
-                            # También actualizar la sesión para que los templates muestren la nueva imagen sin necesidad de relogin
+                            # Actualizar únicamente el avatar del usuario con la URL de la skin equipada.
+                            # NO sobrescribimos url_foto_perfil para respetar la foto de perfil personalizada del usuario.
+                            sql_update_user = "UPDATE usuario SET url_avatar = %s WHERE usuario_id = %s"
+                            cursor.execute(sql_update_user, (skin_url, user_id))
+                            # Actualizar la sesión para que los templates muestren la nueva imagen (solo avatar)
                             try:
                                 session['url_avatar'] = skin_url
-                                session['url_foto_perfil'] = skin_url
                             except Exception:
                                 # Si la sesión no es modificable por alguna razón, no interrumpir el flujo
                                 pass
@@ -559,9 +559,9 @@ def api_inventario_equipar():
 
                 conexion.commit()
                 resp = {'success': True, 'message': 'Estado de equipamiento actualizado.', 'equipada': bool(nueva)}
-                # Si acabamos de equipar una skin, devolver la URL para que el cliente pueda actualizar el DOM
+                # Si acabamos de equipar una skin, devolver la URL del avatar para que el cliente pueda actualizar el DOM.
+                # No devolvemos ni modificamos url_foto_perfil aquí para no sobrescribir la foto de perfil del usuario.
                 if tipo == 'SKIN' and nueva == 1 and skin_url:
-                    resp['url_foto_perfil'] = skin_url
                     resp['url_avatar'] = skin_url
                 return jsonify(resp)
             except Exception as e:

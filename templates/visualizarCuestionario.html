@@ -87,7 +87,8 @@
                     </div>
                    
                     <div class="profile-box" id="profile-box" style="cursor:pointer; position: relative;">
-                        <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or '/static/img/avatar.jpeg' }}" class="profile-img">
+                        {% set default_avatar = '/static/img/perfil_profesor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'P') else ('/static/img/perfil_gestor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'G') else '/static/img/perfil_estudiante.png') %}
+                        <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or default_avatar }}" class="profile-img">
                         <span class="profile-text">{{ logged_in_user.username }}</span>
                         <i class="fas fa-caret-down profile-caret" aria-hidden="true"></i>
 

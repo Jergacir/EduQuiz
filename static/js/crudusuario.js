@@ -67,16 +67,31 @@ async function cargarDatosPerfil() {
         const urlFotoPreview = document.getElementById('url_foto_perfil_preview');
         const fotoUrl = datosUsuarioLogueado.url_foto_perfil || datosUsuarioLogueado.url_avatar || '';
         if (urlFotoInput) urlFotoInput.value = fotoUrl;
-        if (urlFotoPreview) urlFotoPreview.src = fotoUrl || '/static/img/avatar.jpeg';
+    // Determinar avatar por defecto según tipo de usuario
+    const tipoUsuarioCode = datosUsuarioLogueado.tipo_usuario || (datosUsuarioLogueado.tipo || '');
+    const defaultAvatar = (tipoUsuarioCode === 'P') ? '/static/img/perfil_profesor.png' : ((tipoUsuarioCode === 'G') ? '/static/img/perfil_gestor.png' : '/static/img/perfil_estudiante.png');
+        // Mostrar preview solo si hay URL explícita (campo URL o uploaded). Si no, ocultar preview (según petición)
+        if (urlFotoPreview) {
+            if (fotoUrl && fotoUrl.trim() !== '') {
+                urlFotoPreview.style.display = '';
+                // añadir cache-buster
+                const cb = fotoUrl + (fotoUrl.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                urlFotoPreview.src = cb;
+            } else {
+                // ocultar la preview del input cuando no hay URL
+                urlFotoPreview.style.display = 'none';
+            }
+        }
 
         // 2.c Actualizar imagen de perfil en header (todas las ocurrencias) con cache-buster
         try {
             const imgs = document.querySelectorAll('.profile-img');
             imgs.forEach(img => {
-                const src = fotoUrl || img.getAttribute('src') || '/static/img/avatar.jpeg';
-                // Añadir cache-buster corto
-                const cacheBusted = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                // Para el header usamos el avatar por defecto si no existe foto de perfil ni avatar
+                const srcCandidate = fotoUrl && fotoUrl.trim() !== '' ? fotoUrl : (img.getAttribute('src') || defaultAvatar);
+                const cacheBusted = srcCandidate + (srcCandidate.includes('?') ? '&' : '?') + 'v=' + Date.now();
                 img.src = cacheBusted;
+                img.style.display = '';
             });
         } catch (e) {
             console.warn('No se pudo actualizar la imagen de header:', e);
@@ -96,11 +111,11 @@ async function cargarDatosPerfil() {
         const cantMonedasHeader = document.getElementById('cant_monedas');
         if (cantMonedasHeader) cantMonedasHeader.textContent = cantMonedas; 
         
-        // 4. Tipo de Usuario (Mapeo)
-        const tipoMap = { 'A': 'Alumno', 'P': 'Profesor', 'G': 'Gestor' }; 
-        const tipo = tipoMap[datosUsuarioLogueado.tipo_usuario] || 'Desconocido';
-        const tipoUsuarioInput = document.getElementById('tipo_usuario');
-        if (tipoUsuarioInput) tipoUsuarioInput.value = tipo;
+    // 4. Tipo de Usuario (Mapeo)
+    const tipoMap = { 'A': 'Alumno', 'P': 'Profesor', 'G': 'Gestor' };
+    const tipoTexto = tipoMap[datosUsuarioLogueado.tipo_usuario] || 'Desconocido';
+    const tipoUsuarioInput = document.getElementById('tipo_usuario');
+    if (tipoUsuarioInput) tipoUsuarioInput.value = tipoTexto;
 
         // 5. Vigencia (Mapeo)
         const esVigente = datosUsuarioLogueado.vigencia === 1 || datosUsuarioLogueado.vigencia === true;
@@ -340,9 +355,12 @@ async function manejarGuardarPerfil(event) {
                 const cacheBusted = data.url_foto_perfil + (data.url_foto_perfil.includes('?') ? '&' : '?') + 'v=' + Date.now();
                 img.src = cacheBusted;
             });
-            // También actualizar preview si existe
+            // También actualizar preview si existe (y asegurarse de mostrarla)
             const preview = document.getElementById('url_foto_perfil_preview');
-            if (preview) preview.src = data.url_foto_perfil;
+            if (preview) {
+                preview.style.display = '';
+                preview.src = data.url_foto_perfil;
+            }
         } else {
             // Si backend no devolvió la URL, usar la que el usuario puso en el input
             const inputUrl = document.getElementById('url_foto_perfil') ? document.getElementById('url_foto_perfil').value : null;
@@ -353,7 +371,10 @@ async function manejarGuardarPerfil(event) {
                     img.src = cacheBusted;
                 });
                 const preview = document.getElementById('url_foto_perfil_preview');
-                if (preview) preview.src = inputUrl;
+                if (preview) {
+                    preview.style.display = '';
+                    preview.src = inputUrl;
+                }
                 datosUsuarioLogueado.url_foto_perfil = inputUrl;
             }
         }
@@ -782,7 +803,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // 2. Listeners para Perfil Propio
-    document.getElementById('form-perfil').addEventListener('submit', manejarGuardarPerfil);
+    // Interceptar el submit para mostrar un modal de confirmación antes de guardar
+    const formPerfil = document.getElementById('form-perfil');
+    if (formPerfil) {
+        formPerfil.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const confirmado = await showModalAsync('Confirmar cambios', '¿Deseas guardar los cambios en tu perfil?', { confirm: true });
+                if (confirmado) {
+                    // Llamamos al handler original que realiza el PUT
+                    await manejarGuardarPerfil(e);
+                } else {
+                    console.log('Guardado de perfil cancelado por el usuario.');
+                }
+            } catch (err) {
+                console.error('Error mostrando modal de confirmación:', err);
+                // Fallback: si el modal falla, proceder con confirm() nativo
+                if (window.confirm('¿Deseas guardar los cambios en tu perfil?')) {
+                    await manejarGuardarPerfil(e);
+                }
+            }
+        });
+    }
     document.getElementById('cancelar').addEventListener('click', () => {
         // Recargar el perfil desde el objeto actual (o la API si es necesario)
         cargarDatosPerfil();
@@ -808,7 +850,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (urlFotoInput) {
         urlFotoInput.addEventListener('input', (e) => {
             const preview = document.getElementById('url_foto_perfil_preview');
-            if (preview) preview.src = e.target.value || '/static/img/avatar.jpeg';
+            const val = e.target.value && e.target.value.trim();
+            if (!preview) return;
+            if (val) {
+                preview.style.display = '';
+                preview.src = val;
+            } else {
+                // Oculta la preview cuando el campo URL está vacío
+                preview.style.display = 'none';
+                preview.removeAttribute('src');
+            }
         });
     }
 
@@ -818,19 +869,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         fileInput.addEventListener('change', (e) => {
             const preview = document.getElementById('url_foto_perfil_preview');
             const file = e.target.files && e.target.files[0];
-            if (file && preview) {
+            if (!preview) return;
+            if (file) {
                 try {
                     const objectUrl = URL.createObjectURL(file);
+                    preview.style.display = '';
                     preview.src = objectUrl;
                     // Liberar el objectURL cuando la imagen cargue
                     preview.onload = () => { URL.revokeObjectURL(objectUrl); };
                 } catch (err) {
                     console.warn('No se pudo crear preview local:', err);
                 }
-            } else if (preview) {
-                // Si se deseleccionó, volver a la URL que esté en el campo
+            } else {
+                // Si se deseleccionó, volver a la URL que esté en el campo; si no hay URL, ocultar
                 const urlInput = document.getElementById('url_foto_perfil');
-                preview.src = (urlInput && urlInput.value) ? urlInput.value : '/static/img/avatar.jpeg';
+                const urlVal = urlInput && urlInput.value && urlInput.value.trim();
+                if (urlVal) {
+                    preview.style.display = '';
+                    preview.src = urlVal;
+                } else {
+                    preview.style.display = 'none';
+                    preview.removeAttribute('src');
+                }
             }
         });
     }
