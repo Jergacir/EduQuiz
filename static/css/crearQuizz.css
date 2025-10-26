@@ -737,3 +737,143 @@
     color: #888;
     word-break: break-all;
 }
+
+/* ===== RESPONSIVE FALLBACKS (tablet / mobile) ===== */
+@media (max-width: 1024px) {
+        .edit-content-grid { grid-template-columns: 1fr; }
+        .question-list-sidebar { max-width: 220px; }
+}
+@media (max-width: 768px) {
+    .edit-panel-area { padding: 12px; }
+    .question-editor { padding: 12px; }
+    .title-input { font-size: 1rem; }
+    .btn-add-question { width: 100%; }
+}
+@media (max-width: 480px) {
+    .question-card-preview { padding: 10px; }
+    .question-text-input { font-size: 0.95rem; }
+}
+
+/* ======================================================= */
+/* 🔧 AJUSTES RESPONSIVOS PARA MOBILE (mejoras visuales) */
+/* ======================================================= */
+
+@media (max-width: 768px) {
+
+  /* ======= CABECERA ======= */
+  .edit-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .actions-right {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .actions-right button {
+    flex: 1;
+    margin-left: 0;
+    font-size: 0.9rem;
+    padding: 10px 0;
+  }
+
+  .btn-secondary {
+    background-color: #ff4b4b;
+  }
+
+  .btn-primary {
+    background-color: #0D9488;
+  }
+
+  /* ======= LAYOUT PRINCIPAL ======= */
+  .edit-content-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .question-list-sidebar {
+    order: 1;
+    width: 100%;
+  }
+
+  .question-editor {
+    order: 2;
+    width: 100%;
+  }
+
+  .question-options-sidebar {
+    order: 3;
+    width: 100%;
+  }
+
+  /* ======= TARJETAS DE PREGUNTA ======= */
+  .question-card-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    font-size: 0.95rem;
+  }
+
+  .q-number {
+    font-size: 0.9rem;
+  }
+
+  .q-actions i {
+    font-size: 1rem;
+  }
+
+  .btn-add-question {
+    width: 100%;
+    margin-top: 10px;
+    font-size: 1rem;
+  }
+
+  /* ======= EDITOR DE PREGUNTA ======= */
+  .question-text-input {
+    width: 100%;
+    font-size: 1rem;
+    padding: 12px;
+  }
+
+  .media-upload-box {
+    padding: 20px;
+  }
+
+  .answers-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .answer-box {
+    padding: 10px;
+  }
+}
+
+/* ======================================================= */
+/* 📱 EXTRA: Para pantallas MUY pequeñas (menos de 480px) */
+/* ======================================================= */
+
+@media (max-width: 480px) {
+  .actions-right button {
+    font-size: 0.8rem;
+    padding: 8px;
+  }
+
+  .btn-add-question {
+    font-size: 0.9rem;
+  }
+
+  .question-card-preview {
+    font-size: 0.85rem;
+  }
+
+  .answers-grid {
+    gap: 10px;
+  }
+}
