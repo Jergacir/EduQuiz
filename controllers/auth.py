@@ -166,6 +166,13 @@ def procesarlogin():
             cursor.execute(sql, (correo,))
             result = cursor.fetchone()
 
+        if not result:
+            # Correo no encontrado
+            if is_ajax:
+                return jsonify({'success': False, 'code': 'email_not_found', 'message': 'Correo no encontrado.'}), 404
+            flash('Correo no encontrado. ¿Deseas registrarte?', 'error')
+            return redirect(url_for('auth.frm_login'))
+
         if result and bcrypt_ext.check_password_hash(result['contrasena'], contrasena_plana):
             # Usuario encontrado y contraseña correcta
             if result.get('vigencia', 0) == 0:
@@ -199,7 +206,7 @@ def procesarlogin():
             return redirect(url_for('pages.frm_home'))
 
         else:
-            # Credenciales incorrectas
+            # Credenciales incorrectas (usuario existe pero contraseña no coincide)
             if is_ajax:
                 return jsonify({'success': False, 'code': 'credentials', 'message': 'Credenciales incorrectas.'}), 401
             flash('Credenciales incorrectas.', 'error')
