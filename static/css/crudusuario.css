@@ -2,8 +2,8 @@
 /* 🔑 VARIABLES DE DISEÑO (MEJORADAS)  */
 /* ==================================== */
 :root {
-    --color-principal: #007bff; /* Azul vibrante (Primario) */
-    --color-principal-hover: #0056b3; 
+    --color-principal: #0D9488; /* Verde azulado solicitado */
+    --color-principal-hover: #0a7f79; 
     --color-fondo: #f5f7fa; /* Fondo muy claro (casi blanco) */
     --color-sidebar: #ffffff; /* Blanco limpio */
     --color-texto: #333333; /* Gris oscuro para lectura */
@@ -213,6 +213,15 @@ body {
     padding-right: 40px; 
 }
 
+/* Preview de la URL de la foto de perfil */
+.preview-img, #url_foto_perfil_preview {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid var(--color-borde);
+}
+
 .editar-icono {
     position: absolute;
     right: 15px;
@@ -274,13 +283,29 @@ body {
 
 .btn-principal {
     background-color: var(--color-principal);
-    color: white;
-    box-shadow: 0 4px 6px rgba(0, 123, 255, 0.3);
+    color: #ffffff;
+    box-shadow: 0 4px 6px rgba(13, 148, 136, 0.18);
 }
 
 .btn-principal:hover {
     background-color: var(--color-principal-hover);
-    box-shadow: 0 6px 8px rgba(0, 123, 255, 0.4);
+    box-shadow: 0 6px 8px rgba(13, 148, 136, 0.22);
+}
+
+/* Estilo para input file (botón de seleccionar archivo) */
+input[type="file"] {
+    display: inline-block;
+    padding: 10px 14px;
+    background-color: var(--color-principal);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+input[type="file"]:hover {
+    background-color: var(--color-principal-hover);
 }
 
 
@@ -406,4 +431,20 @@ body {
     .contenido {
         padding: 20px;
     }
+
+    /* En móviles, hacer que el input con preview apile verticalmente */
+    .input-con-icono {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+}
+
+#url_foto_perfil_file{
+    background-color: #0D9488;
+}
+
+
+#privacidad li{
+    margin-left: 40px;
 }
