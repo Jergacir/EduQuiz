@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const titleInput = document.querySelector(".title-input");
     const btnGuardar = document.querySelector(".btn-primary");
     const questionListContainer = document.querySelector(".question-list-sidebar");
+    console.log("Contenedor de preguntas:", questionListContainer);
     const questionEditor = document.querySelector(".question-editor");
     const questionTextInput = document.querySelector(".question-text-input");
     const answerInputs = document.querySelectorAll(".answer-box input");
@@ -37,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
         titulo: "",
         preguntas: []
     };
+    window.cuestionario = cuestionario;
     let preguntaActual = 0;
 
     // --- Funciones auxiliares ---
@@ -70,6 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Reasignar eventos
         asignarEventosCards();
+
     }
 
     function asignarEventosCards() {
@@ -745,4 +748,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         editImageModal.classList.add('hidden');
     });
+
+    // Función pública para agregar preguntas desde Excel
+    window.agregarPreguntasExcel = function (nuevasPreguntas) {
+        cuestionario.preguntas = nuevasPreguntas;
+        preguntaActual = 0; // cargar la primera
+        renderPreguntas();
+        cargarPregunta(preguntaActual);
+    };
 });
