@@ -14,7 +14,7 @@
 .edit-content-grid {
     display: grid;
     /* Define 3 columnas: Lista, Editor, Opciones */
-    grid-template-columns: 250px 1fr 220px; 
+    grid-template-columns: 250px 1fr 250px; 
     gap: 30px;
     height: 100%; /* Ocupa el espacio restante en el main */
     margin-top: 20px;
@@ -114,6 +114,10 @@
     padding: 15px;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+      min-width: 220px;       /* asegura ancho mínimo */
+    max-width: 280px;       /* evita que crezca demasiado */
+    overflow-y: auto;       /* scroll si hay muchas preguntas */
+    height: calc(100vh - 150px); /* ajusta según header */
 }
 
 .question-card-preview {
@@ -321,6 +325,8 @@
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+     min-width: 250px;
+    max-width: 300px;
 }
 
 .question-options-sidebar h3 {
@@ -331,21 +337,35 @@
     margin-bottom: 10px;
 }
 
-.option-select {
-    width: 100%;
-    padding: 10px 15px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 1rem;
-    margin-bottom: 25px;
-    background-color: #f9f9f9;
-    -webkit-appearance: none; /* Quita el estilo nativo en Chrome/Safari */
-    -moz-appearance: none;    /* Quita el estilo nativo en Firefox */
-    appearance: none;         /* Quita el estilo nativo */
-    background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="292.4" height="292.4"><path fill="%23555555" d="M287 69.4a17.6 17.6 0 0 0-13.2-5.4H18.6c-5.8 0-11.1 2.2-15.1 6.2-4.1 4-6.2 9.4-6.2 15.1s2.2 11.1 6.2 15.1l128 128c4 4 9.4 6.2 15.1 6.2s11.1-2.2 15.1-6.2l128-128c4.1-4.1 6.2-9.4 6.2-15.1.1-5.7-2-11.1-6.2-15.1z"/></svg>');
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 10px;
+.excel-format-info {
+    background-color: #f9fafb; /* fondo claro y suave */
+    border: 1px solid #d1d5db; /* borde gris claro */
+    border-radius: 8px; /* bordes redondeados */
+    padding: 15px 20px; /* espacio interno */
+    margin-top: 15px;
+    font-family: 'Lexend', sans-serif;
+    color: #111827; /* texto oscuro */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* sombra ligera */
+    max-width: 100%; /* evita que se salga del contenedor */
+    overflow-wrap: break-word; /* quiebra palabras largas */
+    word-break: break-word; /* compatibilidad adicional */
+}
+
+.excel-format-info p {
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.excel-format-info ul {
+    list-style-type: disc;
+    margin-left: 20px;
+    line-height: 1.5;
+}
+
+.excel-format-info li strong {
+    display: inline-block;
+    color: #1d4ed8; /* azul para resaltar encabezados */
+    word-break: break-all; /* rompe la línea si es muy larga */
 }
 
 
@@ -664,4 +684,56 @@
 /* Si quieres un efecto de hover en textarea */
 #descripcionCuestionario:hover {
     border-color: #888;
+}
+
+
+/* =========================
+   Estilos para importar Excel
+========================= */
+.excel-upload-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    margin-top: 10px;
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    text-align: center;
+}
+
+.excel-upload-box i {
+    font-size: 30px;
+    color: #4a90e2;
+    margin-bottom: 8px;
+}
+
+.excel-upload-box p {
+    font-size: 14px;
+    color: #555;
+    margin: 4px 0;
+}
+
+.excel-upload-box .btn-upload {
+    margin-top: 8px;
+    padding: 6px 12px;
+    font-size: 14px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.excel-upload-box .btn-upload:hover {
+    background-color: #357ABD;
+}
+
+.excel-upload-box .file-name {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #888;
+    word-break: break-all;
 }
