@@ -123,37 +123,43 @@
                 </div>
             </section>
             <!-- AGREGAR DESPUÉS DE LA SECCIÓN DE CAMPOS (antes de export-action-footer) -->
+            <!-- Reemplazar la sección de Google Drive actual -->
             <section class="export-section drive-section">
                 <h3 class="section-title">
-                    <i class="fa-brands fa-google-drive"></i>
-                    3. Guardar en Google Drive (Opcional)
+                    <i class="fa-solid fa-envelope"></i>
+                    3. Enviar por Correo Electrónico (Opcional)
                 </h3>
 
                 <div class="drive-config-box">
                     <div class="drive-info">
                         <i class="fa-solid fa-info-circle"></i>
-                        <p>Sube automáticamente el archivo a tu Google Drive personal.
-                            Ingresa tu correo <strong>@gmail.com</strong></p>
+                        <p>El archivo se generará en nuestra cuenta corporativa de Google Drive 
+                        y te enviaremos un <strong>link de descarga</strong> a tu correo.</p>
                     </div>
 
                     <div class="gmail-input-group">
-                        <label for="gmailInput" class="gmail-label">
-                            <i class="fa-brands fa-google"></i> Correo de Gmail:
+                        <label for="emailInput" class="gmail-label">
+                            <i class="fa-solid fa-at"></i> Tu correo electrónico:
                         </label>
-                        <input type="email" id="gmailInput" placeholder="tupersonal@gmail.com" class="gmail-input">
-                        <small class="gmail-hint">Debe ser una cuenta @gmail.com</small>
+                        <input type="email" 
+                            id="emailInput" 
+                            placeholder="profesor@usat.edu.pe o personal@gmail.com" 
+                            class="gmail-input">
+                        <small class="gmail-hint">
+                            Acepta tanto @gmail.com como @usat.edu.pe (Outlook)
+                        </small>
                     </div>
 
                     <div class="drive-checkbox-group">
-                        <input type="checkbox" id="subirADrive">
-                        <label for="subirADrive">
-                            <i class="fa-solid fa-cloud-upload-alt"></i>
-                            Subir archivo a Google Drive después de generarlo
+                        <input type="checkbox" id="enviarPorEmail">
+                        <label for="enviarPorEmail">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            Enviar link de descarga a mi correo
                         </label>
                     </div>
 
-                    <div id="driveStatusBox" class="drive-status-box" style="display: none;">
-                        <!-- Se mostrará el estado de conexión aquí -->
+                    <div id="emailStatusBox" class="drive-status-box" style="display: none;">
+                        <!-- Mensajes de estado -->
                     </div>
                 </div>
             </section>

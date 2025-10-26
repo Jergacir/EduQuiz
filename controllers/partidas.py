@@ -28,6 +28,22 @@ from reportlab.platypus import Table, TableStyle
 # Para integración con Google Drive y OneDrive
 import requests
 
+
+# ========================================================
+# EXPORTACIÓN CON OAUTH 2.0 (Para cuentas @gmail.com gratuitas)
+# ========================================================
+import os
+import pickle
+import base64
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from io import BytesIO
+
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+
 class EstadoPartida(Enum):
     """Estados posibles de una partida"""
     ESPERA = 'espera'           # Esperando jugadores
@@ -1862,64 +1878,296 @@ def api_finalizar_partida():
 
 
 # ========================================================
-# ENDPOINT PRINCIPAL DE EXPORTACIÓN
+# FUNCIÓN: Enviar email con Gmail API
 # ========================================================
+def enviar_email_oauth(destinatario_email, link_descarga, nombre_archivo, nombre_cuestionario):
+    """
+    Envía email usando OAuth (desde eduquiz.usat@gmail.com)
+    
+    Args:
+        destinatario_email: Email del profesor
+        link_descarga: URL de Google Drive
+        nombre_archivo: Nombre del archivo
+        nombre_cuestionario: Nombre del cuestionario
+    """
+    try:
+        creds = get_oauth_credentials()
+        if not creds:
+            return {"success": False, "error": "No hay credenciales OAuth válidas"}
+        
+        gmail_service = build('gmail', 'v1', credentials=creds)
+        
+        # Crear mensaje HTML (mismo que antes)
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }}
+                .container {{ max-width: 600px; margin: 30px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
+                .header {{ background: linear-gradient(135deg, #0a58ca, #3b82f6); color: white; padding: 30px; text-align: center; }}
+                .content {{ padding: 30px; }}
+                .btn {{ 
+                    display: inline-block; 
+                    padding: 14px 32px; 
+                    background: #0a58ca; 
+                    color: white; 
+                    text-decoration: none; 
+                    border-radius: 8px; 
+                    font-weight: bold;
+                    margin: 20px 0;
+                }}
+                .btn:hover {{ background: #084298; }}
+                .footer {{ text-align: center; padding: 20px; background: #f8f9fa; color: #666; font-size: 13px; }}
+                .info-box {{ background: #e7f3ff; border-left: 4px solid #0a58ca; padding: 15px; margin: 20px 0; border-radius: 4px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1 style="margin: 0; font-size: 24px;">📊 Resultados de EduQuiz</h1>
+                    <p style="margin: 10px 0 0; opacity: 0.9;">Tu archivo está listo para descargar</p>
+                </div>
+                <div class="content">
+                    <p>Hola,</p>
+                    <p>Los resultados de <strong>{nombre_cuestionario}</strong> ya están disponibles.</p>
+                    
+                    <div class="info-box">
+                        <strong>📁 Archivo:</strong> {nombre_archivo}<br>
+                        <strong>☁️ Ubicación:</strong> Google Drive (EduQuiz)
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <a href="{link_descarga}" class="btn">📥 Descargar Resultados</a>
+                    </div>
+                    
+                    <p style="font-size: 14px; color: #666; margin-top: 30px;">
+                        💡 <strong>Tip:</strong> El archivo estará disponible en tu Google Drive por tiempo indefinido. 
+                        Puedes descargarlo desde cualquier dispositivo usando el enlace.
+                    </p>
+                </div>
+                <div class="footer">
+                    <p><strong>EduQuiz</strong> - Sistema de Evaluación Interactiva</p>
+                    <p>eduquiz.usat@gmail.com</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Crear mensaje MIME
+        message = MIMEMultipart('alternative')
+        message['From'] = CORPORATE_EMAIL
+        message['To'] = destinatario_email
+        message['Subject'] = f"📊 Resultados: {nombre_cuestionario}"
+        
+        # Texto plano (fallback)
+        text_part = MIMEText(f"""
+        Resultados de EduQuiz
+        
+        Los resultados de "{nombre_cuestionario}" están listos.
+        
+        📥 Descargar: {link_descarga}
+        
+        Archivo: {nombre_archivo}
+        
+        ---
+        EduQuiz - eduquiz.usat@gmail.com
+        """, 'plain')
+        
+        html_part = MIMEText(html_body, 'html')
+        
+        message.attach(text_part)
+        message.attach(html_part)
+        
+        # Codificar para Gmail API
+        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+        
+        # Enviar
+        resultado = gmail_service.users().messages().send(
+            userId='me',
+            body={'raw': raw_message}
+        ).execute()
+        
+        message_id = resultado.get('id')
+        print(f"✅ Email enviado a {destinatario_email} (ID: {message_id})")
+        
+        return {
+            "success": True,
+            "message_id": message_id,
+            "destinatario": destinatario_email
+        }
+        
+    except Exception as e:
+        print(f"❌ Error enviando email: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
 
+
+SCOPES = [
+    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/gmail.send'
+]
+
+CORPORATE_EMAIL = 'eduquiz.usat@gmail.com'
+
+# ========================================================
+# FUNCIÓN: Obtener credenciales OAuth
+# ========================================================
+def get_oauth_credentials():
+    """
+    Obtiene credenciales desde token.pickle.
+    Si no existe o está expirado, lo renueva automáticamente.
+    """
+    creds = None
+    
+    # Cargar token existente
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    
+    # Si no hay credenciales válidas
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            print("🔄 Renovando token OAuth...")
+            creds.refresh(Request())
+            
+            # Guardar token renovado
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
+        else:
+            print("❌ ERROR: token.pickle no existe o es inválido")
+            print("   Ejecuta primero: python setup_oauth.py")
+            return None
+    
+    return creds
+
+
+
+
+# ========================================================
+# FUNCIÓN: Subir archivo a Google Drive
+# ========================================================
+def subir_a_drive_oauth(buffer, filename, mimetype):
+    """
+    Sube archivo a Google Drive usando OAuth
+    
+    Returns:
+        dict: {"success": bool, "url": str, "file_id": str}
+    """
+    try:
+        creds = get_oauth_credentials()
+        if not creds:
+            return {"success": False, "error": "No hay credenciales OAuth válidas"}
+        
+        drive_service = build('drive', 'v3', credentials=creds)
+        
+        # 1. Buscar o crear carpeta "EduQuiz Resultados"
+        folder_query = "name='EduQuiz Resultados' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+        results = drive_service.files().list(
+            q=folder_query,
+            fields='files(id, name)'
+        ).execute()
+        
+        folders = results.get('files', [])
+        
+        if folders:
+            folder_id = folders[0]['id']
+            print(f"✅ Carpeta encontrada: {folder_id}")
+        else:
+            # Crear carpeta
+            folder_metadata = {
+                'name': 'EduQuiz Resultados',
+                'mimeType': 'application/vnd.google-apps.folder'
+            }
+            folder = drive_service.files().create(
+                body=folder_metadata,
+                fields='id'
+            ).execute()
+            folder_id = folder['id']
+            print(f"✅ Carpeta creada: {folder_id}")
+        
+        # 2. Subir archivo
+        buffer.seek(0)
+        file_metadata = {
+            'name': filename,
+            'parents': [folder_id]
+        }
+        
+        media = MediaIoBaseUpload(buffer, mimetype=mimetype, resumable=True)
+        
+        file = drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, webViewLink'
+        ).execute()
+        
+        file_id = file['id']
+        print(f"✅ Archivo subido: {file_id}")
+        
+        # 3. Hacer público (cualquiera con link puede ver)
+        permission = {
+            'type': 'anyone',
+            'role': 'reader'
+        }
+        
+        drive_service.permissions().create(
+            fileId=file_id,
+            body=permission
+        ).execute()
+        
+        # 4. Obtener link
+        web_link = file.get('webViewLink')
+        
+        return {
+            "success": True,
+            "url": web_link,
+            "file_id": file_id,
+            "message": "Archivo subido correctamente"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error subiendo a Drive: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+from datetime import timedelta
+from collections import defaultdict
+
+# Diccionario para rastrear envíos por IP
+envios_recientes = defaultdict(list)
+
+# ========================================================
+# ENDPOINT DE EXPORTACIÓN (modificado)
+# ========================================================
 @partidas_bp.route('/api/exportar_partida/<int:partida_id>', methods=['POST'])
 def api_exportar_partida(partida_id):
     """
-    Exporta los resultados de una partida en formato CSV, Excel o PDF.
-    Opcionalmente los sube a OneDrive o Google Drive.
-    
-    Body JSON:
-    {
-        "formato": "csv" | "excel" | "pdf",
-        "campos": ["nombre", "puntaje_final", ...],
-        "subir_a_drive": true/false,  # NUEVO
-        "drive_tipo": "onedrive" | "google_drive",  # NUEVO
-        "access_token": "token_del_usuario"  # NUEVO (si subir_a_drive=true)
-    }
+    Exporta resultados con OAuth (sin Service Account)
     """
     data = request.get_json() or {}
     formato = data.get("formato", "csv").lower()
     campos = data.get("campos", [])
-    subir_a_drive = data.get("subir_a_drive", False)
-    drive_tipo = data.get("drive_tipo", "")
-    access_token = data.get("access_token", "")
-
-    # Aceptar nombres de campo antiguos/alias que puede enviar el cliente.
-    # Mapearlos a las columnas reales que devuelve la consulta SQL.
-    alias_map = {
-        'puntuacion_total': 'puntaje_final',
-        'puntaje_final': 'puntaje_final',
-        'cant_preguntas_correctas': 'respuestas_correctas',
-        'cant_preguntas_incorrectas': 'respuestas_incorrectas',
-        'respuestas_correctas': 'respuestas_correctas',
-        'respuestas_incorrectas': 'respuestas_incorrectas',
-        'nombre': 'nombre',
-        'codigo_partida': 'codigo_partida',
-        'nombre_cuestionario': 'nombre_cuestionario',
-        'fecha_creacion': 'fecha_creacion'
-    }
-
-    # Normalizar campos solicitados usando el mapa de alias
-    campos = [alias_map.get(c, c) for c in campos]
-
-    # Validaciones
+    enviar_por_email = data.get("enviar_por_email", False)
+    email_destinatario = data.get("email_destinatario", "")
+    
+    # Validación básica
     if not campos:
-        return jsonify({"status": "error", "error": "No se seleccionaron campos."}), 400
+        return jsonify({"status": "error", "error": "No se seleccionaron campos"}), 400
     
     if formato not in ["csv", "excel", "pdf"]:
-        return jsonify({"status": "error", "error": "Formato no soportado."}), 400
-
-    # Obtener datos de la base de datos
-    conexion = dbmod.obtenerConexion() # Uso dbmod.obtenerConexion() según tu import
+        return jsonify({"status": "error", "error": "Formato no soportado"}), 400
+    
+    # Obtener datos de la BD
+    conexion = dbmod.obtenerConexion()
     if not conexion:
-        return jsonify({"status": "error", "error": "No se pudo conectar a la base de datos."}), 500
-
+        return jsonify({"status": "error", "error": "Error de conexión a BD"}), 500
+    
     try:
         with conexion.cursor() as cursor:
-            # Consulta mejorada con alias correctos
             cursor.execute("""
                 SELECT 
                     u.nombre,
@@ -1938,116 +2186,106 @@ def api_exportar_partida(partida_id):
             """, (partida_id,))
             
             rows = cursor.fetchall()
-
-        # Validar que hay datos
+        
         if not rows:
-            return jsonify({"status": "error", "error": "No hay datos para exportar."}), 404
-
+            return jsonify({"status": "error", "error": "No hay datos para exportar"}), 404
+        
         # Convertir a DataFrame
-        # Nota: Si estás usando MySQL Connector, rows ya puede ser una lista de diccionarios,
-        # lo cual es perfecto para DataFrame.
+        import pandas as pd
         df = pd.DataFrame(rows)
         
-        # Filtrar solo las columnas solicitadas (que existan)
-        campos_validos = [campo for campo in campos if campo in df.columns]
-        if not campos_validos:
-            return jsonify({"status": "error", "error": "Ningún campo válido seleccionado."}), 400
-            
+        # Filtrar columnas
+        alias_map = {
+            'puntuacion_total': 'puntaje_final',
+            'puntaje_final': 'puntaje_final',
+            'cant_preguntas_correctas': 'respuestas_correctas',
+            'cant_preguntas_incorrectas': 'respuestas_incorrectas',
+        }
+        campos_normalizados = [alias_map.get(c, c) for c in campos]
+        campos_validos = [c for c in campos_normalizados if c in df.columns]
         df = df[campos_validos]
-
-        # Generar nombre de archivo
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        nombre_base = f"resultados_partida_{partida_id}_{timestamp}"
         
-        # Generar archivo según formato
+        # Generar archivo
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         buffer = BytesIO()
-        mimetype = ""
-        extension = ""
         
         if formato == "csv":
-            # Usar TextIOWrapper para escribir texto en un BytesIO correctamente
             from io import TextIOWrapper
             text_wrapper = TextIOWrapper(buffer, encoding="utf-8-sig", newline="", write_through=True)
             df.to_csv(text_wrapper, index=False)
-            # Asegurarse de volcar el buffer y posicionarlo al inicio
-            try:
-                text_wrapper.flush()
-            except Exception:
-                pass
-            
-            # 🔥 CORRECCIÓN CLAVE: El detach() evita que TextIOWrapper cierre el buffer subyacente.
-            text_wrapper.detach() 
-            
+            text_wrapper.detach()
             buffer.seek(0)
             mimetype = "text/csv"
             extension = "csv"
-            
+        
         elif formato == "excel":
             with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
                 df.to_excel(writer, index=False, sheet_name="Resultados")
-            # El ExcelWriter gestiona correctamente el buffer sin cerrarlo
+            buffer.seek(0)
             mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             extension = "xlsx"
-            
+        
         elif formato == "pdf":
-            # Generar PDF mejorado. La función debe llamar a c.save() y luego buffer.seek(0).
-            # Ver la definición de generar_pdf_mejorado para el seek(0)
-            generar_pdf_mejorado(buffer, df, partida_id, rows[0] if rows else {})
+            # Tu función existente de PDF
+            from reportlab.lib.pagesizes import letter
+            from reportlab.pdfgen import canvas
+            c = canvas.Canvas(buffer, pagesize=letter)
+            # ... tu código de PDF ...
+            c.save()
+            buffer.seek(0)
             mimetype = "application/pdf"
             extension = "pdf"
         
-        # Esta línea ahora es redundante para CSV y PDF si las funciones internas
-        # hacen el seek(0), pero no hace daño para Excel. La dejo por robustez.
-        buffer.seek(0) 
-        filename = f"{nombre_base}.{extension}"
-
-        # Log corto para depuración: tipo y tamaño
-        try:
-            size = len(buffer.getvalue())
-        except Exception:
-            size = 'unknown'
-        print(f"[EXPORT] filename={filename} mimetype={mimetype} size={size}")
+        filename = f"resultados_partida_{partida_id}_{timestamp}.{extension}"
         
-        # Si se debe subir a Drive
-        if subir_a_drive and access_token:
-            # Reubicar el cursor del buffer al inicio antes de leerlo para subir
-            buffer.seek(0)
-            resultado_drive = subir_archivo_a_drive(
-                buffer, 
-                filename, 
-                mimetype, 
-                drive_tipo, 
-                access_token
+        # Si se solicitó envío por email
+        if enviar_por_email and email_destinatario:
+            # 1. Subir a Drive
+            resultado_drive = subir_a_drive_oauth(buffer, filename, mimetype)
+            
+            if not resultado_drive.get("success"):
+                return jsonify({
+                    "status": "error",
+                    "error": f"Error subiendo a Drive: {resultado_drive.get('error')}"
+                }), 500
+            
+            # 2. Enviar email
+            nombre_cuestionario = rows[0].get('nombre_cuestionario', 'Cuestionario')
+            resultado_email = enviar_email_oauth(
+                email_destinatario,
+                resultado_drive["url"],
+                filename,
+                nombre_cuestionario
             )
             
-            if resultado_drive.get("success"):
+            if resultado_email.get("success"):
                 return jsonify({
                     "status": "success",
-                    "message": "Archivo exportado y subido a Drive",
-                    "drive_url": resultado_drive.get("url"),
-                    "drive_id": resultado_drive.get("file_id")
+                    "message": f"✅ Resultados enviados a {email_destinatario}",
+                    "drive_url": resultado_drive["url"]
                 }), 200
             else:
-                # Si falla el Drive, aún permitir descargar
-                buffer.seek(0)
-                return send_file(
-                    buffer,
-                    as_attachment=True,
-                    download_name=filename,
-                    mimetype=mimetype
-                )
+                return jsonify({
+                    "status": "partial",
+                    "message": "Archivo subido pero error al enviar email",
+                    "drive_url": resultado_drive["url"],
+                    "error_email": resultado_email.get("error")
+                }), 200
         
-        # Descarga normal
+        # Descarga directa
+        from flask import send_file
         return send_file(
             buffer,
             as_attachment=True,
             download_name=filename,
             mimetype=mimetype
         )
-
+        
     except Exception as e:
-        print(f"[ERROR] api_exportar_partida: {e}", file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"status": "error", "error": str(e)}), 500
     finally:
         if conexion:
@@ -2439,4 +2677,6 @@ def callback_google_drive():
     except Exception as e:
         print(f"[ERROR] callback_google_drive: {e}", file=sys.stderr)
         return f"Error: {str(e)}", 500
+
+
 

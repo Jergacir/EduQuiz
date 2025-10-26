@@ -1,23 +1,16 @@
-// ======================================================
-// EXPORTAR RESULTADOS CON GOOGLE DRIVE - EDUQUIZ
-// Versión con autenticación manual de Gmail
-// ======================================================
-
 document.addEventListener('DOMContentLoaded', () => {
     const partidaId = document.body.dataset.partidaId;
     const formatCards = document.querySelectorAll('.format-card');
     const selectAllCheckbox = document.getElementById('selectAll');
     const fieldCheckboxes = document.querySelectorAll('.fields-grid input[type="checkbox"]');
     const btnExportar = document.getElementById('btnExportar');
-    const gmailInput = document.getElementById('gmailInput');
-    const subirADriveCheckbox = document.getElementById('subirADrive');
-    const driveStatusBox = document.getElementById('driveStatusBox');
+    const emailInput = document.getElementById('emailInput');
+    const enviarPorEmailCheckbox = document.getElementById('enviarPorEmail');
+    const emailStatusBox = document.getElementById('emailStatusBox');
 
     let formatoSeleccionado = 'csv';
-    let googleAccessToken = null;
-    let googleUserEmail = null;
 
-    // ===== SELECCIÓN DE FORMATO =====
+    // Selección de formato
     formatCards.forEach(card => {
         card.addEventListener('click', () => {
             formatCards.forEach(c => c.classList.remove('selected'));
@@ -27,92 +20,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // ===== SELECCIONAR TODOS =====
+    // Seleccionar todos los campos
     selectAllCheckbox.addEventListener('change', e => {
         fieldCheckboxes.forEach(cb => cb.checked = e.target.checked);
     });
 
-    fieldCheckboxes.forEach(cb => {
-        cb.addEventListener('change', () => {
-            selectAllCheckbox.checked = Array.from(fieldCheckboxes).every(c => c.checked);
-        });
-    });
-
-    // ===== VALIDAR EMAIL DE GMAIL =====
-    gmailInput.addEventListener('blur', () => {
-        const email = gmailInput.value.trim();
-        if (email && !email.endsWith('@gmail.com')) {
-            mostrarToast('⚠️ Debe ser un correo @gmail.com', 'error');
-            gmailInput.style.borderColor = '#dc3545';
+    // Mejorar feedback visual
+    emailInput.addEventListener('blur', () => {
+        const email = emailInput.value.trim();
+        
+        if (!email) return; // No validar si está vacío
+        
+        if (!validarEmail(email)) {
+            mostrarToast('⚠️ Email inválido. Usa formato válido (ej: profesor@usat.edu.pe)', 'error');
+            emailInput.style.borderColor = '#dc3545';
         } else {
-            gmailInput.style.borderColor = '#ced4da';
+            emailInput.style.borderColor = '#28a745'; // Verde para indicar válido
+            
+            // Detectar tipo de correo y mostrar ícono
+            if (email.includes('@gmail.com')) {
+                mostrarIconoProveedor('gmail');
+            } else if (email.includes('@usat.edu.pe') || email.includes('@usat.pe')) {
+                mostrarIconoProveedor('outlook');
+            }
         }
     });
 
-    // ===== CUANDO MARCA EL CHECKBOX DE DRIVE =====
-    subirADriveCheckbox.addEventListener('change', async (e) => {
-        if (e.target.checked) {
-            const email = gmailInput.value.trim();
-
-            if (!email) {
-                mostrarToast('⚠️ Ingresa tu correo de Gmail primero', 'error');
-                e.target.checked = false;
-                gmailInput.focus();
-                return;
-            }
-
-            if (!email.endsWith('@gmail.com')) {
-                mostrarToast('⚠️ Debe ser una cuenta @gmail.com', 'error');
-                e.target.checked = false;
-                gmailInput.focus();
-                return;
-            }
-
-            // Autenticar con Google
-            await autenticarConGoogle(email);
-        } else {
-            // Desconectar
-            googleAccessToken = null;
-            googleUserEmail = null;
-            driveStatusBox.style.display = 'none';
-        }
-    });
-
-    // ===== EXPORTAR =====
+    // EXPORTAR
     btnExportar.addEventListener('click', async () => {
         const camposSeleccionados = Array.from(fieldCheckboxes)
             .filter(cb => cb.checked)
             .map(cb => cb.dataset.field);
 
         if (camposSeleccionados.length === 0) {
-            mostrarToast('⚠️ Selecciona al menos un campo para exportar.', 'error');
+            mostrarToast('⚠️ Selecciona al menos un campo', 'error');
             return;
         }
 
         btnExportar.disabled = true;
-        btnExportar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando archivo...';
+        btnExportar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
+
+        const payload = {
+            formato: formatoSeleccionado,
+            campos: camposSeleccionados
+        };
+
+        // Si el checkbox está marcado y hay email válido
+        if (enviarPorEmailCheckbox.checked) {
+            const email = emailInput.value.trim();
+            
+            if (!email || !validarEmail(email)) {
+                mostrarToast('⚠️ Ingresa un email válido primero', 'error');
+                btnExportar.disabled = false;
+                btnExportar.innerHTML = '<i class="fa-solid fa-download"></i> Exportar Resultados';
+                return;
+            }
+            
+            payload.enviar_por_email = true;
+            payload.email_destinatario = email;
+        }
 
         try {
-            const payload = {
-                formato: formatoSeleccionado,
-                campos: camposSeleccionados
-            };
-
-            // Si está marcado para subir a Drive y hay token
-            if (subirADriveCheckbox.checked) {
-                if (googleAccessToken) {
-                    payload.subir_a_drive = true;
-                    payload.drive_tipo = 'google_drive';
-                    payload.access_token = googleAccessToken;
-                    payload.user_email = googleUserEmail;
-                } else {
-                    mostrarToast('⚠️ Conéctate a Google Drive primero', 'error');
-                    btnExportar.disabled = false;
-                    btnExportar.innerHTML = '<i class="fa-solid fa-download"></i> Exportar Resultados';
-                    return;
-                }
-            }
-
             const response = await fetch(`/api/exportar_partida/${partidaId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -121,69 +89,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const contentType = response.headers.get('Content-Type') || '';
 
-            // Si la respuesta no es 2xx, intentar leer texto/JSON y mostrar error
             if (!response.ok) {
-                let text = '';
-                try {
-                    // Intentar JSON primero
-                    if (contentType.includes('application/json')) {
-                        const data = await response.json();
-                        text = data.error || data.message || JSON.stringify(data);
-                    } else {
-                        text = await response.text();
-                    }
-                } catch (e) {
-                    text = `Error del servidor (status ${response.status})`;
-                }
-                console.error('Export error response:', response.status, text);
-                mostrarToast(`❌ Error del servidor: ${text}`, 'error');
-                return;
+                const text = await response.text();
+                throw new Error(text);
             }
 
-            // Si es JSON (respuesta de Drive u otros mensajes)
+            // Si es JSON (se envió por email)
             if (contentType.includes('application/json')) {
                 const data = await response.json();
-
-                // Aceptar ambas formas: {status: 'success'} o {success: true}
-                const okDrive = data.status === 'success' || data.success === true;
-
-                if (okDrive) {
-                    mostrarToast('✅ Archivo subido a Google Drive correctamente.');
-
-                    if (data.drive_url) {
-                        setTimeout(() => {
-                            if (confirm('¿Deseas abrir el archivo en Google Drive?')) {
-                                window.open(data.drive_url, '_blank');
-                            }
-                        }, 500);
+                
+                if (data.status === 'success') {
+                    emailStatusBox.innerHTML = `
+                        <div style="color: #28a745;">
+                            <i class="fa-solid fa-check-circle"></i>
+                            <strong>¡Listo!</strong> Revisa tu bandeja de entrada en: <strong>${payload.email_destinatario}</strong>
+                        </div>
+                    `;
+                    emailStatusBox.style.display = 'block';
+                    mostrarToast('✅ Email enviado correctamente');
+                    
+                    // Opción para abrir el link directamente
+                    if (data.drive_url && confirm('¿Deseas abrir el archivo ahora?')) {
+                        window.open(data.drive_url, '_blank');
                     }
                 } else {
-                    const err = data.error || data.message || JSON.stringify(data);
-                    mostrarToast(`❌ ${err}`, 'error');
+                    throw new Error(data.error || 'Error desconocido');
                 }
-            }
-            // Si la respuesta es HTML (página de error), no descargarla como archivo
-            else if (contentType.includes('text/html')) {
-                const text = await response.text();
-                console.error('HTML error response:', text);
-                mostrarToast('❌ Error inesperado del servidor. Revisa la consola para más detalles.', 'error');
-            }
+            } 
+            // Si es descarga directa (blob)
             else {
-                // Es descarga directa (blob)
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-
-                const extension = formatoSeleccionado === 'excel' ? 'xlsx' : formatoSeleccionado;
-                a.download = `resultados_partida_${partidaId}.${extension}`;
-
+                a.download = `resultados_partida_${partidaId}.${formatoSeleccionado === 'excel' ? 'xlsx' : formatoSeleccionado}`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
                 window.URL.revokeObjectURL(url);
-
-                mostrarToast('✅ Archivo descargado correctamente.');
+                mostrarToast('✅ Archivo descargado');
             }
 
         } catch (error) {
@@ -196,114 +140,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ======================================================
-// AUTENTICACIÓN CON GOOGLE
-// ======================================================
-
-async function autenticarConGoogle(email) {
-    try {
-        mostrarToast('🔄 Conectando con Google Drive...', 'info');
-
-        // Construir URL manualmente (fallback si el endpoint falla)
-        const CLIENT_ID = '52705894161-h0iaill994m2somatd50kh4drlt3dsve.apps.googleusercontent.com';
-        const REDIRECT_URI = 'http://localhost:5000/api/auth/google_drive/callback';
-        const SCOPE = 'https://www.googleapis.com/auth/drive.file';
-
-        const params = new URLSearchParams({
-            client_id: CLIENT_ID,
-            redirect_uri: REDIRECT_URI,
-            response_type: 'code',
-            scope: SCOPE,
-            access_type: 'offline',
-            prompt: 'consent',
-            login_hint: email
-        });
-
-        const auth_url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-
-        // Abrir ventana de autenticación
-        const authWindow = window.open(
-            auth_url,
-            'GoogleAuth',
-            'width=600,height=700,left=200,top=100'
-        );
-
-        if (!authWindow) {
-            throw new Error('Por favor permite las ventanas emergentes');
-        }
-
-        // Escuchar respuesta
-        const messageHandler = (event) => {
-            // Verificar que el mensaje viene de nuestro dominio
-            if (event.origin !== window.location.origin) {
-                return;
-            }
-
-            if (event.data.type === 'google_auth_success') {
-                window.googleAccessToken = event.data.access_token;
-                window.googleUserEmail = email;
-
-                mostrarEstadoConectado(email);
-                mostrarToast('✅ Conectado a Google Drive');
-
-                // Remover listener
-                window.removeEventListener('message', messageHandler);
-
-                if (authWindow && !authWindow.closed) {
-                    authWindow.close();
-                }
-            } else if (event.data.type === 'google_auth_error') {
-                window.removeEventListener('message', messageHandler);
-                throw new Error(event.data.error || 'Error de autenticación');
-            }
-        };
-
-        window.addEventListener('message', messageHandler);
-
-        // Timeout de 5 minutos
-        setTimeout(() => {
-            if (authWindow && !authWindow.closed) {
-                authWindow.close();
-                window.removeEventListener('message', messageHandler);
-                mostrarToast('⏱️ Tiempo de espera agotado', 'error');
-                document.getElementById('subirADrive').checked = false;
-            }
-        }, 300000);
-
-    } catch (error) {
-        console.error('Error autenticando:', error);
-        mostrarToast(`❌ ${error.message}`, 'error');
-        document.getElementById('subirADrive').checked = false;
-    }
+function mostrarIconoProveedor(tipo) {
+    const statusBox = document.getElementById('emailStatusBox');
+    const iconos = {
+        'gmail': '<i class="fa-brands fa-google" style="color: #EA4335;"></i> Gmail detectado',
+        'outlook': '<i class="fa-brands fa-microsoft" style="color: #0078D4;"></i> Outlook detectado'
+    };
+    
+    statusBox.innerHTML = `<div style="color: #28a745;">${iconos[tipo]}</div>`;
+    statusBox.style.display = 'block';
 }
 
-// ======================================================
-// MOSTRAR ESTADO DE CONEXIÓN
-// ======================================================
-
-function mostrarEstadoConectado(email) {
-    const driveStatusBox = document.getElementById('driveStatusBox');
-
-    driveStatusBox.className = 'drive-status-box connected';
-    driveStatusBox.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-check-circle" style="color: #28a745; font-size: 1.2rem;"></i>
-                <div>
-                    <strong style="color: #155724;">Conectado a Google Drive</strong>
-                    <p style="margin: 4px 0 0; font-size: 0.9rem; color: #155724;">${email}</p>
-                </div>
-            </div>
-            <i class="fa-brands fa-google-drive" style="font-size: 2rem; color: #4285F4;"></i>
-        </div>
-    `;
-    driveStatusBox.style.display = 'block';
+function validarEmail(email) {
+    // Validación básica de formato
+    const formatoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    
+    // Dominios permitidos (opcional, para restricción institucional)
+    const dominiosPermitidos = ['@gmail.com', '@usat.edu.pe', '@usat.pe'];
+    const tienesDominioPermitido = dominiosPermitidos.some(dominio => email.endsWith(dominio));
+    
+    // Si quieres aceptar CUALQUIER email válido, solo usa formatoValido
+    // Si quieres restringir a dominios institucionales, usa ambas condiciones
+    return formatoValido; // O: formatoValido && tienesDominioPermitido
 }
 
-// ======================================================
-// NOTIFICACIÓN (Toast)
-// ======================================================
-
+// Toast de notificaciones
 function mostrarToast(mensaje, tipo = 'success') {
     const toast = document.createElement('div');
     toast.className = `eduquiz-toast ${tipo}`;
