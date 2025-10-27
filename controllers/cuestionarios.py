@@ -101,12 +101,16 @@ def generar_codigo_unico(cursor):
         if cursor.fetchone() is None:
             return codigo
 
-
 @cuestionarios_bp.route('/api/cuestionario_completo', methods=['POST'])
 def crear_cuestionario_completo():
     data = request.get_json()
     if not data or 'nombre_cuestionario' not in data or 'preguntas' not in data:
         return jsonify({'error': 'Faltan datos requeridos'}), 400
+
+    # 1. Obtener el ID del usuario antes de conectar
+    usuario_id = data.get('usuario_id')
+    if not usuario_id:
+        return jsonify({'error': 'Falta el ID de usuario'}), 400
 
     conexion = dbmod.obtenerConexion()
     if not conexion:
@@ -117,6 +121,8 @@ def crear_cuestionario_completo():
             with conexion.cursor() as cursor:
                 codigo_visualizacion = generar_codigo_unico(cursor)
                 url_img_cuestionario_cloud = data.get('url_img_cuestionario') or ''
+                
+                # 2. Inserción del Cuestionario
                 sql_cuestionario = """
                     INSERT INTO cuestionario
                     (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario, codigo_visualizacion)
@@ -128,12 +134,13 @@ def crear_cuestionario_completo():
                     data.get('publico', 0),
                     data.get('modo_juego', 'C'),
                     data.get('tiempo_limite_pregunta', 30),
-                    data.get('usuario_id'),
+                    usuario_id, # Usamos el usuario_id extraído
                     url_img_cuestionario_cloud,
                     codigo_visualizacion
                 ))
                 cuestionario_id = cursor.lastrowid
 
+                # 3. Inserción de Preguntas y Respuestas (código original)
                 for pregunta in data['preguntas']:
                     sql_pregunta = """
                         INSERT INTO pregunta (texto_pregunta, media_url, tiempo_limite, cuestionario_id)
@@ -158,13 +165,23 @@ def crear_cuestionario_completo():
                             resp.get('estado_respuesta', 0),
                             pregunta_id
                         ))
+                
+                # 🎯 4. LÓGICA AGREGADA: Sumar 5000 monedas al usuario
+                sql_update_monedas = """
+                    UPDATE usuario
+                    SET cant_monedas = cant_monedas + 5000
+                    WHERE usuario_id = %s
+                """
+                cursor.execute(sql_update_monedas, (usuario_id,))
 
+                # 5. Confirmar la transacción (cuestionario e incremento de monedas)
                 conexion.commit()
 
         return jsonify({
             'mensaje': 'Cuestionario completo creado exitosamente',
             'cuestionario_id': cuestionario_id,
-            'codigo_visualizacion': codigo_visualizacion
+            'codigo_visualizacion': codigo_visualizacion,
+            'monedas_otorgadas': 5000 # Opcional: para confirmación en el frontend
         }), 201
 
     except Exception as e:
