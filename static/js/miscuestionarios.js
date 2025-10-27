@@ -1,422 +1,8 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const quizSearchInput = document.getElementById("quiz-search-input");
-
+  let cuestionarioAConfigurar = null;
   const usuarioId = document.body.dataset.usuarioId;
   const tipoUsuario = document.body.dataset.tipoUsuario; // 'P' o 'A'
-
-  if (!usuarioId || !tipoUsuario) {
-    console.error("No se encontró usuarioId o tipoUsuario");
-    return;
-  }
-
-  // Contenedores
-  const privadosContainer = document.querySelector("#privados-container");
-  const publicosContainer = document.querySelector("#publicos-container");
-  const comunidadContainer = document.querySelector("#comunidad-container");
-
-  // --- Obtener cuestionarios ---
-  async function fetchCuestionariosProfesor() {
-    const res = await fetch(`/api/cuestionarios/${usuarioId}`);
-    return res.ok ? res.json() : [];
-  }
-
-  async function fetchCuestionariosAlumnos() {
-    const res = await fetch(`/api/cuestionarios/${usuarioId}`);
-    return res.ok ? res.json() : [];
-  }
-
-  // --- Crear card ---
-  function crearCardProfesor(cuestionario) {
-    const card = document.createElement("div");
-    card.classList.add("quiz-card", "professor");
-
-    card.innerHTML = `
-            <div class="quiz-badge">${
-              cuestionario.num_preguntas || 0
-            } preguntas</div>
-                    <div class="quiz-image-placeholder">
-                    ${
-                      cuestionario.url_img_cuestionario
-                        ? `
-                      <img src="${cuestionario.url_img_cuestionario}" alt="Imagen del cuestionario">
-                    `
-                        : `
-                      <i class="fas fa-image"></i>
-                    `
-                    }
-                    </div>
-                    <div class="quiz-content">
-                        <h3 title="${cuestionario.nombre_cuestionario}">${
-      cuestionario.nombre_cuestionario || "Cuestionario sin Título"
-    }</h3>
-                        <p>${cuestionario.descripcion || "Sin descripción"}</p>
-                         ${
-                           cuestionario.codigo_visualizacion
-                             ? `
-            <p class="quiz-code">
-                Código de visualización: 
-                <strong>${cuestionario.codigo_visualizacion}</strong>
-            </p>
-        `
-                             : ""
-                         }
-                        <div class="quiz-actions" style="gap:10px">
-                            <div class="div-edit-btn" style="width: 100%; display: flex; background-color: var(--color-primary-teal); padding: 5px; border-radius: 12px; justify-content: center; align-items: center;">
-                                <a href="/editar_cuestionario/${
-                                  cuestionario.cuestionario_id
-                                }" class="edit-btn"><i class="fas fa-edit" style="margin-right:4px"></i> Editar</a>
-                            </div>
-                            <div class="action-icons">
-                                <button title="Jugar" class="action-icon-btn play btn-jugar"><i class="fa-solid fa-gamepad"></i></button>
-                                <button data-id="${
-                                  cuestionario.cuestionario_id
-                                }" title="Clonar" class="action-icon-btn clone clone-quiz-btn"><i class="fas fa-copy"></i></button>
-                                <button title="Eliminar" class="action-icon-btn delete"><i class="fa-solid fa-trash icon-delete"></i></button>
-                                
-                            </div>
-                        </div>
-                    </div>
-        `;
-    // 1. Obtener el ícono de Jugar
-    const playIcon = card.querySelector(".btn-jugar");
-
-    if (playIcon) {
-      // 2. Adjuntar el evento para abrir el modal de configuración
-      playIcon.addEventListener("click", () => {
-        // Pasamos el objeto cuestionario completo para cargar la info en el modal
-        abrirModalConfiguracion(cuestionario);
-      });
-    }
-    return card;
-  }
-
-  function crearCardAlumno(cuestionario) {
-    const card = document.createElement("div");
-    card.classList.add("quiz-card", "student");
-
-    card.innerHTML = `
-        <div class="quiz-badge">${
-          cuestionario.num_preguntas || 0
-        } preguntas</div>
-                    <div class="quiz-image-placeholder">
-                    ${
-                      cuestionario.url_img_cuestionario
-                        ? `
-                      <img src="${cuestionario.url_img_cuestionario}" alt="Imagen del cuestionario">
-                    `
-                        : `
-                      <i class="fas fa-image"></i>
-                    `
-                    }
-                    </div>
-                    <div class="quiz-content">
-                        <h3 title="${cuestionario.nombre_cuestionario}">${
-      cuestionario.nombre_cuestionario || "Cuestionario sin Título"
-    }</h3>
-                        <p>${cuestionario.descripcion || "Sin descripción"}</p>
-                        <div class="quiz-actions">
-                            <button class="btn-visualize" style="width: 100%; display: flex; background-color: var(--color-primary-teal); padding: 5px; border-radius: 12px; justify-content: center; align-items: center;border:none;" data-id="${
-                              cuestionario.cuestionario_id
-                            }">
-                <i class="fa-solid fa-eye" style="margin-right:4px"></i> Visualizar
-            </button>
-                        </div>
-                    </div>
-    `;
-
-    // Evento para ir directamente a visualizar el cuestionario
-    const btn = card.querySelector(".btn-visualize");
-    if (btn) {
-      btn.addEventListener("click", () => {
-        window.location.href = `/ver_cuestionario/${cuestionario.cuestionario_id}`;
-      });
-    }
-    return card;
-  }
-
-  // --- Almacenamiento y render dinámico con filtrado en tiempo real ---
-  let allCuestionarios = [];
-
-  function renderAll(filter = "") {
-    const q = (filter || "").toLowerCase().trim();
-
-    if (tipoUsuario === "P") {
-      const privados = allCuestionarios.filter(
-        (c) =>
-          !c.publico && (c.nombre_cuestionario || "").toLowerCase().includes(q)
-      );
-      const publicos = allCuestionarios.filter(
-        (c) =>
-          c.publico && (c.nombre_cuestionario || "").toLowerCase().includes(q)
-      );
-
-      privadosContainer.innerHTML = "";
-      publicosContainer.innerHTML = "";
-
-      privados.forEach((c) => {
-        const card = crearCardProfesor(c);
-        privadosContainer.appendChild(card);
-        const deleteIcon = card.querySelector(".icon-delete");
-        if (deleteIcon)
-          deleteIcon.addEventListener("click", () =>
-            abrirModalConfirmacion(c.cuestionario_id, card)
-          );
-        const cloneBtn = card.querySelector(".clone-quiz-btn");
-        if (cloneBtn) {
-          cloneBtn.addEventListener("click", async (e) => {
-            e.preventDefault();
-            const id = cloneBtn.dataset.id;
-            try {
-              const resp = await fetch(`/api/cuestionarios/clone/${id}`, {
-                method: "POST",
-              });
-              const data = await resp.json();
-              if (resp.ok && data && data.status === "ok") {
-                // refrescar lista
-                allCuestionarios = await fetchCuestionariosProfesor();
-                renderAll(quizSearchInput.value || "");
-              } else {
-                alert(
-                  "No se pudo clonar el cuestionario: " +
-                    (data.error || data.message || JSON.stringify(data))
-                );
-              }
-            } catch (err) {
-              console.error("Error clonando cuestionario:", err);
-              alert("Error de red al clonar.");
-            }
-          });
-        }
-      });
-
-      publicos.forEach((c) => {
-        const card = crearCardProfesor(c);
-        publicosContainer.appendChild(card);
-        const deleteIcon = card.querySelector(".icon-delete");
-        if (deleteIcon)
-          deleteIcon.addEventListener("click", () =>
-            abrirModalConfirmacion(c.cuestionario_id, card)
-          );
-        const cloneBtn = card.querySelector(".clone-quiz-btn");
-        if (cloneBtn) {
-          cloneBtn.addEventListener("click", async (e) => {
-            e.preventDefault();
-            const id = cloneBtn.dataset.id;
-            try {
-              const resp = await fetch(`/api/cuestionarios/clone/${id}`, {
-                method: "POST",
-              });
-              const data = await resp.json();
-              if (resp.ok && data && data.status === "ok") {
-                // refrescar lista
-                allCuestionarios = await fetchCuestionariosProfesor();
-                renderAll(quizSearchInput.value || "");
-              } else {
-                alert(
-                  "No se pudo clonar el cuestionario: " +
-                    (data.error || data.message || JSON.stringify(data))
-                );
-              }
-            } catch (err) {
-              console.error("Error clonando cuestionario:", err);
-              alert("Error de red al clonar.");
-            }
-          });
-        }
-      });
-
-      // Mostrar mensaje cuando no hay resultados
-      const totalRenderedP = privados.length + publicos.length;
-      const noQuizzesEl = document.getElementById("no-quizzes");
-      if (noQuizzesEl) {
-        if (totalRenderedP === 0) {
-          noQuizzesEl.style.display = "block";
-        } else {
-          noQuizzesEl.style.display = "none";
-        }
-      }
-    } else if (tipoUsuario === "A") {
-      const filtered = allCuestionarios.filter((c) =>
-        (c.nombre_cuestionario || "").toLowerCase().includes(q)
-      );
-      comunidadContainer.innerHTML = "";
-      filtered.forEach((c) => {
-        const card = crearCardAlumno(c);
-        comunidadContainer.appendChild(card);
-      });
-      // Mostrar mensaje cuando no hay resultados
-      const noQuizzesEl2 = document.getElementById("no-quizzes");
-      if (noQuizzesEl2) {
-        if (filtered.length === 0) {
-          noQuizzesEl2.style.display = "block";
-        } else {
-          noQuizzesEl2.style.display = "none";
-        }
-      }
-    }
-  }
-
-  // Inicializar datos y render inicial
-  if (tipoUsuario === "P") {
-    allCuestionarios = await fetchCuestionariosProfesor();
-  } else {
-    allCuestionarios = await fetchCuestionariosAlumnos();
-  }
-
-  renderAll("");
-
-  // --- Modal de confirmación ---
-  const modal = document.getElementById("confirmDeleteModal");
-  const btnCancel = document.getElementById("cancelDelete");
-  const btnConfirm = document.getElementById("confirmDelete");
-  let cuestionarioAEliminar = null;
-  let cardAEliminar = null;
-
-  function abrirModalConfirmacion(id, card) {
-    cuestionarioAEliminar = id;
-    cardAEliminar = card;
-    modal.classList.remove("hidden");
-  }
-
-  btnCancel.addEventListener("click", () => {
-    modal.classList.add("hidden");
-    cuestionarioAEliminar = null;
-  });
-
-  btnConfirm.addEventListener("click", async () => {
-    if (!cuestionarioAEliminar) return;
-    try {
-      const res = await fetch(`/api/cuestionarios/${cuestionarioAEliminar}`, {
-        method: "PUT",
-      });
-      const data = await res.json();
-
-      if (data.status === "ok") {
-        cardAEliminar.remove();
-      } else {
-        alert("Error al eliminar: " + (data.mensaje || "desconocido"));
-      }
-    } catch (err) {
-      console.error("Error al eliminar:", err);
-      alert("Ocurrió un error en la conexión.");
-    } finally {
-      modal.classList.add("hidden");
-      cuestionarioAEliminar = null;
-    }
-  });
-
-  // Buscar Cuestionario por código
-  // Manejo de inputs de código y redirección a visualizar cuestionario
-  function qs(selector, root = document) {
-    return root.querySelector(selector);
-  }
-  function qsa(selector, root = document) {
-    return Array.from(root.querySelectorAll(selector));
-  }
-
-  var codeBoxes = qsa(".quiz-code .code-box");
-  var btn = qs(".btn-verQuizCode");
-  var errorEl = qs("#code-error");
-
-  // Autofocus navigation
-  codeBoxes.forEach(function (box, idx) {
-    box.addEventListener("input", function (e) {
-      var v = box.value || "";
-      if (v.length > 0 && idx < codeBoxes.length - 1) {
-        codeBoxes[idx + 1].focus();
-      }
-    });
-    box.addEventListener("keydown", function (e) {
-      if (e.key === "Backspace" && box.value === "" && idx > 0) {
-        codeBoxes[idx - 1].focus();
-      }
-      if (e.key === "Enter") {
-        btn.click();
-      }
-    });
-    // Detectar pegado completo (Ctrl+V) y distribuir caracteres entre inputs
-    box.addEventListener('paste', function (e) {
-      // Solo manejar pegado en el primer input para evitar duplicados
-      try {
-        e.preventDefault();
-        var pasted = (e.clipboardData || window.clipboardData).getData('text') || '';
-        pasted = pasted.trim();
-        if (!pasted) return;
-        // Tomar los primeros 6 caracteres (sin espacios)
-        var chars = pasted.replace(/\s+/g, '').slice(0, codeBoxes.length).split('');
-        for (var i = 0; i < codeBoxes.length; i++) {
-          codeBoxes[i].value = chars[i] || '';
-        }
-        // Si se llenaron todos, mover foco al último
-        var filled = Array.from(codeBoxes).filter(function (b) { return b.value; }).length;
-        if (filled === codeBoxes.length) {
-          codeBoxes[codeBoxes.length - 1].focus();
-        } else {
-          // Mover foco al siguiente vacío
-          for (var j = 0; j < codeBoxes.length; j++) {
-            if (!codeBoxes[j].value) { codeBoxes[j].focus(); break; }
-          }
-        }
-      } catch (err) {
-        console.error('Error manejando paste en codeBoxes:', err);
-      }
-    });
-  });
-
-  btn.addEventListener("click", async function (e) {
-    e.preventDefault();
-    var code = codeBoxes.map((b) => (b.value || "").toString().trim()).join("");
-    if (!code || code.length !== 6) {
-      if (errorEl) {
-        errorEl.style.display = "block";
-      }
-      return;
-    }
-    if (errorEl) {
-      errorEl.style.display = "none";
-    }
-
-    try {
-      var resp = await fetch(
-        "/api/cuestionario/por_codigo/" + encodeURIComponent(code),
-        { method: "GET", headers: { "X-Requested-With": "XMLHttpRequest" } }
-      );
-      if (resp.ok) {
-        var data = await resp.json();
-        if (data && data.cuestionario_id) {
-          window.location.href = "/ver_cuestionario/" + data.cuestionario_id;
-          return;
-        }
-      }
-      // si no ok
-      if (errorEl) {
-        errorEl.textContent = "Código no válido o cuestionario no encontrado.";
-        errorEl.style.display = "block";
-      }
-    } catch (err) {
-      console.error("Error buscando cuestionario por codigo", err);
-      if (errorEl) {
-        errorEl.textContent = "Error de conexión. Intenta nuevamente.";
-        errorEl.style.display = "block";
-      }
-    }
-  });
-
-  // Búsqueda en tiempo real
-  // debounce simple
-  function debounce(func, wait = 200) {
-    let t;
-    return (...args) => {
-      clearTimeout(t);
-      t = setTimeout(() => func(...args), wait);
-    };
-  }
-
-  const handleSearch = debounce((e) => {
-    renderAll(e.target.value || "");
-  }, 150);
-
-  quizSearchInput.addEventListener("input", handleSearch);
 
   // ******************************************************
   // --- LÓGICA DEL MODAL DE CONFIGURACIÓN DE PARTIDA ---
@@ -433,7 +19,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const configQuizDescription = document.getElementById(
     "configQuizDescription"
   );
-  let cuestionarioAConfigurar = null;
+
+  if (!usuarioId || !tipoUsuario) {
+    console.error("No se encontró usuarioId o tipoUsuario");
+    return;
+  }
 
   // Función para abrir y cargar datos del modal
   // --- Nueva versión de abrirModalConfiguracion ---
@@ -457,9 +47,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Cargar la información básica en el modal
       configQuizImage.src =
         data.url_img_cuestionario || "/static/img/default_quiz.png";
-      configNumPreguntas.textContent = `${
-        data.preguntas?.length || 0
-      } preguntas`;
+      configNumPreguntas.textContent = `${data.preguntas?.length || 0
+        } preguntas`;
       configQuizTitle.textContent = data.nombre_cuestionario;
       configQuizDescription.textContent =
         data.descripcion || "Sin descripción.";
@@ -477,8 +66,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Mostrar modal
       configModal.classList.remove("hidden");
     } catch (err) {
-      console.error("Error en abrirModalConfiguracion:", err);
-      alert("Error al conectar con el servidor.");
+      console.error("Error en abrirModalConfiguracion:", err.message, err.stack);
+      alert("Error en abrirModalConfiguracion:\n" + err.message);
     }
   }
 
@@ -709,4 +298,404 @@ document.addEventListener("DOMContentLoaded", async () => {
       localStorage.setItem("musicaActiva", "false");
     }
   });
+  // Contenedores
+  const privadosContainer = document.querySelector("#privados-container");
+  const publicosContainer = document.querySelector("#publicos-container");
+  const comunidadContainer = document.querySelector("#comunidad-container");
+
+  // --- Obtener cuestionarios ---
+  async function fetchCuestionariosProfesor() {
+    const res = await fetch(`/api/cuestionarios/${usuarioId}`);
+    return res.ok ? res.json() : [];
+  }
+
+  async function fetchCuestionariosAlumnos() {
+    const res = await fetch(`/api/cuestionarios/${usuarioId}`);
+    return res.ok ? res.json() : [];
+  }
+
+  // --- Crear card ---
+  function crearCardProfesor(cuestionario) {
+    const card = document.createElement("div");
+    card.classList.add("quiz-card", "professor");
+
+    card.innerHTML = `
+            <div class="quiz-badge">${cuestionario.num_preguntas || 0
+      } preguntas</div>
+                    <div class="quiz-image-placeholder">
+                    ${cuestionario.url_img_cuestionario
+        ? `
+                      <img src="${cuestionario.url_img_cuestionario}" alt="Imagen del cuestionario">
+                    `
+        : `
+                      <i class="fas fa-image"></i>
+                    `
+      }
+                    </div>
+                    <div class="quiz-content">
+                        <h3 title="${cuestionario.nombre_cuestionario}">${cuestionario.nombre_cuestionario || "Cuestionario sin Título"
+      }</h3>
+                        <p>${cuestionario.descripcion || "Sin descripción"}</p>
+                         ${cuestionario.codigo_visualizacion
+        ? `
+            <p class="quiz-code">
+                Código de visualización: 
+                <strong>${cuestionario.codigo_visualizacion}</strong>
+            </p>
+        `
+        : ""
+      }
+                        <div class="quiz-actions" style="gap:10px">
+                            <div class="div-edit-btn" style="width: 100%; display: flex; background-color: var(--color-primary-teal); padding: 5px; border-radius: 12px; justify-content: center; align-items: center;">
+                                <a href="/editar_cuestionario/${cuestionario.cuestionario_id
+      }" class="edit-btn"><i class="fas fa-edit" style="margin-right:4px"></i> Editar</a>
+                            </div>
+                            <div class="action-icons">
+                                <button title="Jugar" class="action-icon-btn play btn-jugar"><i class="fa-solid fa-gamepad"></i></button>
+                                <button data-id="${cuestionario.cuestionario_id
+      }" title="Clonar" class="action-icon-btn clone clone-quiz-btn"><i class="fas fa-copy"></i></button>
+                                <button title="Eliminar" class="action-icon-btn delete"><i class="fa-solid fa-trash icon-delete"></i></button>
+                                
+                            </div>
+                        </div>
+                    </div>
+        `;
+    // 1. Obtener el ícono de Jugar
+    const playIcon = card.querySelector(".btn-jugar");
+
+    if (playIcon) {
+      // 2. Adjuntar el evento para abrir el modal de configuración
+      playIcon.addEventListener("click", () => {
+        // Pasamos el objeto cuestionario completo para cargar la info en el modal
+        abrirModalConfiguracion(cuestionario);
+      });
+    }
+    return card;
+  }
+
+  function crearCardAlumno(cuestionario) {
+    const card = document.createElement("div");
+    card.classList.add("quiz-card", "student");
+
+    card.innerHTML = `
+        <div class="quiz-badge">${cuestionario.num_preguntas || 0
+      } preguntas</div>
+                    <div class="quiz-image-placeholder">
+                    ${cuestionario.url_img_cuestionario
+        ? `
+                      <img src="${cuestionario.url_img_cuestionario}" alt="Imagen del cuestionario">
+                    `
+        : `
+                      <i class="fas fa-image"></i>
+                    `
+      }
+                    </div>
+                    <div class="quiz-content">
+                        <h3 title="${cuestionario.nombre_cuestionario}">${cuestionario.nombre_cuestionario || "Cuestionario sin Título"
+      }</h3>
+                        <p>${cuestionario.descripcion || "Sin descripción"}</p>
+                        <div class="quiz-actions">
+                            <button class="btn-visualize" style="width: 100%; display: flex; background-color: var(--color-primary-teal); padding: 5px; border-radius: 12px; justify-content: center; align-items: center;border:none;" data-id="${cuestionario.cuestionario_id
+      }">
+                <i class="fa-solid fa-eye" style="margin-right:4px"></i> Visualizar
+            </button>
+                        </div>
+                    </div>
+    `;
+
+    // Evento para ir directamente a visualizar el cuestionario
+    const btn = card.querySelector(".btn-visualize");
+    if (btn) {
+      btn.addEventListener("click", () => {
+        window.location.href = `/ver_cuestionario/${cuestionario.cuestionario_id}`;
+      });
+    }
+    return card;
+  }
+
+  // --- Almacenamiento y render dinámico con filtrado en tiempo real ---
+  let allCuestionarios = [];
+
+  function renderAll(filter = "") {
+    const q = (filter || "").toLowerCase().trim();
+
+    if (tipoUsuario === "P") {
+      const privados = allCuestionarios.filter(
+        (c) =>
+          !c.publico && (c.nombre_cuestionario || "").toLowerCase().includes(q)
+      );
+      const publicos = allCuestionarios.filter(
+        (c) =>
+          c.publico && (c.nombre_cuestionario || "").toLowerCase().includes(q)
+      );
+
+      privadosContainer.innerHTML = "";
+      publicosContainer.innerHTML = "";
+
+      privados.forEach((c) => {
+        const card = crearCardProfesor(c);
+        privadosContainer.appendChild(card);
+        const deleteIcon = card.querySelector(".icon-delete");
+        if (deleteIcon)
+          deleteIcon.addEventListener("click", () =>
+            abrirModalConfirmacion(c.cuestionario_id, card)
+          );
+        const cloneBtn = card.querySelector(".clone-quiz-btn");
+        if (cloneBtn) {
+          cloneBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const id = cloneBtn.dataset.id;
+            try {
+              const resp = await fetch(`/api/cuestionarios/clone/${id}`, {
+                method: "POST",
+              });
+              const data = await resp.json();
+              if (resp.ok && data && data.status === "ok") {
+                // refrescar lista
+                allCuestionarios = await fetchCuestionariosProfesor();
+                renderAll(quizSearchInput.value || "");
+              } else {
+                alert(
+                  "No se pudo clonar el cuestionario: " +
+                  (data.error || data.message || JSON.stringify(data))
+                );
+              }
+            } catch (err) {
+              console.error("Error clonando cuestionario:", err);
+              alert("Error de red al clonar.");
+            }
+          });
+        }
+      });
+
+      publicos.forEach((c) => {
+        const card = crearCardProfesor(c);
+        publicosContainer.appendChild(card);
+        const deleteIcon = card.querySelector(".icon-delete");
+        if (deleteIcon)
+          deleteIcon.addEventListener("click", () =>
+            abrirModalConfirmacion(c.cuestionario_id, card)
+          );
+        const cloneBtn = card.querySelector(".clone-quiz-btn");
+        if (cloneBtn) {
+          cloneBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const id = cloneBtn.dataset.id;
+            try {
+              const resp = await fetch(`/api/cuestionarios/clone/${id}`, {
+                method: "POST",
+              });
+              const data = await resp.json();
+              if (resp.ok && data && data.status === "ok") {
+                // refrescar lista
+                allCuestionarios = await fetchCuestionariosProfesor();
+                renderAll(quizSearchInput.value || "");
+              } else {
+                alert(
+                  "No se pudo clonar el cuestionario: " +
+                  (data.error || data.message || JSON.stringify(data))
+                );
+              }
+            } catch (err) {
+              console.error("Error clonando cuestionario:", err);
+              alert("Error de red al clonar.");
+            }
+          });
+        }
+      });
+
+      // Mostrar mensaje cuando no hay resultados
+      const totalRenderedP = privados.length + publicos.length;
+      const noQuizzesEl = document.getElementById("no-quizzes");
+      if (noQuizzesEl) {
+        if (totalRenderedP === 0) {
+          noQuizzesEl.style.display = "block";
+        } else {
+          noQuizzesEl.style.display = "none";
+        }
+      }
+    } else if (tipoUsuario === "A") {
+      const filtered = allCuestionarios.filter((c) =>
+        (c.nombre_cuestionario || "").toLowerCase().includes(q)
+      );
+      comunidadContainer.innerHTML = "";
+      filtered.forEach((c) => {
+        const card = crearCardAlumno(c);
+        comunidadContainer.appendChild(card);
+      });
+      // Mostrar mensaje cuando no hay resultados
+      const noQuizzesEl2 = document.getElementById("no-quizzes");
+      if (noQuizzesEl2) {
+        if (filtered.length === 0) {
+          noQuizzesEl2.style.display = "block";
+        } else {
+          noQuizzesEl2.style.display = "none";
+        }
+      }
+    }
+  }
+
+  // Inicializar datos y render inicial
+  if (tipoUsuario === "P") {
+    allCuestionarios = await fetchCuestionariosProfesor();
+  } else {
+    allCuestionarios = await fetchCuestionariosAlumnos();
+  }
+
+  renderAll("");
+
+  // --- Modal de confirmación ---
+  const modal = document.getElementById("confirmDeleteModal");
+  const btnCancel = document.getElementById("cancelDelete");
+  const btnConfirm = document.getElementById("confirmDelete");
+  let cuestionarioAEliminar = null;
+  let cardAEliminar = null;
+
+  function abrirModalConfirmacion(id, card) {
+    cuestionarioAEliminar = id;
+    cardAEliminar = card;
+    modal.classList.remove("hidden");
+  }
+
+  btnCancel.addEventListener("click", () => {
+    modal.classList.add("hidden");
+    cuestionarioAEliminar = null;
+  });
+
+  btnConfirm.addEventListener("click", async () => {
+    if (!cuestionarioAEliminar) return;
+    try {
+      const res = await fetch(`/api/cuestionarios/${cuestionarioAEliminar}`, {
+        method: "PUT",
+      });
+      const data = await res.json();
+
+      if (data.status === "ok") {
+        cardAEliminar.remove();
+      } else {
+        alert("Error al eliminar: " + (data.mensaje || "desconocido"));
+      }
+    } catch (err) {
+      console.error("Error al eliminar:", err);
+      alert("Ocurrió un error en la conexión.");
+    } finally {
+      modal.classList.add("hidden");
+      cuestionarioAEliminar = null;
+    }
+  });
+
+  // Buscar Cuestionario por código
+  // Manejo de inputs de código y redirección a visualizar cuestionario
+  function qs(selector, root = document) {
+    return root.querySelector(selector);
+  }
+  function qsa(selector, root = document) {
+    return Array.from(root.querySelectorAll(selector));
+  }
+
+  var codeBoxes = qsa(".quiz-code .code-box");
+  var btn = qs(".btn-verQuizCode");
+  var errorEl = qs("#code-error");
+
+  // Autofocus navigation
+  codeBoxes.forEach(function (box, idx) {
+    box.addEventListener("input", function (e) {
+      var v = box.value || "";
+      if (v.length > 0 && idx < codeBoxes.length - 1) {
+        codeBoxes[idx + 1].focus();
+      }
+    });
+    box.addEventListener("keydown", function (e) {
+      if (e.key === "Backspace" && box.value === "" && idx > 0) {
+        codeBoxes[idx - 1].focus();
+      }
+      if (e.key === "Enter") {
+        btn.click();
+      }
+    });
+    // Detectar pegado completo (Ctrl+V) y distribuir caracteres entre inputs
+    box.addEventListener('paste', function (e) {
+      // Solo manejar pegado en el primer input para evitar duplicados
+      try {
+        e.preventDefault();
+        var pasted = (e.clipboardData || window.clipboardData).getData('text') || '';
+        pasted = pasted.trim();
+        if (!pasted) return;
+        // Tomar los primeros 6 caracteres (sin espacios)
+        var chars = pasted.replace(/\s+/g, '').slice(0, codeBoxes.length).split('');
+        for (var i = 0; i < codeBoxes.length; i++) {
+          codeBoxes[i].value = chars[i] || '';
+        }
+        // Si se llenaron todos, mover foco al último
+        var filled = Array.from(codeBoxes).filter(function (b) { return b.value; }).length;
+        if (filled === codeBoxes.length) {
+          codeBoxes[codeBoxes.length - 1].focus();
+        } else {
+          // Mover foco al siguiente vacío
+          for (var j = 0; j < codeBoxes.length; j++) {
+            if (!codeBoxes[j].value) { codeBoxes[j].focus(); break; }
+          }
+        }
+      } catch (err) {
+        console.error('Error manejando paste en codeBoxes:', err);
+      }
+    });
+  });
+
+  btn.addEventListener("click", async function (e) {
+    e.preventDefault();
+    var code = codeBoxes.map((b) => (b.value || "").toString().trim()).join("");
+    if (!code || code.length !== 6) {
+      if (errorEl) {
+        errorEl.style.display = "block";
+      }
+      return;
+    }
+    if (errorEl) {
+      errorEl.style.display = "none";
+    }
+
+    try {
+      var resp = await fetch(
+        "/api/cuestionario/por_codigo/" + encodeURIComponent(code),
+        { method: "GET", headers: { "X-Requested-With": "XMLHttpRequest" } }
+      );
+      if (resp.ok) {
+        var data = await resp.json();
+        if (data && data.cuestionario_id) {
+          window.location.href = "/ver_cuestionario/" + data.cuestionario_id;
+          return;
+        }
+      }
+      // si no ok
+      if (errorEl) {
+        errorEl.textContent = "Código no válido o cuestionario no encontrado.";
+        errorEl.style.display = "block";
+      }
+    } catch (err) {
+      console.error("Error buscando cuestionario por codigo", err);
+      if (errorEl) {
+        errorEl.textContent = "Error de conexión. Intenta nuevamente.";
+        errorEl.style.display = "block";
+      }
+    }
+  });
+
+  // Búsqueda en tiempo real
+  // debounce simple
+  function debounce(func, wait = 200) {
+    let t;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => func(...args), wait);
+    };
+  }
+
+  const handleSearch = debounce((e) => {
+    renderAll(e.target.value || "");
+  }, 150);
+
+  quizSearchInput.addEventListener("input", handleSearch);
+
+  
 });
