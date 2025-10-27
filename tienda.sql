@@ -148,28 +148,41 @@ VALUES
 
 
  INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`, `skinDefault`, `categoria`) VALUES
-(1, 'Skin default chico', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761277844/Skin_default_hombre_dd8uud.png', 250, 1, 1, 'N'),
+(1, 'Skin default chico', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761277844/Skin_default_hombre_dd8uud.png', 0, 1, 1, 'N'),
 (2, 'Skin Default Chica', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761277843/Skin_default_chica_tdx1wn.png', 0, 1, 1, 'N'),
-(3, 'Skin ing. Civil', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761265960/ingcivil_l70gwl.png', 250, 1, 0, 'N'),
-(4, 'Skin Doctor', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761266435/a81241a9-bc7e-44cb-add3-3567c2272bc5.png', 250, 1, 0, 'N'),
-(5, 'Skin Developer', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761267295/4b793a2c-ce12-4fd2-b018-40a4facc7373.png', 250, 1, 0, 'N'),
-(7, 'Skin Abogado', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761266580/8374a853-3de9-4793-9f76-849d73ffa400.png', 250, 1, 0, 'N'),
-(10, 'Skin Enfermera', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761267158/873b8b0a-75b9-4d24-92a5-caee3fde709f.png', 250, 1, 0, 'N'),
-(12, 'Rockero / Metalero', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278458/Rockero_waaq9r.png', 1000, 1, 0, 'E'),
-(14, 'L. Messi', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278797/GOAT_wrvpzy.png', 1500, 1, 0, 'L'),
-(15, 'C. Ronaldo', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278947/CR7_qb6rro.png', 1500, 1, 0, 'L');
+(3, 'Skin ing. Civil', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761265960/ingcivil_l70gwl.png', 5000, 1, 0, 'N'),
+(4, 'Skin Doctor', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761266435/a81241a9-bc7e-44cb-add3-3567c2272bc5.png', 5000, 1, 0, 'N'),
+(5, 'Skin Developer', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761267295/4b793a2c-ce12-4fd2-b018-40a4facc7373.png', 5000, 1, 0, 'N'),
+(7, 'Skin Abogado', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761266580/8374a853-3de9-4793-9f76-849d73ffa400.png', 5000, 1, 0, 'N'),
+(10, 'Skin Enfermera', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761267158/873b8b0a-75b9-4d24-92a5-caee3fde709f.png', 5000, 1, 0, 'N'),
+(12, 'Rockero / Metalero', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278458/Rockero_waaq9r.png', 10000, 1, 0, 'E'),
+(14, 'L. Messi', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278797/GOAT_wrvpzy.png', 20000, 1, 0, 'L'),
+(15, 'C. Ronaldo', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278947/CR7_qb6rro.png', 20000, 1, 0, 'L');
 
 
 INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`, `skinDefault`, `categoria`) VALUES
-(6, 'Miss universo', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/miss_txjipp.png', 3500, 1, 0, 'E'),
-(8, 'Voleybolista', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/Voleybolista_qblsyl.png', 3500, 1, 0, 'E'),
-(9, 'Astronauta', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/astronauta_rppbqi.png', 3500, 1, 0, 'E'),
-(11, 'Militar', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/militar_az3ild.png', 3500, 1, 0, 'E'),
-(13, 'Freddie Mercury', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/FreddieMercury_rovgmz.png', 5000, 1, 0, 'L'),
-(16, 'Neymar', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/neymart_belhaz.png', 5000, 1, 0, 'L'),
-(17, 'Michael Jackson', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/MJ_jnxcww.png', 5000, 1, 0, 'L'),
-(18, 'Spiderman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/Spiderman_qcxu2b.png', 5000, 1, 0, 'L'),
-(19, 'Ironman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/ironman_srrjri.png', 5000, 1, 0, 'L'),
-(20, 'Superman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/superman_yvlwxq.png', 5000, 1, 0, 'L'),
-(21, 'Batman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/batman_hfojlw.png', 5000, 1, 0, 'L'),
-(22, 'Axl Rose', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/axelrose_hvffnr.png', 5000, 1, 0, 'L');
+(6, 'Miss universo', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/miss_txjipp.png', 10000, 1, 0, 'E'),
+(8, 'Voleybolista', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/Voleybolista_qblsyl.png', 10000, 1, 0, 'E'),
+(9, 'Astronauta', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/astronauta_rppbqi.png', 10000, 1, 0, 'E'),
+(11, 'Militar', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/militar_az3ild.png', 10000, 1, 0, 'E'),
+(13, 'Freddie Mercury', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/FreddieMercury_rovgmz.png', 20000, 1, 0, 'L'),
+(16, 'Neymar', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/neymart_belhaz.png', 20000, 1, 0, 'L'),
+(17, 'Michael Jackson', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/MJ_jnxcww.png', 20000, 1, 0, 'L'),
+(18, 'Spiderman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/Spiderman_qcxu2b.png', 20000, 1, 0, 'L'),
+(19, 'Ironman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/ironman_srrjri.png', 20000, 1, 0, 'L'),
+(20, 'Superman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/superman_yvlwxq.png', 20000, 1, 0, 'L'),
+(21, 'Batman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/batman_hfojlw.png', 20000, 1, 0, 'L'),
+(22, 'Axl Rose', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/axelrose_hvffnr.png', 20000, 1, 0, 'L');
+
+INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`, `skinDefault`, `categoria`) VALUES
+(23, 'Freddy Krueger', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/fredyKrugger_ak9b6e.png', 10000, 1, 0, 'E'),
+(24, 'Pennywise', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/pennywise_e2qfru.png', 10000, 1, 0, 'E'),
+(25, 'Narrador', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/NARRADOR_yxfkvd.png', 10000, 1, 0, 'E'),
+(26, 'Goku', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/goku_uutqph.png', 50000, 1, 0, 'L'),
+(27, 'Chucky', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/chucky_jig8i3.png', 10000, 1, 0, 'E'),
+(28, 'Shrek', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/Shrek_oztlbh.png', 10000, 1, 0, 'E'),
+(29, 'Joker', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/joker_ffwjuo.png', 10000, 1, 0, 'E'),
+(30, 'Minion', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/miniom_yr3zul.png', 10000, 1, 0, 'E'),
+(31, 'Homelander', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/homelander_bdre4s.png', 10000, 1, 0, 'E'),
+(32, 'Jason', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/Jason_f9z3kp.png', 10000, 1, 0, 'E'),
+(33, 'Jack Sparrow', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596688/jacksparrow_zdwchb.png', 10000, 1, 0, 'E');
