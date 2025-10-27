@@ -70,7 +70,7 @@ def _get_logged_in_user():
         return {}
     try:
         with conexion.cursor() as cursor:
-            sql = "SELECT usuario_id, username, nombre, cant_monedas, tipo_usuario FROM usuario WHERE usuario_id=%s"
+            sql = "SELECT usuario_id, username, nombre, cant_monedas, tipo_usuario, url_avatar, url_foto_perfil FROM usuario WHERE usuario_id=%s"
             cursor.execute(sql, (user_id,))
             row = cursor.fetchone()
             return row or {}

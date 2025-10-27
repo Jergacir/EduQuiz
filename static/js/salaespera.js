@@ -195,11 +195,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // MOSTRAR USUARIO ACTUAL EN SU TARJETA
     // ===================================================================
     const tarjetaUsuario = document.querySelector('.tarjeta-usuario');
+    console.log("Avatar:"  + tarjetaUsuario.dataset.avatar);
     if (tarjetaUsuario) {
         const nombreUsuario = tarjetaUsuario.dataset.nombreUsuario || "Usuario";
         tarjetaUsuario.innerHTML = `
             <div class="usuario">
-                <img src="/static/img/avatar.jpeg" alt="Avatar">
+                <img src="${tarjetaUsuario.dataset.avatar || '/static/img/avatar.jpeg'}" alt="Avatar">
                 <span>${nombreUsuario}</span>
             </div>
         `;
