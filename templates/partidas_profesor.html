@@ -108,29 +108,29 @@
                                 <th>Acción</th>
                             </tr>
                         </thead>
+                        <!-- REEMPLAZAR tbody completo -->
                         <tbody>
-                            <tr>
-                                <td>Cuestionario de Matemáticas 1</td>
-                                <td>2023-10-15</td>
-                                <td>Individual</td>
-                                <td>30</td>
-                                <td>458921</td>
-                                <td>
-                                    <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=1) }}"
-                                        class="btn-ver-resultados">Ver Resultados</a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Cuestionario de Ciencias 2</td>
-                                <td>2023-10-14</td>
-                                <td>Grupal</td>
-                                <td>25</td>
-                                <td>197302</td>
-                                <td>
-                                    <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=2) }}"
-                                        class="btn-ver-resultados">Ver Resultados</a>
-                                </td>
-                            </tr>
+                            {% if partidas %}
+                                {% for partida in partidas %}
+                                <tr>
+                                    <td>{{ partida.nombre_cuestionario }}</td>
+                                    <td>{{ partida.fecha_creacion.strftime('%Y-%m-%d %H:%M') if partida.fecha_creacion else 'N/A' }}</td>
+                                    <td>{{ 'Grupal' if partida.tipo_partida == 'G' else 'Individual' }}</td>
+                                    <td>{{ partida.total_jugadores or 0 }}</td>
+                                    <td>{{ partida.codigo_partida }}</td>
+                                    <td>
+                                        <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=partida.partida_id) }}"
+                                            class="btn-ver-resultados">Ver Resultados</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 20px;">
+                                        No tienes partidas creadas aún
+                                    </td>
+                                </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>

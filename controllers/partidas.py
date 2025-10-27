@@ -179,10 +179,44 @@ def frm_partidas():
     return render_template('partidas.html', logged_in_user=logged)
 
 
+# LÍNEA ~870 - Modificar frm_partidas_profesor
 @partidas_bp.route('/partidas_profesor')
 def frm_partidas_profesor():
     logged = _get_logged_in_user()
-    return render_template('partidas_profesor.html', logged_in_user=logged)
+    if not logged or logged.get('tipo_usuario') != 'P':
+        abort(403, "Solo profesores pueden acceder")
+    
+    # NUEVO: Obtener partidas del profesor
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        abort(500, "Error de conexión")
+    
+    try:
+        with conexion.cursor() as cursor:
+            sql = """
+                SELECT 
+                    p.partida_id,
+                    p.codigo_partida,
+                    p.fecha_creacion,
+                    p.tipo_partida,
+                    c.nombre_cuestionario,
+                    COUNT(DISTINCT part.participante_id) as total_jugadores
+                FROM partida p
+                JOIN cuestionario c ON p.cuestionario_id = c.cuestionario_id
+                LEFT JOIN participante part ON p.partida_id = part.partida_id
+                WHERE p.usuario_creador_id = %s
+                GROUP BY p.partida_id
+                ORDER BY p.fecha_creacion DESC
+                LIMIT 20
+            """
+            cursor.execute(sql, (logged['usuario_id'],))
+            partidas = cursor.fetchall()
+            
+        return render_template('partidas_profesor.html', 
+                             logged_in_user=logged,
+                             partidas=partidas)
+    finally:
+        conexion.close()
 
 
 @partidas_bp.route('/jugar/<string:codigo_partida>')
@@ -1825,12 +1859,9 @@ def api_responder_pregunta():
 # =========================================================================
 # NUEVO ENDPOINT: Finalizar partida
 # =========================================================================
+# LÍNEA ~2100 - Modificar api_finalizar_partida
 @partidas_bp.route('/api/partida/finalizar', methods=['POST'])
 def api_finalizar_partida():
-    """
-    Marca una partida como finalizada y retorna el ID para ver resultados.
-    Body: { codigo_partida: str }
-    """
     data = request.get_json() or {}
     codigo_partida = data.get('codigo_partida')
     
@@ -1843,29 +1874,37 @@ def api_finalizar_partida():
     
     try:
         with conexion.cursor() as cursor:
-            cursor.execute("""
-                SELECT partida_id 
-                FROM partida 
-                WHERE codigo_partida = %s
-            """, (codigo_partida,))
-            
+            # 1. Obtener partida
+            cursor.execute("SELECT partida_id FROM partida WHERE codigo_partida = %s", (codigo_partida,))
             partida = cursor.fetchone()
             if not partida:
                 return jsonify({'success': False, 'message': 'Partida no encontrada'}), 404
             
-            # Actualizar estado
+            partida_id = partida['partida_id']
+            
+            # 2. NUEVO: Sumar puntos a monedas de cada usuario
+            cursor.execute("""
+                UPDATE usuario u
+                INNER JOIN participante p ON u.usuario_id = p.usuario_id
+                SET u.cant_monedas = u.cant_monedas + COALESCE(p.puntuacion_total, 0)
+                WHERE p.partida_id = %s
+            """, (partida_id,))
+            
+            # 3. Marcar partida como finalizada
             cursor.execute("""
                 UPDATE partida 
                 SET estado = 'finalizada' 
-                WHERE codigo_partida = %s
-            """, (codigo_partida,))
+                WHERE partida_id = %s
+            """, (partida_id,))
             
             conexion.commit()
             
+            actualizar_timestamp_partida(codigo_partida)
+            
             return jsonify({
                 'success': True,
-                'partida_id': partida['partida_id'],
-                'message': 'Partida finalizada'
+                'partida_id': partida_id,
+                'message': 'Partida finalizada y monedas actualizadas'
             }), 200
             
     except Exception as e:
@@ -1874,7 +1913,6 @@ def api_finalizar_partida():
         return jsonify({'success': False, 'message': str(e)}), 500
     finally:
         conexion.close()
-
 
 
 # ========================================================
