@@ -86,14 +86,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 1. Recoger las opciones de configuración
     const configuracion = {
       cuestionario_id: cuestionarioAConfigurar.cuestionario_id,
-      orden_preguntas_azar:
-        document.getElementById("checkPreguntasAzar").checked,
-      orden_respuestas_azar: document.getElementById("checkRespuestasAzar")
-        .checked,
       anadir_musica: document.getElementById("checkAnadirMusica").checked,
       modalidad: tipo_partida,
       num_grupos: document.getElementById("numGrupos").value,
-      generar_qr: document.getElementById("checkGenerarQR").checked,
       pin_automatico: document.getElementById("checkPinAutomatico").checked,
       pin: Array.from(document.querySelectorAll(".pin-box"))
         .map((b) => b.textContent)
@@ -102,46 +97,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("Configuración a enviar:", configuracion);
 
-    // === ALEATORIZACIÓN LOCAL ===
-    console.log("🔹 Cuestionario ORIGINAL:", cuestionarioAConfigurar);
-
+    
     let cuestionarioFinal = JSON.parse(JSON.stringify(cuestionarioAConfigurar));
 
-    // Si está activado el orden de preguntas al azar
-    if (
-      configuracion.orden_preguntas_azar &&
-      Array.isArray(cuestionarioFinal.preguntas)
-    ) {
-      cuestionarioFinal.preguntas = cuestionarioFinal.preguntas.sort(
-        () => Math.random() - 0.5
-      );
-      console.log(
-        "🔀 Preguntas ALEATORIZADAS:",
-        cuestionarioFinal.preguntas.map((p) => p.titulo || p.texto || p.id)
-      );
-    } else {
-      console.log("⚠️ Orden de preguntas al azar DESACTIVADO");
-    }
-
-    // Si está activado el orden de respuestas al azar
-    if (
-      configuracion.orden_respuestas_azar &&
-      Array.isArray(cuestionarioFinal.preguntas)
-    ) {
-      cuestionarioFinal.preguntas.forEach((p, i) => {
-        if (Array.isArray(p.respuestas)) {
-          const antes = p.respuestas.map((r) => r.texto || r.id);
-          p.respuestas = p.respuestas.sort(() => Math.random() - 0.5);
-          const despues = p.respuestas.map((r) => r.texto || r.id);
-          console.log(`🎲 Respuestas pregunta ${i + 1}:`);
-          console.log("Antes:", antes);
-          console.log("Después:", despues);
-        }
-      });
-    } else {
-      console.log("⚠️ Orden de respuestas al azar DESACTIVADO");
-    }
-
+  
     // Guardar para la partida
     sessionStorage.setItem(
       "cuestionario_actual",
