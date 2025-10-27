@@ -107,7 +107,8 @@ CREATE TABLE `cuestionario` (
   `usuario_id` int(11) NOT NULL,
   `url_img_cuestionario` varchar(250) DEFAULT NULL,
   `codigo_visualizacion` varchar(12) DEFAULT NULL,
-  `estado` tinyint(1) NOT NULL DEFAULT 1
+  `estado` tinyint(1) NOT NULL DEFAULT 1,
+  `origen_cuestionario_id` int DEFAULT NULL,
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 -- --------------------------------------------------------
