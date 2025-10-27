@@ -2181,10 +2181,13 @@ envios_recientes = defaultdict(list)
 # ========================================================
 # ENDPOINT DE EXPORTACIÓN (modificado)
 # ========================================================
+# ========================================================
+# ENDPOINT DE EXPORTACIÓN MEJORADO - con metadata
+# ========================================================
 @partidas_bp.route('/api/exportar_partida/<int:partida_id>', methods=['POST'])
 def api_exportar_partida(partida_id):
     """
-    Exporta resultados con OAuth (sin Service Account)
+    Exporta resultados con metadata (usuario y fecha)
     """
     data = request.get_json() or {}
     formato = data.get("formato", "csv").lower()
@@ -2192,20 +2195,40 @@ def api_exportar_partida(partida_id):
     enviar_por_email = data.get("enviar_por_email", False)
     email_destinatario = data.get("email_destinatario", "")
     
-    # Validación básica
     if not campos:
         return jsonify({"status": "error", "error": "No se seleccionaron campos"}), 400
     
     if formato not in ["csv", "excel", "pdf"]:
         return jsonify({"status": "error", "error": "Formato no soportado"}), 400
     
-    # Obtener datos de la BD
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({"status": "error", "error": "Error de conexión a BD"}), 500
     
     try:
         with conexion.cursor() as cursor:
+            # ===================================================================
+            # OBTENER INFORMACIÓN DE LA PARTIDA (con usuario y fecha)
+            # ===================================================================
+            cursor.execute("""
+                SELECT 
+                    p.codigo_partida,
+                    p.fecha_creacion,
+                    c.nombre_cuestionario,
+                    u.nombre AS usuario_creador
+                FROM partida p
+                JOIN cuestionario c ON p.cuestionario_id = c.cuestionario_id
+                JOIN usuario u ON p.usuario_creador_id = u.usuario_id
+                WHERE p.partida_id = %s
+            """, (partida_id,))
+            
+            partida_info = cursor.fetchone()
+            if not partida_info:
+                return jsonify({"status": "error", "error": "Partida no encontrada"}), 404
+            
+            # ===================================================================
+            # OBTENER DATOS DE PARTICIPANTES
+            # ===================================================================
             cursor.execute("""
                 SELECT 
                     u.nombre,
@@ -2243,14 +2266,37 @@ def api_exportar_partida(partida_id):
         campos_validos = [c for c in campos_normalizados if c in df.columns]
         df = df[campos_validos]
         
-        # Generar archivo
+        # ===================================================================
+        # PREPARAR METADATA PARA EL ARCHIVO
+        # ===================================================================
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        usuario_creador = partida_info.get('usuario_creador', 'Desconocido')
+        fecha_creacion = partida_info.get('fecha_creacion')
+        if isinstance(fecha_creacion, datetime):
+            fecha_str = fecha_creacion.strftime('%d/%m/%Y %H:%M')
+        else:
+            fecha_str = str(fecha_creacion) if fecha_creacion else 'N/A'
+        
+        nombre_cuestionario = partida_info.get('nombre_cuestionario', 'Cuestionario')
+        
         buffer = BytesIO()
         
+        # ===================================================================
+        # GENERAR ARCHIVO SEGÚN FORMATO
+        # ===================================================================
         if formato == "csv":
             from io import TextIOWrapper
             text_wrapper = TextIOWrapper(buffer, encoding="utf-8-sig", newline="", write_through=True)
+            
+            # ✅ AGREGAR METADATA AL CSV
+            text_wrapper.write(f"# Resultados - Partida #{partida_id}\n")
+            text_wrapper.write(f"# Cuestionario: {nombre_cuestionario}\n")
+            text_wrapper.write(f"# Creado por: {usuario_creador}\n")
+            text_wrapper.write(f"# Fecha: {fecha_str}\n")
+            text_wrapper.write(f"# Total participantes: {len(df)}\n")
+            text_wrapper.write("\n")
+            
             df.to_csv(text_wrapper, index=False)
             text_wrapper.detach()
             buffer.seek(0)
@@ -2259,27 +2305,49 @@ def api_exportar_partida(partida_id):
         
         elif formato == "excel":
             with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+                # ✅ CREAR HOJA DE METADATA
+                metadata_df = pd.DataFrame({
+                    'Campo': [
+                        'Partida ID',
+                        'Cuestionario',
+                        'Creado por',
+                        'Fecha de creación',
+                        'Total participantes'
+                    ],
+                    'Valor': [
+                        partida_id,
+                        nombre_cuestionario,
+                        usuario_creador,
+                        fecha_str,
+                        len(df)
+                    ]
+                })
+                
+                metadata_df.to_excel(writer, index=False, sheet_name="Información")
                 df.to_excel(writer, index=False, sheet_name="Resultados")
+            
             buffer.seek(0)
             mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             extension = "xlsx"
         
         elif formato == "pdf":
-            # Tu función existente de PDF
-            from reportlab.lib.pagesizes import letter
-            from reportlab.pdfgen import canvas
-            c = canvas.Canvas(buffer, pagesize=letter)
-            # ... tu código de PDF ...
-            c.save()
-            buffer.seek(0)
+            # ✅ PASAR INFO COMPLETA A LA FUNCIÓN PDF
+            info_completa = {
+                'nombre_cuestionario': nombre_cuestionario,
+                'usuario_creador': usuario_creador,
+                'fecha_creacion': fecha_str
+            }
+            
+            generar_pdf_mejorado(buffer, df, partida_id, info_completa)
             mimetype = "application/pdf"
             extension = "pdf"
         
         filename = f"resultados_partida_{partida_id}_{timestamp}.{extension}"
         
-        # Si se solicitó envío por email
+        # ===================================================================
+        # ENVÍO POR EMAIL (si se solicitó)
+        # ===================================================================
         if enviar_por_email and email_destinatario:
-            # 1. Subir a Drive
             resultado_drive = subir_a_drive_oauth(buffer, filename, mimetype)
             
             if not resultado_drive.get("success"):
@@ -2288,8 +2356,6 @@ def api_exportar_partida(partida_id):
                     "error": f"Error subiendo a Drive: {resultado_drive.get('error')}"
                 }), 500
             
-            # 2. Enviar email
-            nombre_cuestionario = rows[0].get('nombre_cuestionario', 'Cuestionario')
             resultado_email = enviar_email_oauth(
                 email_destinatario,
                 resultado_drive["url"],
@@ -2311,7 +2377,9 @@ def api_exportar_partida(partida_id):
                     "error_email": resultado_email.get("error")
                 }), 200
         
-        # Descarga directa
+        # ===================================================================
+        # DESCARGA DIRECTA
+        # ===================================================================
         from flask import send_file
         return send_file(
             buffer,
@@ -2331,43 +2399,66 @@ def api_exportar_partida(partida_id):
 
 
 # ========================================================
-# GENERADOR DE PDF MEJORADO
+# FUNCIÓN: Generar PDF mejorado con metadata
 # ========================================================
 def generar_pdf_mejorado(buffer, df, partida_id, info_partida):
-    """Genera un PDF profesional con los resultados"""
+    """Genera un PDF profesional con los resultados - VERSIÓN CORREGIDA"""
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import inch
+    from reportlab.lib import colors
+    from reportlab.platypus import Table, TableStyle
+    from datetime import datetime
+    
+    # Crear canvas
     c = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    # Header
+    # ===================================================================
+    # HEADER CON METADATA (Usuario y Fecha)
+    # ===================================================================
     c.setFillColor(colors.HexColor('#2D3047'))
-    c.rect(0, height - 80, width, 80, fill=True, stroke=False)
+    c.rect(0, height - 120, width, 120, fill=True, stroke=False)
     
     c.setFillColor(colors.white)
     c.setFont("Helvetica-Bold", 24)
     c.drawString(50, height - 50, f"Resultados - Partida #{partida_id}")
     
     c.setFont("Helvetica", 12)
-    c.drawString(50, height - 70, f"Cuestionario: {info_partida.get('nombre_cuestionario', 'N/A')}")
+    c.drawString(50, height - 75, f"Cuestionario: {info_partida.get('nombre_cuestionario', 'N/A')}")
     
-    # Información general
+    # NUEVA LÍNEA: Usuario creador
+    c.drawString(50, height - 95, f"Creado por: {info_partida.get('usuario_creador', 'Desconocido')}")
+    
+    # NUEVA LÍNEA: Fecha de creación
+    fecha_str = info_partida.get('fecha_creacion', 'N/A')
+    if isinstance(fecha_str, datetime):
+        fecha_str = fecha_str.strftime('%d/%m/%Y %H:%M')
+    c.drawString(50, height - 110, f"Fecha: {fecha_str}")
+    
+    # ===================================================================
+    # INFORMACIÓN GENERAL
+    # ===================================================================
     c.setFillColor(colors.black)
     c.setFont("Helvetica", 11)
-    y_pos = height - 110
-    c.drawString(50, y_pos, f"Fecha: {info_partida.get('fecha_creacion', 'N/A')}")
-    c.drawString(50, y_pos - 20, f"Total de participantes: {len(df)}")
+    y_pos = height - 150
+    c.drawString(50, y_pos, f"Total de participantes: {len(df)}")
     
-    # Tabla de resultados
-    y_pos -= 60
+    # ===================================================================
+    # TABLA DE RESULTADOS
+    # ===================================================================
+    y_pos -= 40
     
     # Preparar datos para la tabla
     table_data = [df.columns.tolist()]  # Headers
     for _, row in df.iterrows():
         table_data.append([str(val)[:30] for val in row.values])
     
-    # Crear tabla
-    # ColWidths: Usar el ancho de la página menos los márgenes, dividido por el número de columnas
+    # Calcular ancho de columnas
     col_width = (width - 100) / len(df.columns) 
     col_widths = [col_width] * len(df.columns)
+    
+    # Crear tabla
     table = Table(table_data, colWidths=col_widths)
     
     table.setStyle(TableStyle([
@@ -2381,14 +2472,112 @@ def generar_pdf_mejorado(buffer, df, partida_id, info_partida):
         ('GRID', (0, 0), (-1, -1), 1, colors.black)
     ]))
     
+    # Calcular altura disponible
+    table_height = len(table_data) * 20
+    
     # Dibujar tabla
-    table.wrapOn(c, width - 100, height) # El ancho de envoltura es el ancho de la página menos los márgenes
-    table.drawOn(c, 50, y_pos - (len(table_data) * 20)) 
+    table.wrapOn(c, width - 100, height)
+    table.drawOn(c, 50, max(50, y_pos - table_height))
     
-    c.save() 
+    # Guardar PDF
+    c.save()
     
-    # Muy importante: Reportlab.c.save() cierra el buffer, así que lo re-abrimos y posicionamos al inicio
+    # ⚠️ CRÍTICO: Resetear el puntero del buffer al inicio
     buffer.seek(0)
+    
+    return buffer
+
+
+# ========================================================
+# GENERADOR DE PDF MEJORADO
+# ========================================================
+# En controllers/partidas.py - REEMPLAZAR la función generar_pdf_mejorado
+
+def generar_pdf_mejorado(buffer, df, partida_id, info_partida):
+    """Genera un PDF profesional con los resultados - VERSIÓN CORREGIDA"""
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import inch
+    from reportlab.lib import colors
+    from reportlab.platypus import Table, TableStyle
+    from datetime import datetime
+    
+    # Crear canvas
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    
+    # ===================================================================
+    # HEADER CON METADATA (Usuario y Fecha)
+    # ===================================================================
+    c.setFillColor(colors.HexColor('#2D3047'))
+    c.rect(0, height - 120, width, 120, fill=True, stroke=False)
+    
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 24)
+    c.drawString(50, height - 50, f"Resultados - Partida #{partida_id}")
+    
+    c.setFont("Helvetica", 12)
+    c.drawString(50, height - 75, f"Cuestionario: {info_partida.get('nombre_cuestionario', 'N/A')}")
+    
+    # NUEVA LÍNEA: Usuario creador
+    c.drawString(50, height - 95, f"Creado por: {info_partida.get('usuario_creador', 'Desconocido')}")
+    
+    # NUEVA LÍNEA: Fecha de creación
+    fecha_str = info_partida.get('fecha_creacion', 'N/A')
+    if isinstance(fecha_str, datetime):
+        fecha_str = fecha_str.strftime('%d/%m/%Y %H:%M')
+    c.drawString(50, height - 110, f"Fecha: {fecha_str}")
+    
+    # ===================================================================
+    # INFORMACIÓN GENERAL
+    # ===================================================================
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 11)
+    y_pos = height - 150
+    c.drawString(50, y_pos, f"Total de participantes: {len(df)}")
+    
+    # ===================================================================
+    # TABLA DE RESULTADOS
+    # ===================================================================
+    y_pos -= 40
+    
+    # Preparar datos para la tabla
+    table_data = [df.columns.tolist()]  # Headers
+    for _, row in df.iterrows():
+        table_data.append([str(val)[:30] for val in row.values])
+    
+    # Calcular ancho de columnas
+    col_width = (width - 100) / len(df.columns) 
+    col_widths = [col_width] * len(df.columns)
+    
+    # Crear tabla
+    table = Table(table_data, colWidths=col_widths)
+    
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#419D78')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    # Calcular altura disponible
+    table_height = len(table_data) * 20
+    
+    # Dibujar tabla
+    table.wrapOn(c, width - 100, height)
+    table.drawOn(c, 50, max(50, y_pos - table_height))
+    
+    # Guardar PDF
+    c.save()
+    
+    # ⚠️ CRÍTICO: Resetear el puntero del buffer al inicio
+    buffer.seek(0)
+    
+    return buffer
 
 
 # ========================================================
