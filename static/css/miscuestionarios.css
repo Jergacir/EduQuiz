@@ -72,6 +72,55 @@
     }
 }
 
+/*Visualizar cuestionario por código*/
+.quiz-code{
+    display: flex;
+    /* justify-content: space-between; */
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-wrap: wrap;
+}
+
+.quiz-code h2{
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text-dark);
+}
+
+.quiz-code input{
+    /* padding: 10px 16px; */
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    flex-grow: 1;
+}
+
+.quiz-code input:focus {
+    border-color: var(--color-primary-teal);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--color-primary-teal);
+}
+
+.quiz-code button{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-sidebar-bg);
+    transition: color 0.15s;
+    border: none;
+    background-color: var(--color-primary-teal);
+    padding: 10px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+
+
 /* --- Listado de Cuestionarios (Cards) --- */
 .quiz-section h2 {
     font-size: 1.5rem;

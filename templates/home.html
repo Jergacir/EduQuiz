@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inicio - EduQuiz</title> 
-    
+    <title>Inicio - EduQuiz</title>
+
     <link rel="stylesheet" href="../static/css/home.css">
-        <link rel="stylesheet" href="/static/css/global.css">
-        <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
-        <link rel="icon" href="/static/img/icono.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/global.css">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="icon" href="/static/img/icono.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
 
@@ -17,7 +18,8 @@
         .btn-gestor {
             display: inline-block;
             padding: 12px 30px;
-            background-color: #0D9488; /* Verde esmeralda */
+            background-color: #0D9488;
+            /* Verde esmeralda */
             color: white;
             text-decoration: none;
             border-radius: 8px;
@@ -28,11 +30,12 @@
             margin-top: 20px;
             margin-bottom: 20px;
         }
+
         .btn-gestor:hover {
             background-color: #0D9488;
             transform: translateY(-2px);
         }
-        
+
         /* Estilos para mensajes Flash (si se usaran en el futuro) */
         .alert {
             padding: 15px;
@@ -41,20 +44,36 @@
             text-align: left;
             font-weight: 500;
         }
-        .alert.success { background-color: #d1fae5; color: #065f46; border: 1px solid #34d399; }
-        .alert.error { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
-        .alert.warning { background-color: #fffbeb; color: #92400e; border: 1px solid #fcd34d; }
-        
+
+        .alert.success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #34d399;
+        }
+
+        .alert.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #f87171;
+        }
+
+        .alert.warning {
+            background-color: #fffbeb;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+
         /* Estilos para la bienvenida/área de gestor */
-       
+
         .welcome-area h1 {
             margin-top: 0;
         }
     </style>
 </head>
+
 <body>
-    
-  <!-- Botón de menú para móvil -->
+
+    <!-- Botón de menú para móvil -->
     <button id="menu-button" class="menu-button lg:hidden">
         <i class="fas fa-bars"></i>
     </button>
@@ -73,7 +92,7 @@
             </a>
             <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-link">
                 <i class="fa-regular fa-file nav-icon"></i> Cuestionarios
-                
+
             </a>
             <a href="{{ url_for('tienda.tienda_index') }}" class="nav-link">
                 <i class="fas fa-store nav-icon"></i> Tienda
@@ -106,90 +125,151 @@
 
     <div class="main-content">
         <header class="header">
-                            <h1>Inicio</h1>
+            <h1>Inicio</h1>
 
-                <!-- Búsqueda, Créditos y Perfil -->
-                <div class="credits-profile-container">
-                     <!-- Botón Inventario al lado de las monedas -->
-                    <a href="{{ url_for('tienda.inventario_index') }}" class="btn-inventory"><i class="fa-solid fa-box-open"></i> Inventario</a>
-                    <!-- Créditos y Perfil (Estilo del wireframe) -->
-                    <div class="credits-box">
-                        <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
-                        <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
-                    </div>
-                   
-                    <div class="profile-box" id="profile-box" style="cursor:pointer; position: relative;">
-                        {% set default_avatar = '/static/img/perfil_profesor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'P') else ('/static/img/perfil_gestor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'G') else '/static/img/perfil_estudiante.png') %}
-                        <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or default_avatar }}" class="profile-img">
-                        <span class="profile-text">{{ logged_in_user.username }}</span>
-                        <i class="fas fa-caret-down profile-caret" aria-hidden="true"></i>
+            <!-- Búsqueda, Créditos y Perfil -->
+            <div class="credits-profile-container">
+                <!-- Botón Inventario al lado de las monedas -->
+                <a href="{{ url_for('tienda.inventario_index') }}" class="btn-inventory"><i
+                        class="fa-solid fa-box-open"></i> Inventario</a>
+                <!-- Créditos y Perfil (Estilo del wireframe) -->
+                <div class="credits-box">
+                    <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
+                    <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
+                </div>
 
-                        <!-- Menú contextual emergente -->
-                        <div id="profile-menu" class="profile-menu" aria-hidden="true">
-                            <a href="{{ url_for('tienda.inventario_index') }}" class="profile-menu-item"><i class="fa-solid fa-box-open"></i> Inventario</a>
-                            <div class="profile-menu-divider" aria-hidden="true"></div>
-                            <a href="{{ url_for('usuarios.usuarios_index') }}" class="profile-menu-item"><i class="fas fa-cog"></i> Configuración</a>
-                            <a href="{{ url_for('auth.logout') }}" class="profile-menu-item"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
-                        </div>
+                <div class="profile-box" id="profile-box" style="cursor:pointer; position: relative;">
+                    {% set default_avatar = '/static/img/perfil_profesor.png' if (logged_in_user and
+                    logged_in_user.get('tipo_usuario') == 'P') else ('/static/img/perfil_gestor.png' if (logged_in_user
+                    and logged_in_user.get('tipo_usuario') == 'G') else '/static/img/perfil_estudiante.png') %}
+                    <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or default_avatar }}"
+                        class="profile-img">
+                    <span class="profile-text">{{ logged_in_user.username }}</span>
+                    <i class="fas fa-caret-down profile-caret" aria-hidden="true"></i>
+
+                    <!-- Menú contextual emergente -->
+                    <div id="profile-menu" class="profile-menu" aria-hidden="true">
+                        <a href="{{ url_for('tienda.inventario_index') }}" class="profile-menu-item"><i
+                                class="fa-solid fa-box-open"></i> Inventario</a>
+                        <div class="profile-menu-divider" aria-hidden="true"></div>
+                        <a href="{{ url_for('usuarios.usuarios_index') }}" class="profile-menu-item"><i
+                                class="fas fa-cog"></i> Configuración</a>
+                        <a href="{{ url_for('auth.logout') }}" class="profile-menu-item"><i
+                                class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
                     </div>
                 </div>
-            </header>
+            </div>
+        </header>
 
-       
+
 
         <main class="content-area">
-            
+
 
             <div class="welcome-area">
                 {% if logged_in_user.tipo_usuario == 'G' %}
                 <div class="gestor-area">
                     <h2>¡Hola Gestor, {{ logged_in_user.nombre }}!</h2>
-                    <p>Tienes acceso a la administración del sistema. **Rol: {{ logged_in_user.tipo_usuario }}** | Monedas Ganadas: {{ logged_in_user.cant_monedas }} 💰</p>
+                    <p>Tienes acceso a la administración del sistema. **Rol: {{ logged_in_user.tipo_usuario }}** |
+                        Monedas Ganadas: {{ logged_in_user.cant_monedas }} 💰</p>
                     <a href="{{ url_for('usuarios.usuarios_index') }}" class="btn-gestor">
                         Administrar Usuarios (CRUD)
                     </a>
                 </div>
                 {% else %}
                 <h2>Bienvenido a EduQuiz, {{ logged_in_user.nombre }}!</h2>
-                <p>Crea, enseña, aprende y alcanza tus metas académicas, todo en un solo lugar. Donde tu conocimiento es el único límite.</p>
+                <p>Crea, enseña, aprende y alcanza tus metas académicas, todo en un solo lugar. Donde tu conocimiento es
+                    el único límite.</p>
                 <p>Monedas Ganadas: {{ logged_in_user.cant_monedas }} 💰</p>
                 {% endif %}
             </div>
-            
+
             <section class="quiz-section">
                 <h2>Populares</h2>
+                {% if popular_quizzes %}
                 <div class="quiz-grid">
-                    {% for i in range(4) %}
+
+                    {% for q in popular_quizzes %}
                     <div class="quiz-card">
-                        <div class="quiz-image">[Image]</div>
-                        <span class="quiz-questions">10 preguntas</span>
-                        <h3 class="quiz-title">Título del cuestionario</h3>
-                        <p class="quiz-description">Descripción</p>
-                        <button class="btn-get">Obtener</button>
+                        <div class="quiz-badge">{{ q.num_preguntas or 0 }} preguntas</div>
+                        <div class="quiz-image-placeholder">
+                            {% if q.url_img_cuestionario %}
+                            <img src="{{ q.url_img_cuestionario }}" alt="Imagen del cuestionario">
+                            {% else %}
+                            <i class="fas fa-image"></i>
+                            {% endif %}
+                        </div>
+                        <div class="quiz-content">
+                            <h3 title="{{ q.nombre_cuestionario }}">{{ q.nombre_cuestionario or 'Cuestionario sin
+                                Título' }}</h3>
+                            <p>{{ q.descripcion or 'Sin descripción' }}</p>
+                            <p>Creado por: <b> {{ q.username_quiz or 'Anónimo' }}</b></p>
+                            <div class="quiz-actions">
+                                <button class="btn-get" data-id="{{ q.cuestionario_id }}"><i class="fas fa-copy"></i>
+                                    Obtener</button>
+                            </div>
+                        </div>
                     </div>
                     {% endfor %}
-                    </div>
-            </section>
-            
-            <section class="quiz-section">
-                <h2>Creados por la comunidad</h2>
-                <div class="quiz-grid">
-                    {% for i in range(4) %}
-                    <div class="quiz-card">
-                        <div class="quiz-image">[Image]</div>
-                        <span class="quiz-questions">10 preguntas</span>
-                        <h3 class="quiz-title">Título del cuestionario</h3>
-                        <p class="quiz-description">Descripción</p>
-                        <button class="btn-get">Obtener</button>
-                    </div>
-                    {% endfor %}
+
                 </div>
+                {% else %}
+                <p>No hay cuestionarios públicos disponibles.</p>
+                {% endif %}
             </section>
 
+            <section class="quiz-section">
+                <h2>Creados por la Comunidad</h2>
+                {% if community_quizzes %}
+                <div class="quiz-grid">
+
+                    {% for q in community_quizzes %}
+                    <div class="quiz-card">
+                        <div class="quiz-badge">{{ q.num_preguntas or 0 }} preguntas</div>
+                        <div class="quiz-image-placeholder">
+                            {% if q.url_img_cuestionario %}
+                            <img src="{{ q.url_img_cuestionario }}" alt="Imagen del cuestionario">
+                            {% else %}
+                            <i class="fas fa-image"></i>
+                            {% endif %}
+                        </div>
+                        <div class="quiz-content">
+                            <h3 title="{{ q.nombre_cuestionario }}">{{ q.nombre_cuestionario or 'Cuestionario sin
+                                Título' }}</h3>
+                            <p>{{ q.descripcion or 'Sin descripción' }}</p>
+                            <p>Creado por: <b> {{ q.username_quiz or 'Anónimo' }}</b></p>
+                            <div class="quiz-actions">
+                                <button class="btn-get" data-id="{{ q.cuestionario_id }}"><i class="fas fa-copy"></i>
+                                    Obtener</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                </div>
+                {% else %}
+                <p>No hay más cuestionarios públicos disponibles.</p>
+                {% endif %}
+            </section>
         </main>
     </div>
+
+    <!-- Modal de confirmación para 'Obtener' -->
+    <div id="clone-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-content">
+            <h3 id="clone-modal-title">Cuestionario clonado</h3>
+            <p id="clone-modal-msg">Se ha clonado el cuestionario en tu cuenta.</p>
+            <div class="modal-buttons">
+                <a id="clone-modal-view" class="btn-verQuiz" href="{{ url_for('cuestionarios.frm_cuestionarios') }}">Ver
+                    mis cuestionarios</a>
+                <button id="clone-modal-close" class="btn-cancel">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../static/js/home.js"></script>
-        <script src="/static/js/global.js"></script>
+    <script src="/static/js/global.js"></script>
 
 </body>
+
 </html>

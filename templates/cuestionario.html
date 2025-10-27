@@ -82,27 +82,35 @@
                 <h1>Cuestionarios de la comunidad</h1>
                 {% endif %}
                 <!-- Búsqueda, Créditos y Perfil -->
-              <div class="credits-profile-container">
-                     <!-- Botón Inventario al lado de las monedas -->
-                    <a href="{{ url_for('tienda.inventario_index') }}" class="btn-inventory"><i class="fa-solid fa-box-open"></i> Inventario</a>
+                <div class="credits-profile-container">
+                    <!-- Botón Inventario al lado de las monedas -->
+                    <a href="{{ url_for('tienda.inventario_index') }}" class="btn-inventory"><i
+                            class="fa-solid fa-box-open"></i> Inventario</a>
                     <!-- Créditos y Perfil (Estilo del wireframe) -->
                     <div class="credits-box">
                         <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
                         <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
                     </div>
-                   
+
                     <div class="profile-box" id="profile-box" style="cursor:pointer; position: relative;">
-                        {% set default_avatar = '/static/img/perfil_profesor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'P') else ('/static/img/perfil_gestor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'G') else '/static/img/perfil_estudiante.png') %}
-                        <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or default_avatar }}" class="profile-img">
+                        {% set default_avatar = '/static/img/perfil_profesor.png' if (logged_in_user and
+                        logged_in_user.get('tipo_usuario') == 'P') else ('/static/img/perfil_gestor.png' if
+                        (logged_in_user and logged_in_user.get('tipo_usuario') == 'G') else
+                        '/static/img/perfil_estudiante.png') %}
+                        <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or default_avatar }}"
+                            class="profile-img">
                         <span class="profile-text">{{ logged_in_user.username }}</span>
                         <i class="fas fa-caret-down profile-caret" aria-hidden="true"></i>
 
                         <!-- Menú contextual emergente -->
                         <div id="profile-menu" class="profile-menu" aria-hidden="true">
-                            <a href="{{ url_for('tienda.inventario_index') }}" class="profile-menu-item"><i class="fa-solid fa-box-open"></i> Inventario</a>
+                            <a href="{{ url_for('tienda.inventario_index') }}" class="profile-menu-item"><i
+                                    class="fa-solid fa-box-open"></i> Inventario</a>
                             <div class="profile-menu-divider" aria-hidden="true"></div>
-                            <a href="{{ url_for('usuarios.usuarios_index') }}" class="profile-menu-item"><i class="fas fa-cog"></i> Configuración</a>
-                            <a href="{{ url_for('auth.logout') }}" class="profile-menu-item"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+                            <a href="{{ url_for('usuarios.usuarios_index') }}" class="profile-menu-item"><i
+                                    class="fas fa-cog"></i> Configuración</a>
+                            <a href="{{ url_for('auth.logout') }}" class="profile-menu-item"><i
+                                    class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
                         </div>
                     </div>
                 </div>
@@ -144,6 +152,20 @@
             </section>
 
             {% else %}
+            <section class="quiz-code">
+                <h2>Código de Cuestionario:</h2>
+                <!-- <input type="text" placeholder="Ingresa el código del cuestionario"> -->
+                <div class="code-inputs">
+                    <input type="text" maxlength="1" class="code-box" inputmode="numeric">
+                    <input type="text" maxlength="1" class="code-box" inputmode="numeric">
+                    <input type="text" maxlength="1" class="code-box" inputmode="numeric">
+                    <input type="text" maxlength="1" class="code-box" inputmode="numeric">
+                    <input type="text" maxlength="1" class="code-box" inputmode="numeric">
+                    <input type="text" maxlength="1" class="code-box" inputmode="numeric">
+                </div>
+                <button class="btn-verQuizCode"><i class="fa-solid fa-eye" style="margin-right:4px"></i>Visualizar</button>
+                <p id="code-error" style="color:#dc2626;display:none">Código incorrecto. Inténtalo de nuevo.</p>
+            </section>
             <section class="quiz-section">
                 <h2>Cuestionarios Guardados</h2>
                 <div id="comunidad-container" class="quiz-grid"><!-- comunidad se insertará aquí --></div>
@@ -168,28 +190,6 @@
             <div class="modal-buttons">
                 <button id="cancelDelete" class="btn-cancel">Cancelar</button>
                 <button id="confirmDelete" class="btn-confirm">Eliminar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Visualizar (código) Modal - añadido para pruebas -->
-    <div id="visualizarModal" class="modal hidden">
-        <div class="modal-content">
-            <h3>Ingresar código de visualización</h3>
-            <p>Introduce los 6 dígitos del código para ver el cuestionario:</p>
-            <div class="code-inputs">
-                <input type="text" maxlength="1" class="code-box" inputmode="numeric">
-                <input type="text" maxlength="1" class="code-box" inputmode="numeric">
-                <input type="text" maxlength="1" class="code-box" inputmode="numeric">
-                <input type="text" maxlength="1" class="code-box" inputmode="numeric">
-                <input type="text" maxlength="1" class="code-box" inputmode="numeric">
-                <input type="text" maxlength="1" class="code-box" inputmode="numeric">
-            </div>
-            <p id="code-error" style="color:#dc2626;margin-top:8px;display:none">Código incorrecto. Inténtalo de nuevo.
-            </p>
-            <div class="modal-buttons">
-                <button id="cancelCode" class="btn-cancel">Cancelar</button>
-                <button id="verifyCode" class="btn-confirm primary">Verificar</button>
             </div>
         </div>
     </div>

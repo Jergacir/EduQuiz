@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function fetchCuestionariosAlumnos() {
-    const res = await fetch(`/api/cuestionarios_publicos`);
+    const res = await fetch(`/api/cuestionarios/${usuarioId}`);
     return res.ok ? res.json() : [];
   }
 
@@ -31,37 +31,46 @@ document.addEventListener("DOMContentLoaded", async () => {
     card.classList.add("quiz-card", "professor");
 
     card.innerHTML = `
-            <div class="quiz-badge">${cuestionario.num_preguntas || 0
-      } preguntas</div>
+            <div class="quiz-badge">${
+              cuestionario.num_preguntas || 0
+            } preguntas</div>
                     <div class="quiz-image-placeholder">
-                    ${cuestionario.url_img_cuestionario ? `
+                    ${
+                      cuestionario.url_img_cuestionario
+                        ? `
                       <img src="${cuestionario.url_img_cuestionario}" alt="Imagen del cuestionario">
-                    ` : `
+                    `
+                        : `
                       <i class="fas fa-image"></i>
-                    `}
+                    `
+                    }
                     </div>
                     <div class="quiz-content">
-                        <h3 title="${cuestionario.nombre_cuestionario}">${cuestionario.nombre_cuestionario || "Cuestionario sin Título"
-      }</h3>
+                        <h3 title="${cuestionario.nombre_cuestionario}">${
+      cuestionario.nombre_cuestionario || "Cuestionario sin Título"
+    }</h3>
                         <p>${cuestionario.descripcion || "Sin descripción"}</p>
-                         ${cuestionario.codigo_visualizacion
-        ? `
+                         ${
+                           cuestionario.codigo_visualizacion
+                             ? `
             <p class="quiz-code">
                 Código de visualización: 
                 <strong>${cuestionario.codigo_visualizacion}</strong>
             </p>
         `
-        : ""
-      }
+                             : ""
+                         }
                         <div class="quiz-actions" style="gap:10px">
                             <div class="div-edit-btn" style="width: 100%; display: flex; background-color: var(--color-primary-teal); padding: 5px; border-radius: 12px; justify-content: center; align-items: center;">
-                                <a href="/editar_cuestionario/${cuestionario.cuestionario_id
-      }" class="edit-btn"><i class="fas fa-edit" style="margin-right:4px"></i> Editar</a>
+                                <a href="/editar_cuestionario/${
+                                  cuestionario.cuestionario_id
+                                }" class="edit-btn"><i class="fas fa-edit" style="margin-right:4px"></i> Editar</a>
                             </div>
                             <div class="action-icons">
                                 <button title="Jugar" class="action-icon-btn play btn-jugar"><i class="fa-solid fa-gamepad"></i></button>
-                                <button data-id="${cuestionario.cuestionario_id
-      }" title="Clonar" class="action-icon-btn clone clone-quiz-btn"><i class="fas fa-copy"></i></button>
+                                <button data-id="${
+                                  cuestionario.cuestionario_id
+                                }" title="Clonar" class="action-icon-btn clone clone-quiz-btn"><i class="fas fa-copy"></i></button>
                                 <button title="Eliminar" class="action-icon-btn delete"><i class="fa-solid fa-trash icon-delete"></i></button>
                                 
                             </div>
@@ -86,33 +95,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     card.classList.add("quiz-card", "student");
 
     card.innerHTML = `
-        <div class="quiz-badge">${cuestionario.num_preguntas || 0
-      } preguntas</div>
+        <div class="quiz-badge">${
+          cuestionario.num_preguntas || 0
+        } preguntas</div>
                     <div class="quiz-image-placeholder">
-                    ${cuestionario.url_img_cuestionario ? `
+                    ${
+                      cuestionario.url_img_cuestionario
+                        ? `
                       <img src="${cuestionario.url_img_cuestionario}" alt="Imagen del cuestionario">
-                    ` : `
+                    `
+                        : `
                       <i class="fas fa-image"></i>
-                    `}
+                    `
+                    }
                     </div>
                     <div class="quiz-content">
-                        <h3 title="${cuestionario.nombre_cuestionario}">${cuestionario.nombre_cuestionario || "Cuestionario sin Título"
-      }</h3>
+                        <h3 title="${cuestionario.nombre_cuestionario}">${
+      cuestionario.nombre_cuestionario || "Cuestionario sin Título"
+    }</h3>
                         <p>${cuestionario.descripcion || "Sin descripción"}</p>
                         <div class="quiz-actions">
-                            <button class="btn-visualize" style="width: 100%; display: flex; background-color: var(--color-primary-teal); padding: 5px; border-radius: 12px; justify-content: center; align-items: center;border:none;" data-id="${cuestionario.cuestionario_id
-      }">
+                            <button class="btn-visualize" style="width: 100%; display: flex; background-color: var(--color-primary-teal); padding: 5px; border-radius: 12px; justify-content: center; align-items: center;border:none;" data-id="${
+                              cuestionario.cuestionario_id
+                            }">
                 <i class="fa-solid fa-eye" style="margin-right:4px"></i> Visualizar
             </button>
                         </div>
                     </div>
     `;
 
-    // Evento para abrir el modal al hacer clic
+    // Evento para ir directamente a visualizar el cuestionario
     const btn = card.querySelector(".btn-visualize");
-    btn.addEventListener("click", () =>
-      abrirModalVisualizar(cuestionario.cuestionario_id)
-    );
+    if (btn) {
+      btn.addEventListener("click", () => {
+        window.location.href = `/ver_cuestionario/${cuestionario.cuestionario_id}`;
+      });
+    }
     return card;
   }
 
@@ -124,10 +142,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (tipoUsuario === "P") {
       const privados = allCuestionarios.filter(
-        (c) => !(c.publico) && (c.nombre_cuestionario || "").toLowerCase().includes(q)
+        (c) =>
+          !c.publico && (c.nombre_cuestionario || "").toLowerCase().includes(q)
       );
       const publicos = allCuestionarios.filter(
-        (c) => c.publico && (c.nombre_cuestionario || "").toLowerCase().includes(q)
+        (c) =>
+          c.publico && (c.nombre_cuestionario || "").toLowerCase().includes(q)
       );
 
       privadosContainer.innerHTML = "";
@@ -137,25 +157,33 @@ document.addEventListener("DOMContentLoaded", async () => {
         const card = crearCardProfesor(c);
         privadosContainer.appendChild(card);
         const deleteIcon = card.querySelector(".icon-delete");
-        if (deleteIcon) deleteIcon.addEventListener("click", () => abrirModalConfirmacion(c.cuestionario_id, card));
-        const cloneBtn = card.querySelector('.clone-quiz-btn');
+        if (deleteIcon)
+          deleteIcon.addEventListener("click", () =>
+            abrirModalConfirmacion(c.cuestionario_id, card)
+          );
+        const cloneBtn = card.querySelector(".clone-quiz-btn");
         if (cloneBtn) {
-          cloneBtn.addEventListener('click', async (e) => {
+          cloneBtn.addEventListener("click", async (e) => {
             e.preventDefault();
             const id = cloneBtn.dataset.id;
             try {
-              const resp = await fetch(`/api/cuestionarios/clone/${id}`, { method: 'POST' });
+              const resp = await fetch(`/api/cuestionarios/clone/${id}`, {
+                method: "POST",
+              });
               const data = await resp.json();
-              if (resp.ok && data && data.status === 'ok') {
+              if (resp.ok && data && data.status === "ok") {
                 // refrescar lista
                 allCuestionarios = await fetchCuestionariosProfesor();
-                renderAll(quizSearchInput.value || '');
+                renderAll(quizSearchInput.value || "");
               } else {
-                alert('No se pudo clonar el cuestionario: ' + (data.error || data.message || JSON.stringify(data)));
+                alert(
+                  "No se pudo clonar el cuestionario: " +
+                    (data.error || data.message || JSON.stringify(data))
+                );
               }
             } catch (err) {
-              console.error('Error clonando cuestionario:', err);
-              alert('Error de red al clonar.');
+              console.error("Error clonando cuestionario:", err);
+              alert("Error de red al clonar.");
             }
           });
         }
@@ -165,25 +193,33 @@ document.addEventListener("DOMContentLoaded", async () => {
         const card = crearCardProfesor(c);
         publicosContainer.appendChild(card);
         const deleteIcon = card.querySelector(".icon-delete");
-        if (deleteIcon) deleteIcon.addEventListener("click", () => abrirModalConfirmacion(c.cuestionario_id, card));
-        const cloneBtn = card.querySelector('.clone-quiz-btn');
+        if (deleteIcon)
+          deleteIcon.addEventListener("click", () =>
+            abrirModalConfirmacion(c.cuestionario_id, card)
+          );
+        const cloneBtn = card.querySelector(".clone-quiz-btn");
         if (cloneBtn) {
-          cloneBtn.addEventListener('click', async (e) => {
+          cloneBtn.addEventListener("click", async (e) => {
             e.preventDefault();
             const id = cloneBtn.dataset.id;
             try {
-              const resp = await fetch(`/api/cuestionarios/clone/${id}`, { method: 'POST' });
+              const resp = await fetch(`/api/cuestionarios/clone/${id}`, {
+                method: "POST",
+              });
               const data = await resp.json();
-              if (resp.ok && data && data.status === 'ok') {
+              if (resp.ok && data && data.status === "ok") {
                 // refrescar lista
                 allCuestionarios = await fetchCuestionariosProfesor();
-                renderAll(quizSearchInput.value || '');
+                renderAll(quizSearchInput.value || "");
               } else {
-                alert('No se pudo clonar el cuestionario: ' + (data.error || data.message || JSON.stringify(data)));
+                alert(
+                  "No se pudo clonar el cuestionario: " +
+                    (data.error || data.message || JSON.stringify(data))
+                );
               }
             } catch (err) {
-              console.error('Error clonando cuestionario:', err);
-              alert('Error de red al clonar.');
+              console.error("Error clonando cuestionario:", err);
+              alert("Error de red al clonar.");
             }
           });
         }
@@ -191,29 +227,30 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       // Mostrar mensaje cuando no hay resultados
       const totalRenderedP = privados.length + publicos.length;
-      const noQuizzesEl = document.getElementById('no-quizzes');
+      const noQuizzesEl = document.getElementById("no-quizzes");
       if (noQuizzesEl) {
         if (totalRenderedP === 0) {
-          noQuizzesEl.style.display = 'block';
+          noQuizzesEl.style.display = "block";
         } else {
-          noQuizzesEl.style.display = 'none';
+          noQuizzesEl.style.display = "none";
         }
       }
-
     } else if (tipoUsuario === "A") {
-      const filtered = allCuestionarios.filter((c) => (c.nombre_cuestionario || "").toLowerCase().includes(q));
+      const filtered = allCuestionarios.filter((c) =>
+        (c.nombre_cuestionario || "").toLowerCase().includes(q)
+      );
       comunidadContainer.innerHTML = "";
       filtered.forEach((c) => {
         const card = crearCardAlumno(c);
         comunidadContainer.appendChild(card);
       });
       // Mostrar mensaje cuando no hay resultados
-      const noQuizzesEl2 = document.getElementById('no-quizzes');
+      const noQuizzesEl2 = document.getElementById("no-quizzes");
       if (noQuizzesEl2) {
         if (filtered.length === 0) {
-          noQuizzesEl2.style.display = 'block';
+          noQuizzesEl2.style.display = "block";
         } else {
-          noQuizzesEl2.style.display = 'none';
+          noQuizzesEl2.style.display = "none";
         }
       }
     }
@@ -268,107 +305,100 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  const modalVisualizar = document.getElementById("visualizarModal");
-  const cancelCodeBtn = document.getElementById("cancelCode");
-  const verifyCodeBtn = document.getElementById("verifyCode");
-  const codeInputs = document.querySelectorAll(".code-box");
-  const errorText = document.getElementById("code-error");
-
-  let cuestionarioSeleccionado = null;
-
-  // --- Manejo de inputs del código (escribir, borrar y pegar completo) ---
-  codeInputs.forEach((input, index) => {
-    // Avanzar automáticamente
-    input.addEventListener("input", (e) => {
-      if (
-        e.inputType !== "insertFromPaste" &&
-        input.value.length === 1 &&
-        index < codeInputs.length - 1
-      ) {
-        codeInputs[index + 1].focus();
-      }
-    });
-
-    // Retroceder con Backspace
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Backspace" && !input.value && index > 0) {
-        codeInputs[index - 1].focus();
-      }
-    });
-
-    // Detectar pegado completo (Ctrl+V)
-    input.addEventListener("paste", (e) => {
-      e.preventDefault();
-      const pasted = (e.clipboardData || window.clipboardData)
-        .getData("text")
-        .trim();
-      if (!pasted) return;
-
-      // Tomar los primeros 6 caracteres (sin espacios)
-      const chars = pasted.replace(/\s+/g, "").slice(0, 6).split("");
-      codeInputs.forEach((box, i) => {
-        box.value = chars[i] || "";
-      });
-
-      // Si se llenan los 6, mover foco al final
-      const filled = Array.from(codeInputs).filter((i) => i.value).length;
-      if (filled === 6) codeInputs[5].focus();
-    });
-  });
-
-  // Abrir modal
-  function abrirModalVisualizar(cuestionarioId) {
-    cuestionarioSeleccionado = cuestionarioId;
-    modalVisualizar.classList.remove("hidden");
-    codeInputs[0].focus();
-    codeInputs.forEach((input) => (input.value = "")); // limpiar
-    errorText.classList.add("hidden");
+  // Buscar Cuestionario por código
+  // Manejo de inputs de código y redirección a visualizar cuestionario
+  function qs(selector, root = document) {
+    return root.querySelector(selector);
+  }
+  function qsa(selector, root = document) {
+    return Array.from(root.querySelectorAll(selector));
   }
 
-  // Cerrar modal
-  cancelCodeBtn.addEventListener("click", () => {
-    modalVisualizar.classList.add("hidden");
-  });
+  var codeBoxes = qsa(".quiz-code .code-box");
+  var btn = qs(".btn-verQuizCode");
+  var errorEl = qs("#code-error");
 
-  // Pasar al siguiente input automáticamente
-  codeInputs.forEach((input, idx) => {
-    input.addEventListener("input", () => {
-      if (input.value.length === 1 && idx < codeInputs.length - 1) {
-        codeInputs[idx + 1].focus();
+  // Autofocus navigation
+  codeBoxes.forEach(function (box, idx) {
+    box.addEventListener("input", function (e) {
+      var v = box.value || "";
+      if (v.length > 0 && idx < codeBoxes.length - 1) {
+        codeBoxes[idx + 1].focus();
+      }
+    });
+    box.addEventListener("keydown", function (e) {
+      if (e.key === "Backspace" && box.value === "" && idx > 0) {
+        codeBoxes[idx - 1].focus();
+      }
+      if (e.key === "Enter") {
+        btn.click();
+      }
+    });
+    // Detectar pegado completo (Ctrl+V) y distribuir caracteres entre inputs
+    box.addEventListener('paste', function (e) {
+      // Solo manejar pegado en el primer input para evitar duplicados
+      try {
+        e.preventDefault();
+        var pasted = (e.clipboardData || window.clipboardData).getData('text') || '';
+        pasted = pasted.trim();
+        if (!pasted) return;
+        // Tomar los primeros 6 caracteres (sin espacios)
+        var chars = pasted.replace(/\s+/g, '').slice(0, codeBoxes.length).split('');
+        for (var i = 0; i < codeBoxes.length; i++) {
+          codeBoxes[i].value = chars[i] || '';
+        }
+        // Si se llenaron todos, mover foco al último
+        var filled = Array.from(codeBoxes).filter(function (b) { return b.value; }).length;
+        if (filled === codeBoxes.length) {
+          codeBoxes[codeBoxes.length - 1].focus();
+        } else {
+          // Mover foco al siguiente vacío
+          for (var j = 0; j < codeBoxes.length; j++) {
+            if (!codeBoxes[j].value) { codeBoxes[j].focus(); break; }
+          }
+        }
+      } catch (err) {
+        console.error('Error manejando paste en codeBoxes:', err);
       }
     });
   });
 
-  // Verificar código
-  verifyCodeBtn.addEventListener("click", async () => {
-    const code = Array.from(codeInputs)
-      .map((i) => i.value)
-      .join("");
-
-    if (code.length !== 6) {
-      errorText.textContent = "Debes ingresar los 6 dígitos.";
-      errorText.classList.remove("hidden");
+  btn.addEventListener("click", async function (e) {
+    e.preventDefault();
+    var code = codeBoxes.map((b) => (b.value || "").toString().trim()).join("");
+    if (!code || code.length !== 6) {
+      if (errorEl) {
+        errorEl.style.display = "block";
+      }
       return;
     }
+    if (errorEl) {
+      errorEl.style.display = "none";
+    }
 
-    // Aquí puedes hacer fetch al backend para verificar
-    const response = await fetch(
-      `/verificar_codigo/${cuestionarioSeleccionado}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo: code }),
+    try {
+      var resp = await fetch(
+        "/api/cuestionario/por_codigo/" + encodeURIComponent(code),
+        { method: "GET", headers: { "X-Requested-With": "XMLHttpRequest" } }
+      );
+      if (resp.ok) {
+        var data = await resp.json();
+        if (data && data.cuestionario_id) {
+          window.location.href = "/ver_cuestionario/" + data.cuestionario_id;
+          return;
+        }
       }
-    );
-
-    const data = await response.json();
-
-    if (data.valido) {
-      // Redirigir al cuestionario
-      window.location.href = `/ver_cuestionario/${cuestionarioSeleccionado}`;
-    } else {
-      errorText.textContent = "Código incorrecto. Inténtalo de nuevo.";
-      errorText.classList.remove("hidden");
+      // si no ok
+      if (errorEl) {
+        errorEl.textContent = "Código no válido o cuestionario no encontrado.";
+        errorEl.style.display = "block";
+      }
+    } catch (err) {
+      console.error("Error buscando cuestionario por codigo", err);
+      if (errorEl) {
+        errorEl.textContent = "Error de conexión. Intenta nuevamente.";
+        errorEl.style.display = "block";
+      }
     }
   });
 
@@ -388,10 +418,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   quizSearchInput.addEventListener("input", handleSearch);
 
-
-
-
-
   // ******************************************************
   // --- LÓGICA DEL MODAL DE CONFIGURACIÓN DE PARTIDA ---
   // ******************************************************
@@ -404,7 +430,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const configQuizImage = document.getElementById("configQuizImage");
   const configNumPreguntas = document.getElementById("configNumPreguntas");
   const configQuizTitle = document.getElementById("configQuizTitle");
-  const configQuizDescription = document.getElementById("configQuizDescription");
+  const configQuizDescription = document.getElementById(
+    "configQuizDescription"
+  );
   let cuestionarioAConfigurar = null;
 
   // Función para abrir y cargar datos del modal
@@ -412,7 +440,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function abrirModalConfiguracion(cuestionario) {
     try {
       // Obtener el cuestionario completo desde tu endpoint Flask
-      const res = await fetch(`/api/cuestionario_completo/${cuestionario.cuestionario_id}`);
+      const res = await fetch(
+        `/api/cuestionario_completo/${cuestionario.cuestionario_id}`
+      );
       const data = await res.json();
 
       if (!res.ok || data.error) {
@@ -425,23 +455,27 @@ document.addEventListener("DOMContentLoaded", async () => {
       cuestionarioAConfigurar = data;
 
       // Cargar la información básica en el modal
-      configQuizImage.src = data.url_img_cuestionario || '/static/img/default_quiz.png';
-      configNumPreguntas.textContent = `${data.preguntas?.length || 0} preguntas`;
+      configQuizImage.src =
+        data.url_img_cuestionario || "/static/img/default_quiz.png";
+      configNumPreguntas.textContent = `${
+        data.preguntas?.length || 0
+      } preguntas`;
       configQuizTitle.textContent = data.nombre_cuestionario;
-      configQuizDescription.textContent = data.descripcion || 'Sin descripción.';
+      configQuizDescription.textContent =
+        data.descripcion || "Sin descripción.";
 
       // Mostrar PIN automático si aplica
-      const pinDisplay = document.querySelector('.pin-display');
-      const pinAutomatico = document.getElementById('checkPinAutomatico').checked;
-      pinDisplay.style.display = pinAutomatico ? 'flex' : 'none';
-      if (document.getElementById('checkPinAutomatico').checked) {
+      const pinDisplay = document.querySelector(".pin-display");
+      const pinAutomatico =
+        document.getElementById("checkPinAutomatico").checked;
+      pinDisplay.style.display = pinAutomatico ? "flex" : "none";
+      if (document.getElementById("checkPinAutomatico").checked) {
         const nuevoPin = generarPin();
         mostrarPin(nuevoPin);
-        pinDisplay.style.display = 'flex';
+        pinDisplay.style.display = "flex";
       }
       // Mostrar modal
       configModal.classList.remove("hidden");
-
     } catch (err) {
       console.error("Error en abrirModalConfiguracion:", err);
       alert("Error al conectar con el servidor.");
@@ -463,16 +497,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 1. Recoger las opciones de configuración
     const configuracion = {
       cuestionario_id: cuestionarioAConfigurar.cuestionario_id,
-      orden_preguntas_azar: document.getElementById("checkPreguntasAzar").checked,
-      orden_respuestas_azar: document.getElementById("checkRespuestasAzar").checked,
+      orden_preguntas_azar:
+        document.getElementById("checkPreguntasAzar").checked,
+      orden_respuestas_azar: document.getElementById("checkRespuestasAzar")
+        .checked,
       anadir_musica: document.getElementById("checkAnadirMusica").checked,
       modalidad: tipo_partida,
       num_grupos: document.getElementById("numGrupos").value,
       generar_qr: document.getElementById("checkGenerarQR").checked,
       pin_automatico: document.getElementById("checkPinAutomatico").checked,
-      pin: Array.from(document.querySelectorAll('.pin-box'))
-        .map(b => b.textContent)
-        .join('')
+      pin: Array.from(document.querySelectorAll(".pin-box"))
+        .map((b) => b.textContent)
+        .join(""),
     };
 
     console.log("Configuración a enviar:", configuracion);
@@ -483,20 +519,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     let cuestionarioFinal = JSON.parse(JSON.stringify(cuestionarioAConfigurar));
 
     // Si está activado el orden de preguntas al azar
-    if (configuracion.orden_preguntas_azar && Array.isArray(cuestionarioFinal.preguntas)) {
-      cuestionarioFinal.preguntas = cuestionarioFinal.preguntas.sort(() => Math.random() - 0.5);
-      console.log("🔀 Preguntas ALEATORIZADAS:", cuestionarioFinal.preguntas.map(p => p.titulo || p.texto || p.id));
+    if (
+      configuracion.orden_preguntas_azar &&
+      Array.isArray(cuestionarioFinal.preguntas)
+    ) {
+      cuestionarioFinal.preguntas = cuestionarioFinal.preguntas.sort(
+        () => Math.random() - 0.5
+      );
+      console.log(
+        "🔀 Preguntas ALEATORIZADAS:",
+        cuestionarioFinal.preguntas.map((p) => p.titulo || p.texto || p.id)
+      );
     } else {
       console.log("⚠️ Orden de preguntas al azar DESACTIVADO");
     }
 
     // Si está activado el orden de respuestas al azar
-    if (configuracion.orden_respuestas_azar && Array.isArray(cuestionarioFinal.preguntas)) {
+    if (
+      configuracion.orden_respuestas_azar &&
+      Array.isArray(cuestionarioFinal.preguntas)
+    ) {
       cuestionarioFinal.preguntas.forEach((p, i) => {
         if (Array.isArray(p.respuestas)) {
-          const antes = p.respuestas.map(r => r.texto || r.id);
+          const antes = p.respuestas.map((r) => r.texto || r.id);
           p.respuestas = p.respuestas.sort(() => Math.random() - 0.5);
-          const despues = p.respuestas.map(r => r.texto || r.id);
+          const despues = p.respuestas.map((r) => r.texto || r.id);
           console.log(`🎲 Respuestas pregunta ${i + 1}:`);
           console.log("Antes:", antes);
           console.log("Después:", despues);
@@ -507,15 +554,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Guardar para la partida
-    sessionStorage.setItem("cuestionario_actual", JSON.stringify(cuestionarioFinal));
-    console.log("✅ Cuestionario aleatorizado guardado en sessionStorage:", cuestionarioFinal);
+    sessionStorage.setItem(
+      "cuestionario_actual",
+      JSON.stringify(cuestionarioFinal)
+    );
+    console.log(
+      "✅ Cuestionario aleatorizado guardado en sessionStorage:",
+      cuestionarioFinal
+    );
 
     try {
       // Ejemplo de endpoint, DEBES AJUSTARLO a tu lógica de creación de partida
       const res = await fetch(`/api/partidas/crear`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(configuracion)
+        body: JSON.stringify(configuracion),
       });
 
       const data = await res.json();
@@ -529,7 +582,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       } else {
         alert("Error al crear la partida: " + (data.mensaje || "desconocido"));
       }
-
     } catch (error) {
       console.error("Error al iniciar la partida:", error);
       alert("Ocurrió un error en la conexión al crear la partida.");
@@ -540,8 +592,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // --- Lógica del PIN Automático ---
-  const pinCheckbox = document.getElementById('checkPinAutomatico');
-  const pinDisplay = document.querySelector('.pin-display');
+  const pinCheckbox = document.getElementById("checkPinAutomatico");
+  const pinDisplay = document.querySelector(".pin-display");
 
   // Función para generar un PIN de 6 dígitos numéricos
   function generarPin() {
@@ -554,24 +606,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Función para mostrar un PIN en los .pin-box
   function mostrarPin(pin) {
-    const pinBoxes = pinDisplay.querySelectorAll('.pin-box');
+    const pinBoxes = pinDisplay.querySelectorAll(".pin-box");
     pinBoxes.forEach((box, idx) => {
       box.textContent = pin[idx] || "";
     });
   }
 
   // --- Evento al cambiar el checkbox ---
-  pinCheckbox.addEventListener('change', (e) => {
+  pinCheckbox.addEventListener("change", (e) => {
     if (e.target.checked) {
       // Si se activa, generar nuevo PIN
       const nuevoPin = generarPin();
       mostrarPin(nuevoPin);
-      pinDisplay.style.display = 'flex';
+      pinDisplay.style.display = "flex";
     } else {
       // Si se desactiva, ocultar o limpiar
-      pinDisplay.style.display = 'none';
-      const pinBoxes = pinDisplay.querySelectorAll('.pin-box');
-      pinBoxes.forEach(box => box.textContent = '');
+      pinDisplay.style.display = "none";
+      const pinBoxes = pinDisplay.querySelectorAll(".pin-box");
+      pinBoxes.forEach((box) => (box.textContent = ""));
     }
   });
 
@@ -579,8 +631,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (pinCheckbox.checked) {
     mostrarPin(generarPin());
   }
-
-
 
   // --- Lógica del combo "Modalidad" ---
   const modalidadSelect = document.getElementById("modalidadSelect");
@@ -597,7 +647,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // -----------------------------------------------------
-  // Lógica de música aleatoria 
+  // Lógica de música aleatoria
   // -----------------------------------------------------
   const canciones = [
     "https://res.cloudinary.com/ddsql5bqk/video/upload/v1760924674/Los_Enanitos_Verdes_-_Tu_C%C3%A1rcel_Lyrics_ej9cyc.mp3",
@@ -625,7 +675,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "https://res.cloudinary.com/diyhrsm2r/video/upload/v1761185837/CNCO_-_Reggaet%C3%B3n_Lento_Bailemos_umg2ow.mp3",
     "https://res.cloudinary.com/diyhrsm2r/video/upload/v1761185885/W_W_-_Tung_Tung_Tung_Sahur_Italian_Brainrot_gnv8vp.mp3",
     "https://res.cloudinary.com/diyhrsm2r/video/upload/v1761186032/Maroon_5_-_Memories_Lyrics_ga3zsq.mp3",
-    "https://res.cloudinary.com/diyhrsm2r/video/upload/v1761186735/los_vengadores_musica_de_la_pelicula_tbhhfg.mp3"
+    "https://res.cloudinary.com/diyhrsm2r/video/upload/v1761186735/los_vengadores_musica_de_la_pelicula_tbhhfg.mp3",
   ];
 
   function reproducirMusicaAleatoria() {
@@ -659,7 +709,4 @@ document.addEventListener("DOMContentLoaded", async () => {
       localStorage.setItem("musicaActiva", "false");
     }
   });
-
-
-
 });

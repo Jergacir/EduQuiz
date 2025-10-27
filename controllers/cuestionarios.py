@@ -245,11 +245,14 @@ def clonar_cuestionario(cuestionario_id):
 
                 # Crear nuevo cuestionario con los mismos campos (pero nuevo codigo_visualizacion)
                 codigo_visualizacion = generar_codigo_unico(cursor)
+                # Inserta el cuestionario clonado. Guardamos además el id de origen
+                # en la columna `origen_cuestionario_id` para poder contar clones.
                 sql_insert = '''
-                    INSERT INTO cuestionario (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario, codigo_visualizacion)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                    INSERT INTO cuestionario (nombre_cuestionario, descripcion, publico, modo_juego, tiempo_limite_pregunta, usuario_id, url_img_cuestionario, codigo_visualizacion, origen_cuestionario_id)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 '''
-                nombreCuestionario = origen.get('nombre_cuestionario') + " (Copiado)",
+                # Nombre como string (sin coma accidental)
+                nombreCuestionario = origen.get('nombre_cuestionario') + " (Copiado)"
                 cursor.execute(sql_insert, (
                     nombreCuestionario,
                     origen.get('descripcion'),
@@ -258,7 +261,8 @@ def clonar_cuestionario(cuestionario_id):
                     origen.get('tiempo_limite_pregunta'),
                     usuario_id,
                     origen.get('url_img_cuestionario'),
-                    codigo_visualizacion
+                    codigo_visualizacion,
+                    cuestionario_id  # referencia al origen
                 ))
                 nuevo_id = cursor.lastrowid
 
@@ -319,6 +323,25 @@ def verificar_codigo(cuestionario_id):
         return jsonify({'valido': bool(valido)})
     except Exception as e:
         print(f"Error verificar_codigo: {e}", file=sys.stderr)
+        return jsonify({'error': str(e)}), 500
+
+
+@cuestionarios_bp.route('/api/cuestionario/por_codigo/<codigo>', methods=['GET'])
+def buscar_cuestionario_por_codigo(codigo):
+    """Buscar un cuestionario por su codigo_visualizacion. Devuelve {'cuestionario_id': id} o 404."""
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'No se pudo conectar a la base de datos'}), 500
+    try:
+        codigo_norm = str(codigo or '').strip().upper()
+        with conexion.cursor() as cursor:
+            cursor.execute('SELECT cuestionario_id FROM cuestionario WHERE UPPER(TRIM(codigo_visualizacion)) = %s AND estado = 1', (codigo_norm,))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({'error': 'Cuestionario no encontrado'}), 404
+            return jsonify({'cuestionario_id': row.get('cuestionario_id')})
+    except Exception as e:
+        print(f"Error buscar_cuestionario_por_codigo: {e}", file=sys.stderr)
         return jsonify({'error': str(e)}), 500
     
 
