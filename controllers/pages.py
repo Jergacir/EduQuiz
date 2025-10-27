@@ -33,7 +33,7 @@ def frm_home():
                            u.username as username_quiz, c.publico,
                            (SELECT COUNT(*) FROM pregunta p WHERE p.cuestionario_id = c.cuestionario_id) AS num_preguntas,
                            (SELECT COUNT(*) FROM cuestionario ch WHERE ch.origen_cuestionario_id = c.cuestionario_id AND ch.estado = 1) AS num_clones
-                    FROM cuestionario c INNER JOIN USUARIO u ON c.usuario_id=u.usuario_id
+                    FROM cuestionario c INNER JOIN usuario u ON c.usuario_id=u.usuario_id
                     WHERE c.publico = 1 AND c.estado = 1
                     ORDER BY num_clones DESC, c.cuestionario_id DESC
                     LIMIT 8
@@ -50,7 +50,7 @@ def frm_home():
                                u.username as username_quiz, c.publico,
                                (SELECT COUNT(*) FROM pregunta p WHERE p.cuestionario_id = c.cuestionario_id) AS num_preguntas,
                                (SELECT COUNT(*) FROM cuestionario ch WHERE ch.origen_cuestionario_id = c.cuestionario_id AND ch.estado = 1) AS num_clones
-                        FROM cuestionario c INNER JOIN USUARIO u ON c.usuario_id=u.usuario_id
+                        FROM cuestionario c INNER JOIN usuario u ON c.usuario_id=u.usuario_id
                         WHERE c.publico = 1 AND c.estado = 1 AND c.cuestionario_id NOT IN ({ids})
                         ORDER BY c.cuestionario_id DESC
                         LIMIT 100
