@@ -609,7 +609,7 @@ document.addEventListener('DOMContentLoaded', function () {
     (function initPriceSlider() {
     // --- Constantes de Configuración ---
     const MIN_PRICE = 0;
-    const MAX_PRICE = 2000;
+    const MAX_PRICE = 10000;
     const DEFAULT_START_PRICE = 0;
     const DEFAULT_END_PRICE = 500;
     const SUBMIT_DEBOUNCE_MS = 300; // 300ms de espera antes de enviar el form

@@ -63,13 +63,16 @@ async function cargarDatosPerfil() {
         if (elCorreo) elCorreo.value = datosUsuarioLogueado.correo || '';
 
         // 2.b URL DE FOTO DE PERFIL (preview + campo)
-        const urlFotoInput = document.getElementById('url_foto_perfil');
-        const urlFotoPreview = document.getElementById('url_foto_perfil_preview');
-        const fotoUrl = datosUsuarioLogueado.url_foto_perfil || datosUsuarioLogueado.url_avatar || '';
+    const urlFotoInput = document.getElementById('url_foto_perfil');
+    const urlFotoPreview = document.getElementById('url_foto_perfil_preview');
+    const fotoUrl = (datosUsuarioLogueado.url_foto_perfil && datosUsuarioLogueado.url_foto_perfil.trim()) ? datosUsuarioLogueado.url_foto_perfil.trim() : ((datosUsuarioLogueado.url_avatar && datosUsuarioLogueado.url_avatar.trim()) ? datosUsuarioLogueado.url_avatar.trim() : '');
         if (urlFotoInput) urlFotoInput.value = fotoUrl;
     // Determinar avatar por defecto según tipo de usuario
     const tipoUsuarioCode = datosUsuarioLogueado.tipo_usuario || (datosUsuarioLogueado.tipo || '');
     const defaultAvatar = (tipoUsuarioCode === 'P') ? '/static/img/perfil_profesor.png' : ((tipoUsuarioCode === 'G') ? '/static/img/perfil_gestor.png' : '/static/img/perfil_estudiante.png');
+        // DEBUG: log valores recibidos para diagnosticar por qué no se muestra la imagen
+        console.debug('cargarDatosPerfil: fotoUrl=', fotoUrl, ' datos.url_foto_perfil=', datosUsuarioLogueado.url_foto_perfil, ' datos.url_avatar=', datosUsuarioLogueado.url_avatar);
+
         // Mostrar preview solo si hay URL explícita (campo URL o uploaded). Si no, ocultar preview (según petición)
         if (urlFotoPreview) {
             if (fotoUrl && fotoUrl.trim() !== '') {
@@ -86,36 +89,46 @@ async function cargarDatosPerfil() {
         // 2.c Actualizar imagen de perfil en header (todas las ocurrencias) con cache-buster
         try {
             const imgs = document.querySelectorAll('.profile-img');
-            imgs.forEach(img => {
-                // Para el header usamos el avatar por defecto si no existe foto de perfil ni avatar
-                const srcCandidate = fotoUrl && fotoUrl.trim() !== '' ? fotoUrl : (img.getAttribute('src') || defaultAvatar);
+            console.debug('cargarDatosPerfil: number of .profile-img =', imgs.length);
+            imgs.forEach((img, idx) => {
+                // Si hay una foto (subida o avatar), la usamos; si no, forzamos el avatar por defecto
+                const srcCandidate = (fotoUrl && fotoUrl.trim() !== '') ? fotoUrl : defaultAvatar;
                 const cacheBusted = srcCandidate + (srcCandidate.includes('?') ? '&' : '?') + 'v=' + Date.now();
-                img.src = cacheBusted;
-                img.style.display = '';
+                console.debug(`cargarDatosPerfil: setting img[${idx}].src ->`, cacheBusted);
+                try {
+                    img.src = cacheBusted;
+                    img.style.display = '';
+                    // Fallback si la imagen no carga
+                    img.onerror = () => {
+                        try {
+                            const tipoCodeBody = (document.body && document.body.dataset && document.body.dataset.tipoUsuario) ? document.body.dataset.tipoUsuario : '';
+                            const fallback = (tipoCodeBody === 'P') ? '/static/img/perfil_profesor.png' : ((tipoCodeBody === 'G') ? '/static/img/perfil_gestor.png' : '/static/img/perfil_estudiante.png');
+                            img.src = fallback + (fallback.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                        } catch (err) { console.warn('onerror fallback fallo:', err); }
+                    };
+                } catch (inner) {
+                    console.warn('cargarDatosPerfil: fallo asignando src a profile-img (inner):', inner);
+                }
             });
         } catch (e) {
             console.warn('No se pudo actualizar la imagen de header:', e);
         }
-
         // 2. Rellenar campos no editables (DNI)
-        document.getElementById('dni').value = datosUsuarioLogueado.dni || 'N/A';
+        const dniEl = document.getElementById('dni');
+        if (dniEl) dniEl.value = datosUsuarioLogueado.dni || 'N/A';
 
         // 3. Monedas (Display en Formulario y Header)
         const cantMonedas = datosUsuarioLogueado.cant_monedas || 0;
-        
-        // Actualiza el display de monedas DENTRO del formulario
         const cantMonedasDisplay = document.getElementById('cant_monedas_display');
         if (cantMonedasDisplay) cantMonedasDisplay.textContent = `${cantMonedas} 🪙`;
-        
-        // CORRECCIÓN: Actualiza el contador de monedas en el HEADER
         const cantMonedasHeader = document.getElementById('cant_monedas');
-        if (cantMonedasHeader) cantMonedasHeader.textContent = cantMonedas; 
-        
-    // 4. Tipo de Usuario (Mapeo)
-    const tipoMap = { 'A': 'Alumno', 'P': 'Profesor', 'G': 'Gestor' };
-    const tipoTexto = tipoMap[datosUsuarioLogueado.tipo_usuario] || 'Desconocido';
-    const tipoUsuarioInput = document.getElementById('tipo_usuario');
-    if (tipoUsuarioInput) tipoUsuarioInput.value = tipoTexto;
+        if (cantMonedasHeader) cantMonedasHeader.textContent = cantMonedas;
+
+        // 4. Tipo de Usuario (Mapeo)
+        const tipoMap = { 'A': 'Alumno', 'P': 'Profesor', 'G': 'Gestor' };
+        const tipoTexto = tipoMap[datosUsuarioLogueado.tipo_usuario] || 'Desconocido';
+        const tipoUsuarioInput = document.getElementById('tipo_usuario');
+        if (tipoUsuarioInput) tipoUsuarioInput.value = tipoTexto;
 
         // 5. Vigencia (Mapeo)
         const esVigente = datosUsuarioLogueado.vigencia === 1 || datosUsuarioLogueado.vigencia === true;
@@ -347,36 +360,54 @@ async function manejarGuardarPerfil(event) {
         datosUsuarioLogueado.nombre = nuevoNombre;
         datosUsuarioLogueado.username = nuevoUsername;
         datosUsuarioLogueado.correo = nuevoCorreo;
-        // Actualizar url_foto_perfil local y en header si fue retornada
-        if (data.url_foto_perfil) {
-            datosUsuarioLogueado.url_foto_perfil = data.url_foto_perfil;
+        // Actualizar url_foto_perfil local y en header (usar backend si devuelve, sino usar input)
+        const inputUrl = document.getElementById('url_foto_perfil') ? document.getElementById('url_foto_perfil').value : null;
+        let finalUrl = null;
+        if (data.url_foto_perfil && data.url_foto_perfil.trim()) {
+            finalUrl = data.url_foto_perfil.trim();
+            datosUsuarioLogueado.url_foto_perfil = finalUrl;
+        } else if (inputUrl && inputUrl.trim()) {
+            finalUrl = inputUrl.trim();
+            datosUsuarioLogueado.url_foto_perfil = finalUrl;
+        }
+
+        if (finalUrl) {
+            // Normalizar esquema simple
+            if (!/^https?:\/\//i.test(finalUrl)) {
+                if (finalUrl.startsWith('//')) finalUrl = 'https:' + finalUrl;
+                else if (finalUrl.startsWith('www.')) finalUrl = 'https://' + finalUrl;
+            }
+
+            console.debug('manejarGuardarPerfil: finalUrl=', finalUrl);
+
             const imgs = document.querySelectorAll('.profile-img');
-            imgs.forEach(img => {
-                const cacheBusted = data.url_foto_perfil + (data.url_foto_perfil.includes('?') ? '&' : '?') + 'v=' + Date.now();
-                img.src = cacheBusted;
+            if (imgs.length === 0) console.warn('manejarGuardarPerfil: no se encontraron elementos .profile-img');
+            imgs.forEach((img, idx) => {
+                const cacheBusted = finalUrl + (finalUrl.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                try {
+                    img.setAttribute('src', cacheBusted);
+                    img.style.display = '';
+                    // onerror fallback
+                    img.onerror = () => {
+                        try {
+                            const tipoCodeBody = (document.body && document.body.dataset && document.body.dataset.tipoUsuario) ? document.body.dataset.tipoUsuario : '';
+                            const fallback = (tipoCodeBody === 'P') ? '/static/img/perfil_profesor.png' : ((tipoCodeBody === 'G') ? '/static/img/perfil_gestor.png' : '/static/img/perfil_estudiante.png');
+                            img.src = fallback + (fallback.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                        } catch (err) { console.warn('onerror fallback fallo:', err); }
+                    };
+                    console.debug(`manejarGuardarPerfil: asignado img[${idx}] src ->`, cacheBusted);
+                } catch (err) {
+                    console.warn('manejarGuardarPerfil: fallo asignando src a profile-img', err);
+                }
             });
-            // También actualizar preview si existe (y asegurarse de mostrarla)
+
             const preview = document.getElementById('url_foto_perfil_preview');
             if (preview) {
                 preview.style.display = '';
-                preview.src = data.url_foto_perfil;
+                preview.src = finalUrl;
             }
         } else {
-            // Si backend no devolvió la URL, usar la que el usuario puso en el input
-            const inputUrl = document.getElementById('url_foto_perfil') ? document.getElementById('url_foto_perfil').value : null;
-            if (inputUrl) {
-                const imgs = document.querySelectorAll('.profile-img');
-                imgs.forEach(img => {
-                    const cacheBusted = inputUrl + (inputUrl.includes('?') ? '&' : '?') + 'v=' + Date.now();
-                    img.src = cacheBusted;
-                });
-                const preview = document.getElementById('url_foto_perfil_preview');
-                if (preview) {
-                    preview.style.display = '';
-                    preview.src = inputUrl;
-                }
-                datosUsuarioLogueado.url_foto_perfil = inputUrl;
-            }
+            console.debug('manejarGuardarPerfil: no hay URL final para asignar al header');
         }
 
         // Deshabilitar edición y aplicar opacidad
@@ -793,6 +824,38 @@ async function manejarDarDeBajaPropia() {
  * Inicializa los listeners de eventos al cargar el DOM.
  */
 document.addEventListener('DOMContentLoaded', async () => {
+
+    // --- Quick sync from server-rendered attributes (fast path to avoid stale UI) ---
+    try {
+        const profileImg = document.querySelector('.profile-img');
+        if (profileImg) {
+            const sessionSrc = profileImg.dataset && profileImg.dataset.sessionSrc ? profileImg.dataset.sessionSrc.trim() : '';
+            // Guard: solo aplicar si sessionSrc parece una URL válida (evitar asignar cadenas vacías que rompan la imagen)
+            const looksLikeUrl = (s) => (!!s && /^(https?:)?\/\//i.test(s)) || (s && s.startsWith('/')) || (s && s.startsWith('data:'));
+            if (sessionSrc && looksLikeUrl(sessionSrc)) {
+                // Guardar el src original (plantilla) para fallback si la sesión apunta a una URL rota
+                const originalSrc = profileImg.src || '';
+                // Si el servidor dejó una URL en session, la usamos inmediatamente (cache-busted)
+                const cb = sessionSrc + (sessionSrc.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                profileImg.src = cb;
+                profileImg.style.display = '';
+                // onerror -> restaurar el src original (plantilla) con cache-buster
+                profileImg.onerror = () => {
+                    try {
+                        console.warn('profileImg: session-src falló al cargar, restaurando default');
+                        if (originalSrc && originalSrc.trim()) {
+                            profileImg.src = originalSrc + (originalSrc.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                        }
+                    } catch (e) { console.warn('profileImg onerror fallback fallo:', e); }
+                };
+                console.debug('Perfil: aplicando session-src inicial al header (validado)');
+            } else {
+                console.debug('Perfil: no hay session-src inicial válido; se usará default_avatar en template y luego la API');
+            }
+        }
+    } catch (err) {
+        console.warn('Error aplicando session-src inicial:', err);
+    }
 
     // 🔑 CAMBIO: Inicialmente intenta obtener y cargar el perfil de la API
     await cargarDatosPerfil(); 

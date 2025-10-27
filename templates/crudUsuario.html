@@ -12,8 +12,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    <link rel="stylesheet" href="../static/css/crudusuario.css">
-    <link rel="stylesheet" href="../static/css/global.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/crudusuario.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}">
 </head>
 
 <body class="crud-usuario-page" data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}">
@@ -87,7 +87,7 @@
                    
                     <div class="profile-box" id="profile-box" style="cursor:pointer; position: relative;">
                         {% set default_avatar = '/static/img/perfil_profesor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'P') else ('/static/img/perfil_gestor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'G') else '/static/img/perfil_estudiante.png') %}
-                        <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or default_avatar }}" class="profile-img">
+                        <img src="{{ default_avatar }}" data-session-src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or '' }}" class="profile-img">
                         <span class="profile-text">{{ logged_in_user.username }}</span>
                         <i class="fas fa-caret-down profile-caret" aria-hidden="true"></i>
 
@@ -165,7 +165,7 @@
                             <input type="url" id="url_foto_perfil" name="url_foto_perfil" placeholder="https://ejemplo.com/mi-avatar.png"
                                 class="w-full p-3 border border-gray-300 rounded-lg">
                             <img id="url_foto_perfil_preview" src="/static/img/avatar.jpeg" alt="Preview"
-                                style="width:48px;height:48px;border-radius:8px;border:1px solid var(--color-borde);object-fit:cover;">
+                                style="display:none;width:48px;height:48px;border-radius:8px;border:1px solid var(--color-borde);object-fit:cover;">
                         </div>
                         <div style="margin-top:8px;">
                             <label class="block text-sm text-gray-600 mb-1">O sube una imagen desde tu dispositivo</label>
@@ -384,9 +384,9 @@
             </div>
         </div>
     </div>
-    <script src="../static/js/global.js"></script>
-    <script src="../static/js/ui_modal.js"></script>
-    <script src="../static/js/crudusuario.js"></script>
+    <script src="{{ url_for('static', filename='js/global.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui_modal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/crudusuario.js') }}"></script>
 </body>
 
 </html>

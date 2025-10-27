@@ -158,3 +158,18 @@ VALUES
 (12, 'Rockero / Metalero', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278458/Rockero_waaq9r.png', 1000, 1, 0, 'E'),
 (14, 'L. Messi', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278797/GOAT_wrvpzy.png', 1500, 1, 0, 'L'),
 (15, 'C. Ronaldo', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761278947/CR7_qb6rro.png', 1500, 1, 0, 'L');
+
+
+INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`, `skinDefault`, `categoria`) VALUES
+(6, 'Miss universo', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/miss_txjipp.png', 3500, 1, 0, 'E'),
+(8, 'Voleybolista', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/Voleybolista_qblsyl.png', 3500, 1, 0, 'E'),
+(9, 'Astronauta', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/astronauta_rppbqi.png', 3500, 1, 0, 'E'),
+(11, 'Militar', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/militar_az3ild.png', 3500, 1, 0, 'E'),
+(13, 'Freddie Mercury', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/FreddieMercury_rovgmz.png', 5000, 1, 0, 'L'),
+(16, 'Neymar', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/neymart_belhaz.png', 5000, 1, 0, 'L'),
+(17, 'Michael Jackson', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/MJ_jnxcww.png', 5000, 1, 0, 'L'),
+(18, 'Spiderman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/Spiderman_qcxu2b.png', 5000, 1, 0, 'L'),
+(19, 'Ironman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/ironman_srrjri.png', 5000, 1, 0, 'L'),
+(20, 'Superman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541184/superman_yvlwxq.png', 5000, 1, 0, 'L'),
+(21, 'Batman', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/batman_hfojlw.png', 5000, 1, 0, 'L'),
+(22, 'Axl Rose', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761541183/axelrose_hvffnr.png', 5000, 1, 0, 'L');
