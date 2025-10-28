@@ -1339,8 +1339,29 @@ def frm_respuesta_alumno(codigo_partida):
             # Construir valores para la plantilla
             last_correct = True if ultima_correcta else False
             streak = info.get('cant_preguntas_correctas', 0)
-            # Puntos por acierto (usar 900 para coincidir con el diseño; ajusta si tu lógica es distinta)
-            points_earned = 900 if ultima_correcta else 0
+            # Calcular puntos por acierto: reconstruimos la fórmula usada al responder
+            # Si el participante ya respondió, en pregunta_participante se guardan
+            # tiempo_pregunta (tiempo empleado) y tiempo_maximo_pregunta (límite).
+            points_earned = 0
+            if ultima_correcta and pregunta_id and info.get('participante_id'):
+                cursor.execute("""
+                    SELECT tiempo_pregunta, tiempo_maximo_pregunta
+                    FROM pregunta_participante
+                    WHERE participante_id = %s AND pregunta_id = %s
+                    ORDER BY pregunta_participante_id DESC
+                    LIMIT 1
+                """, (info['participante_id'], pregunta_id))
+                pp_row = cursor.fetchone()
+                if pp_row:
+                    tiempo_resp = pp_row.get('tiempo_pregunta') or 0
+                    tiempo_max = pp_row.get('tiempo_maximo_pregunta') or 30
+                    tiempo_restante = max(0, tiempo_max - tiempo_resp)
+                    try:
+                        puntos = int(1000 * (tiempo_restante / tiempo_max)) if tiempo_max > 0 else 1000
+                    except Exception:
+                        puntos = 100
+                    puntos = max(100, puntos)
+                    points_earned = puntos
             question_number = pregunta_index + 1
 
         logged = _get_logged_in_user()
