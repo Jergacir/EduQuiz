@@ -4,6 +4,43 @@ document.addEventListener('DOMContentLoaded', () => {
 	const esProfesor = body.dataset.esProfesor === 'true';
 
 	const continueBtn = document.getElementById('continueBtn');
+	// Confetti helper using canvas-confetti (loaded via CDN in template)
+	function shouldShowConfetti() {
+		return !!document.querySelector('.podium-item.first');
+	}
+
+	function launchConfettiFor(duration = 8000) {
+		if (typeof confetti !== 'function') {
+			console.warn('canvas-confetti no está disponible');
+			return;
+		}
+
+		const end = Date.now() + duration;
+		const colors = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93', '#ff7ab6'];
+
+		const timer = setInterval(() => {
+			const timeLeft = end - Date.now();
+			if (timeLeft <= 0) {
+				clearInterval(timer);
+				return;
+			}
+
+			// ráfaga aleatoria
+			confetti({
+				particleCount: 20 + Math.floor(Math.random() * 30),
+				spread: 60 + Math.random() * 20,
+				startVelocity: 30,
+				origin: { x: Math.random(), y: Math.random() * 0.4 },
+				colors: colors
+			});
+		}, 250);
+	}
+
+	if (shouldShowConfetti()) {
+		// lanzar confeti en ráfagas durante 8s
+		setTimeout(() => launchConfettiFor(8000), 200);
+	}
+
 	if (!continueBtn) return;
 
 	continueBtn.addEventListener('click', async () => {

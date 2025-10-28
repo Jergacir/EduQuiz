@@ -8,8 +8,8 @@
     --bar-1-color: #ffc107;
     --bar-2-color: #4fc3f7;
     --bar-3-color: #9575cd;
-    --color-continue-bg: #4CAF50;
-    --color-continue-hover: #45a049
+    --color-continue-bg: #F97316;
+    --color-continue-hover: #cb6821;
 }
 
 body {
@@ -23,7 +23,7 @@ body {
 }
 
 .leaderboards-container {
-    background-color: var(--color-white);
+    background: linear-gradient(135deg, #6dd5ed, #2193b0);
     width: 100%;
     min-height: 100vh;
     padding: 20px;
@@ -43,19 +43,21 @@ body {
 }
 
 .header h1 {
-    font-size: 24px;
+    font-size: 36px;
     font-weight: 700;
     color: var(--color-text)
 }
 
 .podium-section {
+    background-color: #fff;
+    border-radius: 12px;
     display: flex;
     justify-content: space-around;
     /* align-items: flex-end; */
     height: 450px;
     margin-bottom: 40px;
-    padding: 0 10px;
-    width: 380px;
+    padding: 20px 20px 0;
+    /* width: 380px; */
 }
 
 .podium-item {
@@ -245,7 +247,7 @@ body {
 .continue-btn {
     width: 100%;
     padding: 15px;
-    background-color: #0D9488;
+    background-color: var(--color-continue-bg);
     color: var(--color-white);
     font-size: 18px;
     font-weight: bold;
@@ -256,28 +258,17 @@ body {
 }
 
 .continue-btn:hover {
-    background-color: #10645d;
+    background-color: var(--color-continue-hover);
 }
 
 /* Responsive: tablet / mobile */
-@media (max-width: 1024px) {
-    .podium-section {
-        width: 100%;
-        height: 360px;
-    }
-
-    .leaderboards-container {
-        /* max-width: 900px; */
-        padding: 18px;
-    }
-}
 
 @media (max-width: 768px) {
     .podium-section {
         /* flex-direction: column;
         height: auto; */
         gap: 16px;
-        width: 100%;
+        /* width: 100%; */
     }
 
     .podium-item {
@@ -287,7 +278,7 @@ body {
 
     .leaderboards-container {
         padding: 14px;
-        border-radius: 14px;    
+        /* border-radius: 14px;     */
     }
 
     .continue-btn {
@@ -299,7 +290,7 @@ body {
 
 @media (max-width: 480px) {
     .podium-section {
-        padding: 0 8px;
+        padding: 20px 10px 0;
     }
 
     .avatar {

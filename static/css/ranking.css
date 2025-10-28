@@ -1,19 +1,28 @@
 :root {
-    --color-primary-dark: #2c3e50; /* Un gris oscuro casi negro para fondo */
-    --color-secondary-dark: #34495e; /* Otro gris oscuro para elementos */
-    --color-text-light: #ecf0f1; /* Texto claro */
-    --color-card-bg: #4a5568; /* Fondo de las tarjetas de jugadores */
-    --color-score-bg: #edf2f7; /* Fondo del cuadro de puntuación */
-    --color-up: #4CAF50; /* Verde para subir */
-    --color-down: #F44336; /* Rojo para bajar */
-    --color-stay: #9e9e9e; /* Gris para mantenerse */
-    --color-button-bg: #0D9488; /* Tu teal principal para el botón */
+    --color-primary-dark: #2c3e50;
+    /* Un gris oscuro casi negro para fondo */
+    --color-secondary-dark: #34495e;
+    /* Otro gris oscuro para elementos */
+    --color-text-light: #ecf0f1;
+    /* Texto claro */
+    --color-card-bg: #4a5568;
+    /* Fondo de las tarjetas de jugadores */
+    --color-score-bg: #edf2f7;
+    /* Fondo del cuadro de puntuación */
+    --color-up: #4CAF50;
+    /* Verde para subir */
+    --color-down: #F44336;
+    /* Rojo para bajar */
+    --color-stay: #9e9e9e;
+    /* Gris para mantenerse */
+    --color-button-bg: #0D9488;
+    /* Tu teal principal para el botón */
     --color-button-hover: #0a7a6e;
 }
 
 body {
     margin: 0;
-    font-family: 'Lexend', sans-serif; 
+    font-family: 'Lexend', sans-serif;
     background: linear-gradient(135deg, #6dd5ed, #2193b0);
     display: flex;
     justify-content: center;
@@ -38,7 +47,8 @@ body {
     border-radius: 12px;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
     width: 100%;
-    max-width: 700px; /* Ancho máximo para desktop */
+    max-width: 1000px;
+    /* Ancho máximo para desktop */
     padding: 30px;
     box-sizing: border-box;
 }
@@ -79,7 +89,8 @@ body {
 .ranking-list {
     display: flex;
     flex-direction: column;
-    gap: 15px; /* Espacio entre las tarjetas de jugadores */
+    gap: 15px;
+    /* Espacio entre las tarjetas de jugadores */
 }
 
 .player-card {
@@ -109,12 +120,14 @@ body {
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background-color: #777; /* Placeholder gris para avatar */
+    background-color: #777;
+    /* Placeholder gris para avatar */
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    flex-shrink: 0; /* Evita que el avatar se encoja */
+    flex-shrink: 0;
+    /* Evita que el avatar se encoja */
 }
 
 .player-avatar img {
@@ -123,7 +136,8 @@ body {
     object-fit: cover;
 }
 
-.player-avatar i { /* Para el icono de placeholder si no hay imagen */
+.player-avatar i {
+    /* Para el icono de placeholder si no hay imagen */
     font-size: 1.8em;
     color: #bbb;
 }
@@ -135,7 +149,8 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px; /* Limitar el ancho del nombre si es muy largo */
+    max-width: 500px;
+    /* Limitar el ancho del nombre si es muy largo */
 }
 
 .player-score-container {
@@ -154,7 +169,8 @@ body {
     font-size: 1.1em;
     font-weight: bold;
     color: white;
-    background-color: #616161; /* Gris por defecto */
+    background-color: #616161;
+    /* Gris por defecto */
 }
 
 .player-position-change.up {
@@ -176,28 +192,70 @@ body {
     border-radius: 8px;
     font-size: 1.3em;
     font-weight: bold;
-    min-width: 90px; /* Ancho mínimo para la puntuación */
+    min-width: 90px;
+    /* Ancho mínimo para la puntuación */
     text-align: center;
 }
 
 /* Responsive: tablet / mobile */
 @media (max-width: 1024px) {
-    .ranking-container { max-width: 850px; padding: 24px; }
+    .ranking-container {
+        max-width: 850px;
+        padding: 24px;
+    }
 }
 
 @media (max-width: 768px) {
-    .ranking-container { max-width: 100%; padding: 18px; }
-    .ranking-header { flex-direction: column; gap: 12px; align-items: flex-start; }
-    .ranking-header h1 { font-size: 1.6rem; }
-    .player-name { max-width: 140px; }
-    .player-score { min-width: 70px; font-size: 1.1rem; padding: 8px 10px; }
-    .continue-btn { width: 100%; }
+    .ranking-container {
+        max-width: 100%;
+        padding: 18px;
+    }
+
+    .ranking-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .ranking-header h1 {
+        font-size: 1.6rem;
+    }
+
+    .player-name {
+        max-width: 200px;
+    }
+
+    .player-score {
+        min-width: 70px;
+        font-size: 1.1rem;
+        padding: 8px 10px;
+    }
+
+    .continue-btn {
+        width: 100%;
+    }
 }
 
 @media (max-width: 480px) {
-    .ranking-container { padding: 12px; }
-    .player-card { flex-direction: column; align-items: flex-start; gap: 10px; }
-    .player-info { width: 100%; }
-    .player-score-container { align-self: flex-end; }
-    .ranking-header h1 { font-size: 1.3rem; }
+    .ranking-container {
+        padding: 12px;
+    }
+
+    .player-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .player-info {
+        width: 100%;
+    }
+
+    .player-score-container {
+        align-self: flex-end;
+    }
+
+    .ranking-header h1 {
+        font-size: 1.3rem;
+    }
 }
