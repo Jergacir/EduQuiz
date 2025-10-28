@@ -185,7 +185,9 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    border-radius: 15px
+    border-radius: 15px;
+    background-color: #fff;
+    border: 1px solid #000;
 }
 
 .list-item.current-user {
@@ -206,7 +208,8 @@ body {
 .list-avatar {
     width: 40px;
     height: 40px;
-    border-radius: 50%
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 .list-badge {
