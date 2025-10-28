@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="/static/css/global.css">
     <link rel="stylesheet" href="/static/css/miscuestionarios.css">
     <link rel="stylesheet" href="/static/css/partidas_profesor.css">
+    <link rel="stylesheet" href="/static/css/configuracionpartida.css">
+    <link rel="stylesheet" href="/static/css/seleccionar_cuestionario.css">
 </head>
 
 <body data-usuario-id="{{ logged_in_user.usuario_id }}" data-tipo-usuario="{{ logged_in_user.tipo_usuario }}">
@@ -70,8 +72,12 @@
                     </div>
                     <a href="{{ url_for('tienda.inventario_index') }}">
                         <div class="profile-box">
-                            {% set default_avatar = '/static/img/perfil_profesor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'P') else ('/static/img/perfil_gestor.png' if (logged_in_user and logged_in_user.get('tipo_usuario') == 'G') else '/static/img/perfil_estudiante.png') %}
-                            <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or default_avatar }}" class="profile-img">
+                            {% set default_avatar = '/static/img/perfil_profesor.png' if (logged_in_user and
+                            logged_in_user.get('tipo_usuario') == 'P') else ('/static/img/perfil_gestor.png' if
+                            (logged_in_user and logged_in_user.get('tipo_usuario') == 'G') else
+                            '/static/img/perfil_estudiante.png') %}
+                            <img src="{{ session.get('url_foto_perfil') or session.get('url_avatar') or default_avatar }}"
+                                class="profile-img">
                             <span class="profile-text" style="display: none;">Mi Perfil</span>
                         </div>
                     </a>
@@ -86,8 +92,7 @@
                     <i class="fas fa-search search-icon"></i>
                 </div>
 
-                <a href="" id="create-partida-button"
-                    class="main-action-button">
+                <a href="#" id="create-partida-button" class="main-action-button">
                     <i class="fa-solid fa-gamepad"></i>
                     Crear Partida
                 </a>
@@ -108,28 +113,28 @@
                                 <th>Acción</th>
                             </tr>
                         </thead>
-                        <!-- REEMPLAZAR tbody completo -->
                         <tbody>
                             {% if partidas %}
-                                {% for partida in partidas %}
-                                <tr>
-                                    <td>{{ partida.nombre_cuestionario }}</td>
-                                    <td>{{ partida.fecha_creacion.strftime('%Y-%m-%d %H:%M') if partida.fecha_creacion else 'N/A' }}</td>
-                                    <td>{{ 'Grupal' if partida.tipo_partida == 'G' else 'Individual' }}</td>
-                                    <td>{{ partida.total_jugadores or 0 }}</td>
-                                    <td>{{ partida.codigo_partida }}</td>
-                                    <td>
-                                        <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=partida.partida_id) }}"
-                                            class="btn-ver-resultados">Ver Resultados</a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
+                            {% for partida in partidas %}
+                            <tr>
+                                <td>{{ partida.nombre_cuestionario }}</td>
+                                <td>{{ partida.fecha_creacion.strftime('%Y-%m-%d %H:%M') if partida.fecha_creacion else
+                                    'N/A' }}</td>
+                                <td>{{ 'Grupal' if partida.tipo_partida == 'G' else 'Individual' }}</td>
+                                <td>{{ partida.total_jugadores or 0 }}</td>
+                                <td>{{ partida.codigo_partida }}</td>
+                                <td>
+                                    <a href="{{ url_for('partidas.frm_resultados_partida', partida_id=partida.partida_id) }}"
+                                        class="btn-ver-resultados">Ver Resultados</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
                             {% else %}
-                                <tr>
-                                    <td colspan="6" style="text-align: center; padding: 20px;">
-                                        No tienes partidas creadas aún
-                                    </td>
-                                </tr>
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 20px;">
+                                    No tienes partidas creadas aún
+                                </td>
+                            </tr>
                             {% endif %}
                         </tbody>
                     </table>
@@ -138,6 +143,101 @@
             </section>
         </div>
     </main>
+
+    <!-- ========================================
+     MODAL 1: SELECCIONAR CUESTIONARIO
+     ======================================== -->
+    <div id="seleccionarCuestionarioModal" class="modal hidden">
+        <div class="modal-content large-modal">
+            <button class="close-modal-btn" id="closeSeleccionarModal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="modal-title">Seleccionar Cuestionario</h2>
+            <p class="modal-subtitle">Elige el cuestionario con el que deseas crear una partida</p>
+
+            <!-- Buscador dentro del modal -->
+            <div class="search-container-modal">
+                <input type="text" id="search-cuestionario-modal" placeholder="Buscar cuestionario..."
+                    class="search-input-modal">
+                <i class="fas fa-search search-icon-modal"></i>
+            </div>
+
+            <!-- Grid de cuestionarios -->
+            <div id="cuestionarios-grid-modal" class="cuestionarios-grid-modal">
+                <div class="loading-spinner">
+                    <i class="fas fa-circle-notch fa-spin"></i>
+                    <p>Cargando cuestionarios...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================
+     MODAL 2: CONFIGURACIÓN DE PARTIDA
+     ======================================== -->
+    <div id="configuracionPartidaModal" class="modal hidden">
+        <div class="modal-content large-modal">
+            <button class="close-modal-btn" id="closeConfigModal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="modal-title">Configuración de Partida</h2>
+            <p class="modal-subtitle">Configura tu partida a tu gusto</p>
+
+            <div class="config-grid">
+                <div class="quiz-info-config">
+                    <div class="quiz-image-preview">
+                        <img id="configQuizImage" src="/static/img/default.png" alt="Cuestionario">
+                        <span id="configNumPreguntas" class="quiz-questions-badge">0 preguntas</span>
+                    </div>
+                    <h3 id="configQuizTitle" class="quiz-title-config">Título del cuestionario</h3>
+                    <p id="configQuizDescription" class="quiz-description-config">Descripción</p>
+                </div>
+
+                <div class="quiz-options-config">
+                    <div class="option-group">
+                        <h4 class="group-title">Generalidades</h4>
+                        <label class="config-checkbox">
+                            Añadir música
+                            <input type="checkbox" id="checkAnadirMusica">
+                            <span class="checkmark"></span>
+                        </label>
+                    </div>
+
+                    <div class="option-group">
+                        <h4 class="group-title">Modalidad</h4>
+                        <select id="modalidadSelect" class="modalidad-select">
+                            <option value="grupal" selected>Grupal</option>
+                            <option value="individual">Individual</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group group-grupal">
+                        <label for="numGrupos">N° Grupos:</label>
+                        <input type="number" id="numGrupos" value="4" min="2" max="10">
+                    </div>
+
+                    <div class="option-group">
+                        <label class="config-checkbox">
+                            Generar Pin Automático
+                            <input type="checkbox" id="checkPinAutomatico" checked>
+                            <span class="checkmark"></span>
+                        </label>
+                    </div>
+
+                    <div class="pin-display" style="display: flex;">
+                        <div class="pin-box">0</div>
+                        <div class="pin-box">0</div>
+                        <div class="pin-box">0</div>
+                        <div class="pin-box">0</div>
+                        <div class="pin-box">0</div>
+                        <div class="pin-box">0</div>
+                    </div>
+
+                    <button id="iniciarPartidaBtn" class="btn-empezar">Empezar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="/static/js/global.js"></script>
     <script src="/static/js/partidas_profesor.js"></script>
