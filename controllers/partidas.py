@@ -2072,37 +2072,84 @@ SCOPES = [
 
 CORPORATE_EMAIL = 'eduquiz.usat@gmail.com'
 
+
 # ========================================================
-# FUNCIÓN: Obtener credenciales OAuth
+# CONFIGURACIÓN DE RUTAS (PythonAnywhere compatible)
+# ========================================================
+
+def obtener_ruta_base():
+    """
+    Retorna la ruta base del proyecto de manera confiable
+    Compatible con: Local, PythonAnywhere, Heroku, etc.
+    """
+    # Opción 1: Usar variable de entorno (RECOMENDADO para producción)
+    ruta_base = os.environ.get('PROJECT_ROOT')
+    
+    if ruta_base and os.path.exists(ruta_base):
+        return ruta_base
+    
+    # Opción 2: Calcular desde este archivo
+    # Si partidas.py está en: /home/usuario/mysite/controllers/partidas.py
+    # La raíz sería: /home/usuario/mysite/
+    archivo_actual = os.path.abspath(__file__)  # /path/to/controllers/partidas.py
+    carpeta_controllers = os.path.dirname(archivo_actual)  # /path/to/controllers
+    carpeta_raiz = os.path.dirname(carpeta_controllers)  # /path/to/
+    
+    return carpeta_raiz
+
+
+# ========================================================
+# FUNCIÓN CORREGIDA: get_oauth_credentials
 # ========================================================
 def get_oauth_credentials():
     """
-    Obtiene credenciales desde token.pickle.
-    Si no existe o está expirado, lo renueva automáticamente.
+    Obtiene credenciales desde token.pickle usando RUTA ABSOLUTA.
+    Compatible con PythonAnywhere y cualquier servidor.
     """
     creds = None
     
+    # 🔧 USAR RUTA ABSOLUTA
+    ruta_proyecto = obtener_ruta_base()
+    token_path = os.path.join(ruta_proyecto, 'token.pickle')
+    
+    print(f"🔍 Buscando token.pickle en: {token_path}")
+    print(f"   Existe? {os.path.exists(token_path)}")
+    
     # Cargar token existente
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
+    if os.path.exists(token_path):
+        try:
+            with open(token_path, 'rb') as token:
+                creds = pickle.load(token)
+            print("✅ Token cargado correctamente")
+        except Exception as e:
+            print(f"❌ Error leyendo token.pickle: {e}")
+            return None
+    else:
+        print(f"❌ ERROR: token.pickle no existe en {token_path}")
+        print("   SOLUCIÓN:")
+        print("   1. Sube token.pickle a la carpeta raíz del proyecto")
+        print("   2. O configura PROJECT_ROOT como variable de entorno")
+        return None
     
     # Si no hay credenciales válidas
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             print("🔄 Renovando token OAuth...")
-            creds.refresh(Request())
-            
-            # Guardar token renovado
-            with open('token.pickle', 'wb') as token:
-                pickle.dump(creds, token)
+            try:
+                creds.refresh(Request())
+                
+                # Guardar token renovado
+                with open(token_path, 'wb') as token:
+                    pickle.dump(creds, token)
+                print("✅ Token renovado correctamente")
+            except Exception as e:
+                print(f"❌ Error renovando token: {e}")
+                return None
         else:
-            print("❌ ERROR: token.pickle no existe o es inválido")
-            print("   Ejecuta primero: python setup_oauth.py")
+            print("❌ ERROR: token inválido y sin refresh_token")
             return None
     
     return creds
-
 
 
 
