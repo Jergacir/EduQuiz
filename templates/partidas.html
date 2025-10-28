@@ -125,6 +125,51 @@
 
     <script src="../static/js/global.js"></script>
     <script src="{{ url_for('static', filename='js/unirse_partida.js') }}"></script>
+    <!-- Modal para avisar falta de skin equipada (usa estilos globales/modal de tienda/home) -->
+    <div id="modal-sin-skin" class="modal oculto" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true">
+            <h3>No tienes ninguna skin equipada</h3>
+            <p class="modal-sub">Antes de unirte a una partida debes equipar una skin o usar tu avatar.</p>
+            <div class="modal-buttons" style="margin-top:16px;">
+                <button id="modal-sin-skin-cancel" class="btn-cancel">Cancelar</button>
+                <button id="modal-sin-skin-inventario" class="btn-verQuiz">Ir a Inventario</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function(){
+            async function checkEquippedSkin(){
+                try{
+                    const resp = await fetch('/api/inventario/tiene_equipada');
+                    if(!resp.ok) return; // silencio en errores
+                    const data = await resp.json();
+                    if(data && data.has_equipped === false){
+                        const modal = document.getElementById('modal-sin-skin');
+                        if(!modal) return;
+                        // Mostrar usando clases compatibles con estilos existentes
+                        modal.classList.remove('oculto');
+                        modal.setAttribute('aria-hidden', 'false');
+
+                        const btnCancel = document.getElementById('modal-sin-skin-cancel');
+                        const btnInv = document.getElementById('modal-sin-skin-inventario');
+                        const close = () => { try{ modal.classList.add('oculto'); modal.setAttribute('aria-hidden','true'); }catch(e){} };
+                        if(btnCancel) btnCancel.addEventListener('click', close);
+                        if(btnInv) btnInv.addEventListener('click', function(){ window.location.href = '{{ url_for("tienda.inventario_index") }}'; });
+
+                        // Cerrar al hacer click fuera del modal-card
+                        modal.addEventListener('click', function(ev){ if(ev.target === modal) close(); });
+                    }
+                }catch(e){ console.warn('No se pudo consultar inventario de equipado', e); }
+            }
+
+            if(document.readyState === 'loading'){
+                document.addEventListener('DOMContentLoaded', checkEquippedSkin);
+            } else {
+                checkEquippedSkin();
+            }
+        })();
+    </script>
 </body>
 
 </html>

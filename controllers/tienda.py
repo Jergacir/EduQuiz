@@ -573,6 +573,38 @@ def api_inventario_equipar():
         return jsonify({'success': False, 'message': 'Error interno.'}), 500
 
 
+@tienda_bp.route('/api/inventario/tiene_equipada', methods=['GET'])
+def api_inventario_tiene_equipada():
+    """Devuelve JSON indicando si el usuario tiene alguna SKIN equipada.
+    Respuesta: { has_equipped: true|false }
+    """
+    if not _is_logged_in():
+        return jsonify({'error': 'No autenticado.'}), 401
+
+    user_id = session.get('user_id')
+    conexion = dbmod.obtenerConexion()
+    if not conexion:
+        return jsonify({'error': 'Error de conexión.'}), 500
+
+    try:
+        with conexion.cursor() as cursor:
+            # detectar posible nombre de tabla inventario
+            inventario_table = 'inventario'
+            try:
+                cursor.execute('SELECT 1 FROM inventario LIMIT 1')
+            except Exception:
+                inventario_table = 'Inventario'
+
+            sql = f"SELECT COUNT(1) AS cnt FROM {inventario_table} WHERE usuario_id = %s AND tipo_item = 'SKIN' AND equipada = 1"
+            cursor.execute(sql, (user_id,))
+            row = cursor.fetchone()
+            has_equipped = bool(row and int(row.get('cnt') or 0) > 0)
+            return jsonify({'has_equipped': has_equipped}), 200
+    except Exception as e:
+        print(f"Error en api_inventario_tiene_equipada: {e}", file=sys.stderr)
+        return jsonify({'error': 'Error interno.'}), 500
+
+
 
 @tienda_bp.route('/api/tienda/comprar', methods=['POST'])
 def api_tienda_comprar():

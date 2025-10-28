@@ -186,3 +186,9 @@ INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`, `sk
 (31, 'Homelander', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/homelander_bdre4s.png', 10000, 1, 0, 'E'),
 (32, 'Jason', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596687/Jason_f9z3kp.png', 10000, 1, 0, 'E'),
 (33, 'Jack Sparrow', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761596688/jacksparrow_zdwchb.png', 10000, 1, 0, 'E');
+UPDATE `skin`
+     SET `precio` = 10000
+     WHERE skin_id = 12;
+
+INSERT INTO `skin` (`skin_id`, `nombre`, `url_imagen`, `precio`, `vigencia`, `skinDefault`, `categoria`) VALUES
+(45, 'Buho eduquiz', 'https://res.cloudinary.com/dpxslk02r/image/upload/v1761626539/default_ivlvvk.png', 0, 1, 1, 'N');
