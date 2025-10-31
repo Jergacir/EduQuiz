@@ -98,16 +98,16 @@
                 <h2>Análisis de Partida</h2>
                 <div class="analysis-grid">
                     <div class="analysis-card">
-                        <span class="analysis-value success">{{ partida_info.acierto_promedio | default('75%') }}</span>
+                        <span class="analysis-value success">{{ partida_info.acierto_promedio | default('0') }}</span>
                         <span class="analysis-label">Puntuación Media</span>
                     </div>
                     <div class="analysis-card">
-                        <span class="analysis-value primary">{{ partida_info.tiempo_promedio | default('25 min') }}</span>
-                        <span class="analysis-label">Tiempo Medio</span>
+                        <span class="analysis-value primary">{{ partida_info.total_jugadores | default('0') }}</span>
+                        <span class="analysis-label">Total de jugadores</span>
                     </div>
                     <div class="analysis-card">
-                        <span class="analysis-value info">{{ partida_info.participacion | default('92%') }}</span>
-                        <span class="analysis-label">Participación</span>
+                        <span class="analysis-value info">{{ partida_info.porcentaje_acierto_promedio | default('0%') }}</span>
+                        <span class="analysis-label">Porcentaje de acierto</span>
                     </div>
                 </div>
             </section>

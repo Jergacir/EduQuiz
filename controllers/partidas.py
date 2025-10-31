@@ -90,7 +90,7 @@ def obtener_participantes(codigo_partida):
     try:
         with conexion.cursor() as cursor:
             sql = """
-                SELECT 
+                SELECT
                     p.participante_id,
                     u.usuario_id,
                     u.nombre,
@@ -185,16 +185,16 @@ def frm_partidas_profesor():
     logged = _get_logged_in_user()
     if not logged or logged.get('tipo_usuario') != 'P':
         abort(403, "Solo profesores pueden acceder")
-    
+
     # NUEVO: Obtener partidas del profesor
     conexion = dbmod.obtenerConexion()
     if not conexion:
         abort(500, "Error de conexión")
-    
+
     try:
         with conexion.cursor() as cursor:
             sql = """
-                SELECT 
+                SELECT
                     p.partida_id,
                     p.codigo_partida,
                     p.fecha_creacion,
@@ -205,14 +205,16 @@ def frm_partidas_profesor():
                 JOIN cuestionario c ON p.cuestionario_id = c.cuestionario_id
                 LEFT JOIN participante part ON p.partida_id = part.partida_id
                 WHERE p.usuario_creador_id = %s
+                AND p.estado='Finalizada'
                 GROUP BY p.partida_id
+                HAVING total_jugadores > 0
                 ORDER BY p.fecha_creacion DESC
                 LIMIT 20
             """
             cursor.execute(sql, (logged['usuario_id'],))
             partidas = cursor.fetchall()
-            
-        return render_template('partidas_profesor.html', 
+
+        return render_template('partidas_profesor.html',
                              logged_in_user=logged,
                              partidas=partidas)
     finally:
@@ -248,8 +250,8 @@ def vista_previa_partida(codigo_partida):
 
         logged = _get_logged_in_user()
         return render_template('previapartida.html', partida=partida, logged_in_user=logged,
-                             codigo_partida=partida['codigo_partida'], 
-                             tipo_partida=partida['tipo_partida'], 
+                             codigo_partida=partida['codigo_partida'],
+                             tipo_partida=partida['tipo_partida'],
                              num_grupos=partida['num_grupos'])
     finally:
         conexion.close()
@@ -289,8 +291,8 @@ def frm_sala_espera(codigo_partida):
 def frm_cuenta_regresiva(codigo_partida):
     logged = _get_logged_in_user() # Asegúrate de que esta función devuelve el objeto de usuario completo
     return render_template(
-        'cuentaregresiva.html', 
-        codigo_partida=codigo_partida, 
+        'cuentaregresiva.html',
+        codigo_partida=codigo_partida,
         logged_in_user=logged # logged_in_user DEBE contener 'tipo_usuario'
     )
 
@@ -355,12 +357,12 @@ def api_estado_usuario(codigo_partida):
     try:
         with conexion.cursor() as cursor:
             sql = """
-                SELECT 
+                SELECT
                     part.partida_id,
                     part.estado AS estado_partida,
                     part.pregunta_actual_index,
                     part.tiempo_inicio_pregunta,
-                    part.tipo_partida,          
+                    part.tipo_partida,
                     par.participante_id,
                     par.grupo_id,
                     par.lider_id
@@ -386,7 +388,7 @@ def api_estado_usuario(codigo_partida):
                 "es_lider": es_lider,
                 "estado_partida": row['estado_partida'],
                 "pregunta_actual_index": row['pregunta_actual_index'],
-                "modalidad": modalidad,  
+                "modalidad": modalidad,
                 "tiempo_inicio_pregunta": (
                     row['tiempo_inicio_pregunta'].isoformat()
                     if row['tiempo_inicio_pregunta'] else None
@@ -561,6 +563,7 @@ def api_avanzar_pregunta(codigo_partida):
 
 
 
+
 # ====================================================================
 # API ENDPOINTS PARA AJAX POLLING
 # ====================================================================
@@ -571,26 +574,26 @@ def obtener_pregunta_actual(codigo_partida):
     """
     # Esto requiere agregar un campo en la tabla partida:
     # ALTER TABLE partida ADD COLUMN pregunta_actual_index INT DEFAULT 0;
-    
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return None
-    
+
     try:
         with conexion.cursor() as cursor:
             cursor.execute("""
-                SELECT 
+                SELECT
                     p.pregunta_actual_index,
                     c.cuestionario_id
                 FROM partida p
                 JOIN cuestionario c ON p.cuestionario_id = c.cuestionario_id
                 WHERE p.codigo_partida = %s
             """, (codigo_partida,))
-            
+
             result = cursor.fetchone()
             if not result:
                 return None
-            
+
             # Obtener preguntas del cuestionario
             cursor.execute("""
                 SELECT pregunta_id, texto_pregunta, tiempo_limite
@@ -598,15 +601,15 @@ def obtener_pregunta_actual(codigo_partida):
                 WHERE cuestionario_id = %s
                 ORDER BY pregunta_id
             """, (result['cuestionario_id'],))
-            
+
             preguntas = cursor.fetchall()
             index = result['pregunta_actual_index']
-            
+
             if 0 <= index < len(preguntas):
                 return preguntas[index]
-            
+
             return None
-            
+
     except Exception as e:
         print(f"[ERROR] obtener_pregunta_actual: {e}", file=sys.stderr)
         return None
@@ -628,28 +631,28 @@ def api_poll_participantes(codigo_partida):
         conexion = dbmod.obtenerConexion()
         if not conexion:
             return jsonify({'success': False, 'error': 'Error de conexión'}), 500
-        
+
         with conexion.cursor() as cursor:
             # Obtener datos de la partida (incluye índice de pregunta actual si existe)
             cursor.execute("""
                 SELECT estado, cuestionario_id, COALESCE(pregunta_actual_index, 0) as pregunta_actual_index
-                FROM partida 
+                FROM partida
                 WHERE codigo_partida = %s
             """, (codigo_partida,))
-            
+
             partida_info = cursor.fetchone()
             print(f"[DEBUG] partida_info cruda: {partida_info}")  # <-- debug
 
             if not partida_info:
                 return jsonify({'success': False, 'error': 'Partida no encontrada'}), 404
-            
+
             # Obtener participantes
             participantes = obtener_participantes(codigo_partida)
             print(f"[DEBUG] Total participantes: {len(participantes)}")  # <-- debug
-            
+
             # Timestamp
             timestamp = partidas_cache.get(codigo_partida, {}).get('last_update', datetime.now().timestamp())
-            
+
             response_data = {
                 'success': True,
                 'participantes': participantes,
@@ -657,7 +660,7 @@ def api_poll_participantes(codigo_partida):
                 'timestamp': timestamp,
                 'total': len(participantes)
             }
-            
+
             # Incluir índice de pregunta actual
             pregunta_actual_index = partida_info.get('pregunta_actual_index', 0)
             response_data['pregunta_actual'] = pregunta_actual_index
@@ -670,9 +673,9 @@ def api_poll_participantes(codigo_partida):
                 print(f"[DEBUG] pregunta_obj obtenido: {pregunta_obj}")  # <-- debug
                 if pregunta_obj:
                     response_data['pregunta_obj'] = pregunta_obj
-            
+
             return jsonify(response_data), 200
-        
+
     except Exception as e:
         print(f"[ERROR] api_poll_participantes: {e}", file=sys.stderr)
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -756,7 +759,7 @@ def api_unirse_partida():
 
     if not codigo_partida or not usuario_id:
         return jsonify({
-            "success": False, 
+            "success": False,
             "message": "Faltan el código de partida o el ID de usuario."
         }), 400
 
@@ -768,7 +771,7 @@ def api_unirse_partida():
         }), 200
 
     return jsonify({
-        "success": False, 
+        "success": False,
         "message": "Código de partida inválido o partida llena."
     }), 400
 
@@ -790,14 +793,14 @@ def api_salir_partida():
     try:
         with conexion.cursor() as cursor:
             cursor.execute(
-                "SELECT partida_id, usuario_creador_id FROM partida WHERE codigo_partida=%s", 
+                "SELECT partida_id, usuario_creador_id FROM partida WHERE codigo_partida=%s",
                 (codigo_partida,)
             )
             partida = cursor.fetchone()
-            
+
             if not partida:
                 return jsonify({"success": False, "message": "Partida no encontrada"}), 404
-                
+
             # No eliminar al creador
             if int(usuario_id) != int(partida.get('usuario_creador_id')):
                 cursor.execute(
@@ -806,9 +809,9 @@ def api_salir_partida():
                 )
                 conexion.commit()
                 actualizar_timestamp_partida(codigo_partida)
-                
+
         return jsonify({"success": True}), 200
-        
+
     except Exception as e:
         print(f"[ERROR] api_salir_partida: {e}", file=sys.stderr)
         return jsonify({"success": False, "message": str(e)}), 500
@@ -849,8 +852,8 @@ def api_unirse_grupo(codigo_partida):
 
             # Verificar si el grupo ya tiene un líder
             cursor.execute("""
-                SELECT DISTINCT lider_id 
-                FROM participante 
+                SELECT DISTINCT lider_id
+                FROM participante
                 WHERE partida_id = %s AND grupo_id = %s AND lider_id IS NOT NULL
                 LIMIT 1
             """, (partida_id, grupo_id))
@@ -909,7 +912,7 @@ def api_designar_lider(codigo_partida):
                 SET lider_id = %s
                 WHERE partida_id = %s AND grupo_id = %s
             """, (lider_participante_id, partida_id, grupo_id))
-            
+
             conexion.commit()
             actualizar_timestamp_partida(codigo_partida)
 
@@ -991,7 +994,7 @@ def crear_partida():
     """Endpoint para crear una nueva partida"""
     data = request.get_json()
     usuario = _get_logged_in_user()
-    
+
     if not usuario:
         return jsonify({'status': 'error', 'mensaje': 'Usuario no autenticado'}), 401
 
@@ -1017,7 +1020,7 @@ def crear_partida():
 
             # Insertar partida
             sql_insert = """
-                INSERT INTO partida 
+                INSERT INTO partida
                 (codigo_partida, cuestionario_id, usuario_creador_id, estado, tipo_partida, fecha_creacion, num_grupos)
                 VALUES (%s, %s, %s, %s, %s, NOW(), %s)
             """
@@ -1031,7 +1034,7 @@ def crear_partida():
             ))
             conexion.commit()
             partida_id = cursor.lastrowid
-            
+
             # Inicializar cache
             actualizar_timestamp_partida(codigo_partida)
 
@@ -1041,7 +1044,7 @@ def crear_partida():
             'codigo_partida': codigo_partida,
             'partida_id': partida_id
         }), 201
-        
+
     except Exception as e:
         print(f"[ERROR] crear_partida: {e}", file=sys.stderr)
         try:
@@ -1073,16 +1076,23 @@ def frm_resultados_partida(partida_id):
                 WHERE p.partida_id = %s
             """, (partida_id,))
             partida_info = cursor.fetchone()
-            
+
             if not partida_info:
                 abort(404, "Partida no encontrada")
 
             # Estadísticas reales
             cursor.execute("""
-                SELECT 
+                SELECT
                     COUNT(DISTINCT pa.participante_id) as total_jugadores,
                     AVG(pa.puntuacion_total) as puntuacion_promedio,
-                    AVG(pa.cant_preguntas_correctas) as correctas_promedio,
+                    AVG(
+                        CASE
+                            WHEN (pa.cant_preguntas_correctas + pa.cant_preguntas_incorrectas) > 0
+                            THEN (CAST(pa.cant_preguntas_correctas AS DECIMAL(10,2)) /
+                                (pa.cant_preguntas_correctas + pa.cant_preguntas_incorrectas)) * 100
+                            ELSE NULL
+                        END
+                    ) AS porcentaje_acierto_promedio,
                     AVG(pa.cant_preguntas_incorrectas) as incorrectas_promedio
                 FROM participante pa
                 WHERE pa.partida_id = %s
@@ -1091,7 +1101,7 @@ def frm_resultados_partida(partida_id):
 
             # Ranking completo
             cursor.execute("""
-                SELECT 
+                SELECT
                     u.nombre AS jugador,
                     u.url_avatar AS avatar,
                     pa.puntuacion_total,
@@ -1105,11 +1115,13 @@ def frm_resultados_partida(partida_id):
             ranking = cursor.fetchall() or []
 
         logged = _get_logged_in_user()
-        
+
         # Agregar estadísticas al dict de partida_info
         partida_info_dict = dict(partida_info)
         partida_info_dict['jugadores_totales'] = stats.get('total_jugadores', 0)
         partida_info_dict['acierto_promedio'] = f"{int(stats.get('puntuacion_promedio', 0))} pts"
+        partida_info_dict['total_jugadores'] = f"{int(stats.get('total_jugadores', 0))} jugadores"
+        partida_info_dict['porcentaje_acierto_promedio'] = f"{stats.get('porcentaje_acierto_promedio', 0):.1f}%"
         partida_info_dict['fecha'] = partida_info['fecha_creacion'].strftime('%Y-%m-%d') if partida_info.get('fecha_creacion') else 'N/A'
 
         return render_template(
@@ -1128,11 +1140,11 @@ def frm_resultados_partida(partida_id):
 def frm_podio(codigo_partida): # Renombrado a frm_podio para seguir el estilo de las demás rutas
     """Muestra la vista del podio final de la partida."""
     logged = _get_logged_in_user()
-    
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         abort(500, "Error de conexión")
-    
+
     try:
         with conexion.cursor() as cursor:
             # 1. Obtener partida_id y marcar la partida como FINALIZADA
@@ -1140,7 +1152,7 @@ def frm_podio(codigo_partida): # Renombrado a frm_podio para seguir el estilo de
             partida = cursor.fetchone()
             if not partida:
                 abort(404, "Partida no encontrada")
-                
+
             # Marcar como FINALIZADA si no lo está
             if partida['estado'] != EstadoPartida.FINALIZADA.value:
                  cursor.execute(
@@ -1152,29 +1164,29 @@ def frm_podio(codigo_partida): # Renombrado a frm_podio para seguir el estilo de
 
             # 2. Obtener el ranking COMPLETO en una sola consulta
             cursor.execute("""
-                SELECT 
-                    u.nombre, 
-                    u.url_avatar, 
-                    pa.puntuacion_total, 
+                SELECT
+                    u.nombre,
+                    u.url_avatar,
+                    pa.puntuacion_total,
                     pa.cant_preguntas_correctas
                 FROM participante pa
                 JOIN usuario u ON pa.usuario_id = u.usuario_id
                 WHERE pa.partida_id = %s
                 ORDER BY pa.puntuacion_total DESC, pa.cant_preguntas_correctas DESC
             """, (partida['partida_id'],))
-            
+
             ranking_completo = cursor.fetchall() or []
-        
+
         # 3. Usar Slicing de Python para dividir la lista
         top3 = ranking_completo[:3]  # Primeros 3 (índices 0, 1, 2)
         resto = ranking_completo[3:] # Del 4to en adelante (índice 3 en adelante)
-        
-        return render_template('podio.html', 
-                               codigo_partida=codigo_partida, 
+
+        return render_template('podio.html',
+                               codigo_partida=codigo_partida,
                                logged_in_user=logged,
                                top3=top3,
                                resto=resto)
-    
+
     except Exception as e:
         print(f"[partidas] Error en frm_podio: {e}", file=sys.stderr)
         abort(500, "Error interno del servidor al cargar el podio.")
@@ -1225,8 +1237,8 @@ def frm_preguntas_profesor(codigo_partida):
     """Renderiza la vista principal de juego para el profesor."""
     # Aquí puedes añadir lógica de carga de la primera pregunta
     return render_template(
-        'preguntasprofesor.html', 
-        codigo_partida=codigo_partida, 
+        'preguntasprofesor.html',
+        codigo_partida=codigo_partida,
         # ... datos adicionales ...
     )
 
@@ -1234,11 +1246,11 @@ def frm_preguntas_profesor(codigo_partida):
 def frm_preguntas_alumno(codigo_partida):
     """Renderiza la vista de juego para el alumno"""
     usuario_id = session.get('user_id')
-    
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         abort(500, "Error de conexión")
-    
+
     try:
         with conexion.cursor() as cursor:
             cursor.execute("""
@@ -1247,15 +1259,15 @@ def frm_preguntas_alumno(codigo_partida):
                 JOIN partida p ON pa.partida_id = p.partida_id
                 WHERE p.codigo_partida = %s AND pa.usuario_id = %s
             """, (codigo_partida, usuario_id))
-            
+
             result = cursor.fetchone()
             participante_id = result['participante_id'] if result else None
-            
+
             if not participante_id:
                 abort(404, "No eres participante de esta partida")
-        
+
         logged = _get_logged_in_user()
-        
+
         return render_template(
             'preguntasalumno.html',
             codigo_partida=codigo_partida,
@@ -1399,7 +1411,7 @@ def frm_ranking_partida(codigo_partida):
 
         logged = _get_logged_in_user()
         es_profesor = False
-        
+
         try:
             if logged and partida and int(logged.get('usuario_id', 0)) == int(partida.get('usuario_creador_id', 0)):
                 es_profesor = True
@@ -1425,56 +1437,56 @@ def api_cambiar_estado_partida(codigo_partida):
     """
     data = request.get_json() or {}
     nuevo_estado = data.get('nuevo_estado')
-    
+
     # Validar usuario
     usuario = _get_logged_in_user()
     if not usuario or usuario['tipo_usuario'] != 'P':
         return jsonify({'success': False, 'message': 'Solo profesores pueden cambiar el estado'}), 403
-    
+
     # Validar estado
     estados_validos = [e.value for e in EstadoPartida]
     if nuevo_estado not in estados_validos:
         return jsonify({'success': False, 'message': 'Estado inválido'}), 400
-    
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({'success': False, 'message': 'Error de conexión'}), 500
-    
+
     try:
         with conexion.cursor() as cursor:
             # Verificar que la partida existe y el profesor es el creador
             cursor.execute("""
-                SELECT partida_id, usuario_creador_id, estado 
-                FROM partida 
+                SELECT partida_id, usuario_creador_id, estado
+                FROM partida
                 WHERE codigo_partida = %s
             """, (codigo_partida,))
-            
+
             partida = cursor.fetchone()
             if not partida:
                 return jsonify({'success': False, 'message': 'Partida no encontrada'}), 404
-            
+
             if partida['usuario_creador_id'] != usuario['usuario_id']:
                 return jsonify({'success': False, 'message': 'No eres el creador de esta partida'}), 403
-            
+
             # Actualizar estado
             cursor.execute("""
-                UPDATE partida 
-                SET estado = %s 
+                UPDATE partida
+                SET estado = %s
                 WHERE codigo_partida = %s
             """, (nuevo_estado, codigo_partida))
-            
+
             conexion.commit()
-            
+
             # Actualizar timestamp para polling
             actualizar_timestamp_partida(codigo_partida)
-            
+
             return jsonify({
-                'success': True, 
+                'success': True,
                 'estado_anterior': partida['estado'],
                 'nuevo_estado': nuevo_estado,
                 'timestamp': datetime.now().isoformat()
             }), 200
-            
+
     except Exception as e:
         print(f"[ERROR] api_cambiar_estado_partida: {e}", file=sys.stderr)
         conexion.rollback()
@@ -1567,53 +1579,53 @@ def api_obtener_pregunta_actual(codigo_partida):
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({'success': False, 'error': 'Error de conexión'}), 500
-    
+
     try:
         with conexion.cursor() as cursor:
             # Obtener datos de la partida
             cursor.execute("""
-                SELECT 
+                SELECT
                     p.pregunta_actual_index,
                     p.cuestionario_id,
                     p.tiempo_inicio_pregunta
                 FROM partida p
                 WHERE p.codigo_partida = %s
             """, (codigo_partida,))
-            
+
             partida = cursor.fetchone()
             if not partida:
                 return jsonify({'success': False, 'error': 'Partida no encontrada'}), 404
-            
+
             pregunta_index = partida['pregunta_actual_index']
             cuestionario_id = partida['cuestionario_id']
-            
+
             # Obtener todas las preguntas del cuestionario
             cursor.execute("""
-                SELECT 
-                    pregunta_id, 
-                    texto_pregunta, 
-                    media_url, 
+                SELECT
+                    pregunta_id,
+                    texto_pregunta,
+                    media_url,
                     tiempo_limite
                 FROM pregunta
                 WHERE cuestionario_id = %s
                 ORDER BY pregunta_id ASC
             """, (cuestionario_id,))
-            
+
             preguntas = cursor.fetchall()
-            
+
             if pregunta_index >= len(preguntas):
                 return jsonify({
                     'success': True,
                     'finalizada': True,
                     'message': 'No hay más preguntas'
                 }), 200
-            
+
             # Obtener la pregunta actual
             pregunta = preguntas[pregunta_index]
-            
+
             # Obtener respuestas de la pregunta
             cursor.execute("""
-                SELECT 
+                SELECT
                     respuesta_id,
                     texto_respuesta,
                     estado_respuesta
@@ -1621,9 +1633,9 @@ def api_obtener_pregunta_actual(codigo_partida):
                 WHERE pregunta_id = %s
                 ORDER BY respuesta_id ASC
             """, (pregunta['pregunta_id'],))
-            
+
             respuestas = cursor.fetchall()
-            
+
             return jsonify({
                 'success': True,
                 'pregunta': {
@@ -1636,7 +1648,7 @@ def api_obtener_pregunta_actual(codigo_partida):
                 'pregunta_actual': pregunta_index,
                 'total_preguntas': len(preguntas)
             }), 200
-            
+
     except Exception as e:
         print(f"[ERROR] api_obtener_pregunta_actual: {e}", file=sys.stderr)
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1665,7 +1677,7 @@ def api_obtener_ranking(codigo_partida):
                        COALESCE(pa.puntuacion_total, 0) as puntuacion_total,
                        COALESCE(pa.cant_preguntas_correctas, 0) as cant_correctas,
                        COALESCE(pa.cant_preguntas_incorrectas, 0) as cant_incorrectas,
-                    CASE 
+                    CASE
                         WHEN pa.lider_id IS NULL OR pa.lider_id = pa.participante_id THEN 1
                         ELSE 0
                     END AS es_lider
@@ -1697,7 +1709,6 @@ def api_obtener_ranking(codigo_partida):
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         conexion.close()
-
 
 
 # =========================================================================
@@ -1910,14 +1921,14 @@ def api_responder_pregunta():
 def api_finalizar_partida():
     data = request.get_json() or {}
     codigo_partida = data.get('codigo_partida')
-    
+
     if not codigo_partida:
         return jsonify({'success': False, 'message': 'Falta código de partida'}), 400
-    
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({'success': False, 'message': 'Error de conexión'}), 500
-    
+
     try:
         with conexion.cursor() as cursor:
             # 1. Obtener partida
@@ -1925,9 +1936,9 @@ def api_finalizar_partida():
             partida = cursor.fetchone()
             if not partida:
                 return jsonify({'success': False, 'message': 'Partida no encontrada'}), 404
-            
+
             partida_id = partida['partida_id']
-            
+
             # 2. NUEVO: Sumar puntos a monedas de cada usuario
             cursor.execute("""
                 UPDATE usuario u
@@ -1935,24 +1946,24 @@ def api_finalizar_partida():
                 SET u.cant_monedas = u.cant_monedas + COALESCE(p.puntuacion_total, 0)
                 WHERE p.partida_id = %s
             """, (partida_id,))
-            
+
             # 3. Marcar partida como finalizada
             cursor.execute("""
-                UPDATE partida 
-                SET estado = 'finalizada' 
+                UPDATE partida
+                SET estado = 'finalizada'
                 WHERE partida_id = %s
             """, (partida_id,))
-            
+
             conexion.commit()
-            
+
             actualizar_timestamp_partida(codigo_partida)
-            
+
             return jsonify({
                 'success': True,
                 'partida_id': partida_id,
                 'message': 'Partida finalizada y monedas actualizadas'
             }), 200
-            
+
     except Exception as e:
         print(f"[ERROR] api_finalizar_partida: {e}", file=sys.stderr)
         conexion.rollback()
@@ -1967,7 +1978,7 @@ def api_finalizar_partida():
 def enviar_email_oauth(destinatario_email, link_descarga, nombre_archivo, nombre_cuestionario):
     """
     Envía email usando OAuth (desde eduquiz.usat@gmail.com)
-    
+
     Args:
         destinatario_email: Email del profesor
         link_descarga: URL de Google Drive
@@ -1978,9 +1989,9 @@ def enviar_email_oauth(destinatario_email, link_descarga, nombre_archivo, nombre
         creds = get_oauth_credentials()
         if not creds:
             return {"success": False, "error": "No hay credenciales OAuth válidas"}
-        
+
         gmail_service = build('gmail', 'v1', credentials=creds)
-        
+
         # Crear mensaje HTML (mismo que antes)
         html_body = f"""
         <!DOCTYPE html>
@@ -1992,13 +2003,13 @@ def enviar_email_oauth(destinatario_email, link_descarga, nombre_archivo, nombre
                 .container {{ max-width: 600px; margin: 30px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
                 .header {{ background: linear-gradient(135deg, #0a58ca, #3b82f6); color: white; padding: 30px; text-align: center; }}
                 .content {{ padding: 30px; }}
-                .btn {{ 
-                    display: inline-block; 
-                    padding: 14px 32px; 
-                    background: #0a58ca; 
-                    color: white; 
-                    text-decoration: none; 
-                    border-radius: 8px; 
+                .btn {{
+                    display: inline-block;
+                    padding: 14px 32px;
+                    background: #0a58ca;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 8px;
                     font-weight: bold;
                     margin: 20px 0;
                 }}
@@ -2016,18 +2027,18 @@ def enviar_email_oauth(destinatario_email, link_descarga, nombre_archivo, nombre
                 <div class="content">
                     <p>Hola,</p>
                     <p>Los resultados de <strong>{nombre_cuestionario}</strong> ya están disponibles.</p>
-                    
+
                     <div class="info-box">
                         <strong>📁 Archivo:</strong> {nombre_archivo}<br>
                         <strong>☁️ Ubicación:</strong> Google Drive (EduQuiz)
                     </div>
-                    
+
                     <div style="text-align: center;">
                         <a href="{link_descarga}" class="btn">📥 Descargar Resultados</a>
                     </div>
-                    
+
                     <p style="font-size: 14px; color: #666; margin-top: 30px;">
-                        💡 <strong>Tip:</strong> El archivo estará disponible en tu Google Drive por tiempo indefinido. 
+                        💡 <strong>Tip:</strong> El archivo estará disponible en tu Google Drive por tiempo indefinido.
                         Puedes descargarlo desde cualquier dispositivo usando el enlace.
                     </p>
                 </div>
@@ -2039,50 +2050,50 @@ def enviar_email_oauth(destinatario_email, link_descarga, nombre_archivo, nombre
         </body>
         </html>
         """
-        
+
         # Crear mensaje MIME
         message = MIMEMultipart('alternative')
         message['From'] = CORPORATE_EMAIL
         message['To'] = destinatario_email
         message['Subject'] = f"📊 Resultados: {nombre_cuestionario}"
-        
+
         # Texto plano (fallback)
         text_part = MIMEText(f"""
         Resultados de EduQuiz
-        
+
         Los resultados de "{nombre_cuestionario}" están listos.
-        
+
         📥 Descargar: {link_descarga}
-        
+
         Archivo: {nombre_archivo}
-        
+
         ---
         EduQuiz - eduquiz.usat@gmail.com
         """, 'plain')
-        
+
         html_part = MIMEText(html_body, 'html')
-        
+
         message.attach(text_part)
         message.attach(html_part)
-        
+
         # Codificar para Gmail API
         raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
-        
+
         # Enviar
         resultado = gmail_service.users().messages().send(
             userId='me',
             body={'raw': raw_message}
         ).execute()
-        
+
         message_id = resultado.get('id')
         print(f"✅ Email enviado a {destinatario_email} (ID: {message_id})")
-        
+
         return {
             "success": True,
             "message_id": message_id,
             "destinatario": destinatario_email
         }
-        
+
     except Exception as e:
         print(f"❌ Error enviando email: {e}")
         import traceback
@@ -2109,17 +2120,17 @@ def obtener_ruta_base():
     """
     # Opción 1: Usar variable de entorno (RECOMENDADO para producción)
     ruta_base = os.environ.get('PROJECT_ROOT')
-    
+
     if ruta_base and os.path.exists(ruta_base):
         return ruta_base
-    
+
     # Opción 2: Calcular desde este archivo
     # Si partidas.py está en: /home/usuario/mysite/controllers/partidas.py
     # La raíz sería: /home/usuario/mysite/
     archivo_actual = os.path.abspath(__file__)  # /path/to/controllers/partidas.py
     carpeta_controllers = os.path.dirname(archivo_actual)  # /path/to/controllers
     carpeta_raiz = os.path.dirname(carpeta_controllers)  # /path/to/
-    
+
     return carpeta_raiz
 
 
@@ -2132,14 +2143,14 @@ def get_oauth_credentials():
     Compatible con PythonAnywhere y cualquier servidor.
     """
     creds = None
-    
+
     # 🔧 USAR RUTA ABSOLUTA
     ruta_proyecto = obtener_ruta_base()
     token_path = os.path.join(ruta_proyecto, 'token.pickle')
-    
+
     print(f"🔍 Buscando token.pickle en: {token_path}")
     print(f"   Existe? {os.path.exists(token_path)}")
-    
+
     # Cargar token existente
     if os.path.exists(token_path):
         try:
@@ -2155,14 +2166,14 @@ def get_oauth_credentials():
         print("   1. Sube token.pickle a la carpeta raíz del proyecto")
         print("   2. O configura PROJECT_ROOT como variable de entorno")
         return None
-    
+
     # Si no hay credenciales válidas
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             print("🔄 Renovando token OAuth...")
             try:
                 creds.refresh(Request())
-                
+
                 # Guardar token renovado
                 with open(token_path, 'wb') as token:
                     pickle.dump(creds, token)
@@ -2173,7 +2184,7 @@ def get_oauth_credentials():
         else:
             print("❌ ERROR: token inválido y sin refresh_token")
             return None
-    
+
     return creds
 
 
@@ -2184,7 +2195,7 @@ def get_oauth_credentials():
 def subir_a_drive_oauth(buffer, filename, mimetype):
     """
     Sube archivo a Google Drive usando OAuth
-    
+
     Returns:
         dict: {"success": bool, "url": str, "file_id": str}
     """
@@ -2192,18 +2203,18 @@ def subir_a_drive_oauth(buffer, filename, mimetype):
         creds = get_oauth_credentials()
         if not creds:
             return {"success": False, "error": "No hay credenciales OAuth válidas"}
-        
+
         drive_service = build('drive', 'v3', credentials=creds)
-        
+
         # 1. Buscar o crear carpeta "EduQuiz Resultados"
         folder_query = "name='EduQuiz Resultados' and mimeType='application/vnd.google-apps.folder' and trashed=false"
         results = drive_service.files().list(
             q=folder_query,
             fields='files(id, name)'
         ).execute()
-        
+
         folders = results.get('files', [])
-        
+
         if folders:
             folder_id = folders[0]['id']
             print(f"✅ Carpeta encontrada: {folder_id}")
@@ -2219,46 +2230,46 @@ def subir_a_drive_oauth(buffer, filename, mimetype):
             ).execute()
             folder_id = folder['id']
             print(f"✅ Carpeta creada: {folder_id}")
-        
+
         # 2. Subir archivo
         buffer.seek(0)
         file_metadata = {
             'name': filename,
             'parents': [folder_id]
         }
-        
+
         media = MediaIoBaseUpload(buffer, mimetype=mimetype, resumable=True)
-        
+
         file = drive_service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id, webViewLink'
         ).execute()
-        
+
         file_id = file['id']
         print(f"✅ Archivo subido: {file_id}")
-        
+
         # 3. Hacer público (cualquiera con link puede ver)
         permission = {
             'type': 'anyone',
             'role': 'reader'
         }
-        
+
         drive_service.permissions().create(
             fileId=file_id,
             body=permission
         ).execute()
-        
+
         # 4. Obtener link
         web_link = file.get('webViewLink')
-        
+
         return {
             "success": True,
             "url": web_link,
             "file_id": file_id,
             "message": "Archivo subido correctamente"
         }
-        
+
     except Exception as e:
         print(f"❌ Error subiendo a Drive: {e}")
         import traceback
@@ -2287,24 +2298,24 @@ def api_exportar_partida(partida_id):
     campos = data.get("campos", [])
     enviar_por_email = data.get("enviar_por_email", False)
     email_destinatario = data.get("email_destinatario", "")
-    
+
     if not campos:
         return jsonify({"status": "error", "error": "No se seleccionaron campos"}), 400
-    
+
     if formato not in ["csv", "excel", "pdf"]:
         return jsonify({"status": "error", "error": "Formato no soportado"}), 400
-    
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({"status": "error", "error": "Error de conexión a BD"}), 500
-    
+
     try:
         with conexion.cursor() as cursor:
             # ===================================================================
             # OBTENER INFORMACIÓN DE LA PARTIDA (con usuario y fecha)
             # ===================================================================
             cursor.execute("""
-                SELECT 
+                SELECT
                     p.codigo_partida,
                     p.fecha_creacion,
                     c.nombre_cuestionario,
@@ -2314,16 +2325,16 @@ def api_exportar_partida(partida_id):
                 JOIN usuario u ON p.usuario_creador_id = u.usuario_id
                 WHERE p.partida_id = %s
             """, (partida_id,))
-            
+
             partida_info = cursor.fetchone()
             if not partida_info:
                 return jsonify({"status": "error", "error": "Partida no encontrada"}), 404
-            
+
             # ===================================================================
             # OBTENER DATOS DE PARTICIPANTES
             # ===================================================================
             cursor.execute("""
-                SELECT 
+                SELECT
                     u.nombre,
                     pa.puntuacion_total AS puntaje_final,
                     pa.cant_preguntas_correctas AS respuestas_correctas,
@@ -2338,16 +2349,16 @@ def api_exportar_partida(partida_id):
                 WHERE pa.partida_id = %s
                 ORDER BY pa.puntuacion_total DESC
             """, (partida_id,))
-            
+
             rows = cursor.fetchall()
-        
+
         if not rows:
             return jsonify({"status": "error", "error": "No hay datos para exportar"}), 404
-        
+
         # Convertir a DataFrame
         import pandas as pd
         df = pd.DataFrame(rows)
-        
+
         # Filtrar columnas
         alias_map = {
             'puntuacion_total': 'puntaje_final',
@@ -2358,7 +2369,7 @@ def api_exportar_partida(partida_id):
         campos_normalizados = [alias_map.get(c, c) for c in campos]
         campos_validos = [c for c in campos_normalizados if c in df.columns]
         df = df[campos_validos]
-        
+
         # ===================================================================
         # PREPARAR METADATA PARA EL ARCHIVO
         # ===================================================================
@@ -2370,18 +2381,18 @@ def api_exportar_partida(partida_id):
             fecha_str = fecha_creacion.strftime('%d/%m/%Y %H:%M')
         else:
             fecha_str = str(fecha_creacion) if fecha_creacion else 'N/A'
-        
+
         nombre_cuestionario = partida_info.get('nombre_cuestionario', 'Cuestionario')
-        
+
         buffer = BytesIO()
-        
+
         # ===================================================================
         # GENERAR ARCHIVO SEGÚN FORMATO
         # ===================================================================
         if formato == "csv":
             from io import TextIOWrapper
             text_wrapper = TextIOWrapper(buffer, encoding="utf-8-sig", newline="", write_through=True)
-            
+
             # ✅ AGREGAR METADATA AL CSV
             text_wrapper.write(f"# Resultados - Partida #{partida_id}\n")
             text_wrapper.write(f"# Cuestionario: {nombre_cuestionario}\n")
@@ -2389,13 +2400,13 @@ def api_exportar_partida(partida_id):
             text_wrapper.write(f"# Fecha: {fecha_str}\n")
             text_wrapper.write(f"# Total participantes: {len(df)}\n")
             text_wrapper.write("\n")
-            
+
             df.to_csv(text_wrapper, index=False)
             text_wrapper.detach()
             buffer.seek(0)
             mimetype = "text/csv"
             extension = "csv"
-        
+
         elif formato == "excel":
             with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
                 # ✅ CREAR HOJA DE METADATA
@@ -2415,14 +2426,14 @@ def api_exportar_partida(partida_id):
                         len(df)
                     ]
                 })
-                
+
                 metadata_df.to_excel(writer, index=False, sheet_name="Información")
                 df.to_excel(writer, index=False, sheet_name="Resultados")
-            
+
             buffer.seek(0)
             mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             extension = "xlsx"
-        
+
         elif formato == "pdf":
             # ✅ PASAR INFO COMPLETA A LA FUNCIÓN PDF
             info_completa = {
@@ -2430,32 +2441,32 @@ def api_exportar_partida(partida_id):
                 'usuario_creador': usuario_creador,
                 'fecha_creacion': fecha_str
             }
-            
+
             generar_pdf_mejorado(buffer, df, partida_id, info_completa)
             mimetype = "application/pdf"
             extension = "pdf"
-        
+
         filename = f"resultados_partida_{partida_id}_{timestamp}.{extension}"
-        
+
         # ===================================================================
         # ENVÍO POR EMAIL (si se solicitó)
         # ===================================================================
         if enviar_por_email and email_destinatario:
             resultado_drive = subir_a_drive_oauth(buffer, filename, mimetype)
-            
+
             if not resultado_drive.get("success"):
                 return jsonify({
                     "status": "error",
                     "error": f"Error subiendo a Drive: {resultado_drive.get('error')}"
                 }), 500
-            
+
             resultado_email = enviar_email_oauth(
                 email_destinatario,
                 resultado_drive["url"],
                 filename,
                 nombre_cuestionario
             )
-            
+
             if resultado_email.get("success"):
                 return jsonify({
                     "status": "success",
@@ -2469,7 +2480,7 @@ def api_exportar_partida(partida_id):
                     "drive_url": resultado_drive["url"],
                     "error_email": resultado_email.get("error")
                 }), 200
-        
+
         # ===================================================================
         # DESCARGA DIRECTA
         # ===================================================================
@@ -2480,7 +2491,7 @@ def api_exportar_partida(partida_id):
             download_name=filename,
             mimetype=mimetype
         )
-        
+
     except Exception as e:
         print(f"❌ Error: {e}")
         import traceback
@@ -2495,89 +2506,191 @@ def api_exportar_partida(partida_id):
 # FUNCIÓN: Generar PDF mejorado con metadata
 # ========================================================
 def generar_pdf_mejorado(buffer, df, partida_id, info_partida):
-    """Genera un PDF profesional con los resultados - VERSIÓN CORREGIDA"""
-    from reportlab.lib.pagesizes import letter
+    """Genera un PDF profesional con los resultados - VERSIÓN CORREGIDA CON COLUMNAS LEGIBLES"""
+    from reportlab.lib.pagesizes import letter, landscape
     from reportlab.pdfgen import canvas
     from reportlab.lib.units import inch
     from reportlab.lib import colors
-    from reportlab.platypus import Table, TableStyle
+    from reportlab.platypus import Table, TableStyle, Paragraph
+    from reportlab.lib.styles import getSampleStyleSheet
     from datetime import datetime
-    
+
+    # 🔧 DECIDIR ORIENTACIÓN: Si hay más de 4 columnas, usar horizontal
+    num_columnas = len(df.columns)
+    if num_columnas > 4:
+        pagesize = landscape(letter)
+    else:
+        pagesize = letter
+
     # Crear canvas
-    c = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-    
+    c = canvas.Canvas(buffer, pagesize=pagesize)
+    width, height = pagesize
+
     # ===================================================================
-    # HEADER CON METADATA (Usuario y Fecha)
+    # HEADER CON METADATA
     # ===================================================================
     c.setFillColor(colors.HexColor('#2D3047'))
-    c.rect(0, height - 120, width, 120, fill=True, stroke=False)
-    
+    c.rect(0, height - 100, width, 100, fill=True, stroke=False)
+
     c.setFillColor(colors.white)
-    c.setFont("Helvetica-Bold", 24)
-    c.drawString(50, height - 50, f"Resultados - Partida #{partida_id}")
-    
-    c.setFont("Helvetica", 12)
-    c.drawString(50, height - 75, f"Cuestionario: {info_partida.get('nombre_cuestionario', 'N/A')}")
-    
-    # NUEVA LÍNEA: Usuario creador
-    c.drawString(50, height - 95, f"Creado por: {info_partida.get('usuario_creador', 'Desconocido')}")
-    
-    # NUEVA LÍNEA: Fecha de creación
+    c.setFont("Helvetica-Bold", 20)
+    c.drawString(40, height - 35, f"Resultados - Partida #{partida_id}")
+
+    c.setFont("Helvetica", 10)
+    y_meta = height - 55
+    c.drawString(40, y_meta, f"Cuestionario: {info_partida.get('nombre_cuestionario', 'N/A')}")
+
+    y_meta -= 15
+    c.drawString(40, y_meta, f"Creado por: {info_partida.get('usuario_creador', 'Desconocido')}")
+
     fecha_str = info_partida.get('fecha_creacion', 'N/A')
     if isinstance(fecha_str, datetime):
         fecha_str = fecha_str.strftime('%d/%m/%Y %H:%M')
-    c.drawString(50, height - 110, f"Fecha: {fecha_str}")
-    
+
+    y_meta -= 15
+    c.drawString(40, y_meta, f"Fecha: {fecha_str} | Total participantes: {len(df)}")
+
     # ===================================================================
-    # INFORMACIÓN GENERAL
+    # PREPARAR DATOS DE LA TABLA
     # ===================================================================
     c.setFillColor(colors.black)
-    c.setFont("Helvetica", 11)
-    y_pos = height - 150
-    c.drawString(50, y_pos, f"Total de participantes: {len(df)}")
-    
-    # ===================================================================
-    # TABLA DE RESULTADOS
-    # ===================================================================
-    y_pos -= 40
-    
-    # Preparar datos para la tabla
-    table_data = [df.columns.tolist()]  # Headers
+    y_pos = height - 130
+
+    # Convertir headers a texto más corto si es necesario
+    headers_map = {
+        'nombre': 'Nombre',
+        'puntaje_final': 'Puntaje',
+        'puntuacion_total': 'Puntaje',
+        'respuestas_correctas': 'Correctas',
+        'cant_preguntas_correctas': 'Correctas',
+        'respuestas_incorrectas': 'Incorrectas',
+        'cant_preguntas_incorrectas': 'Incorrectas',
+        'codigo_partida': 'Código',
+        'nombre_cuestionario': 'Cuestionario',
+        'fecha_creacion': 'Fecha'
+    }
+
+    # Reemplazar nombres largos
+    headers = [headers_map.get(col, col) for col in df.columns]
+
+    # Preparar datos (limitar texto largo)
+    table_data = [headers]  # Headers
+
     for _, row in df.iterrows():
-        table_data.append([str(val)[:30] for val in row.values])
-    
-    # Calcular ancho de columnas
-    col_width = (width - 100) / len(df.columns) 
-    col_widths = [col_width] * len(df.columns)
-    
-    # Crear tabla
+        fila = []
+        for val in row.values:
+            texto = str(val)[:50]  # Limitar a 50 caracteres
+            fila.append(texto)
+        table_data.append(fila)
+
+    # ===================================================================
+    # CALCULAR ANCHOS DE COLUMNA INTELIGENTEMENTE
+    # ===================================================================
+    margen_total = 80  # 40px cada lado
+    ancho_disponible = width - margen_total
+
+    # Calcular ancho proporcional según contenido
+    anchos_max = []
+
+    for i in range(num_columnas):
+        # Encontrar el texto más largo en esta columna
+        max_len = max(
+            len(str(table_data[j][i]))
+            for j in range(len(table_data))
+        )
+        anchos_max.append(max_len)
+
+    # Calcular proporción
+    total_chars = sum(anchos_max)
+    col_widths = []
+
+    for ancho in anchos_max:
+        proporcion = ancho / total_chars
+        col_widths.append(ancho_disponible * proporcion)
+
+    # Asegurar ancho mínimo de 60 puntos
+    col_widths = [max(60, w) for w in col_widths]
+
+    # Si se pasa del ancho, reducir proporcionalmente
+    if sum(col_widths) > ancho_disponible:
+        factor = ancho_disponible / sum(col_widths)
+        col_widths = [w * factor for w in col_widths]
+
+    # ===================================================================
+    # CREAR TABLA CON ESTILOS MEJORADOS
+    # ===================================================================
     table = Table(table_data, colWidths=col_widths)
-    
+
+    # Ajustar tamaño de fuente según número de columnas
+    if num_columnas <= 4:
+        font_size = 10
+        header_font = 11
+    elif num_columnas <= 6:
+        font_size = 8
+        header_font = 9
+    else:
+        font_size = 7
+        header_font = 8
+
     table.setStyle(TableStyle([
+        # Header
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#419D78')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), header_font),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('TOPPADDING', (0, 0), (-1, 0), 10),
+
+        # Body
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), font_size),
+        ('TOPPADDING', (0, 1), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+
+        # Grid
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('BOX', (0, 0), (-1, -1), 1, colors.black),
+
+        # Zebra striping para mejor legibilidad
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
     ]))
-    
-    # Calcular altura disponible
-    table_height = len(table_data) * 20
-    
-    # Dibujar tabla
-    table.wrapOn(c, width - 100, height)
-    table.drawOn(c, 50, max(50, y_pos - table_height))
-    
+
+    # ===================================================================
+    # DIBUJAR TABLA EN EL PDF
+    # ===================================================================
+    # Calcular altura de la tabla
+    table_height = len(table_data) * (font_size + 12)  # aproximado
+
+    # Posicionar tabla
+    table_y = max(40, y_pos - table_height)
+
+    # Si la tabla es muy alta, ajustar
+    if table_y < 40:
+        table_y = 40
+        c.setFont("Helvetica", 8)
+        c.drawString(40, 25, "Nota: Algunos datos pueden estar truncados por espacio.")
+
+    # Renderizar
+    table.wrapOn(c, width - margen_total, height - 140)
+    table.drawOn(c, 40, table_y)
+
+    # Pie de página
+    c.setFont("Helvetica", 8)
+    c.setFillColor(colors.grey)
+    c.drawString(40, 15, f"Generado: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    c.drawRightString(width - 40, 15, "EduQuiz - Sistema de Evaluación")
+
     # Guardar PDF
     c.save()
-    
-    # ⚠️ CRÍTICO: Resetear el puntero del buffer al inicio
+
+    # ⚠️ CRÍTICO: Resetear el puntero del buffer
     buffer.seek(0)
-    
+
     return buffer
 
 
@@ -2585,92 +2698,6 @@ def generar_pdf_mejorado(buffer, df, partida_id, info_partida):
 # GENERADOR DE PDF MEJORADO
 # ========================================================
 # En controllers/partidas.py - REEMPLAZAR la función generar_pdf_mejorado
-
-def generar_pdf_mejorado(buffer, df, partida_id, info_partida):
-    """Genera un PDF profesional con los resultados - VERSIÓN CORREGIDA"""
-    from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.units import inch
-    from reportlab.lib import colors
-    from reportlab.platypus import Table, TableStyle
-    from datetime import datetime
-    
-    # Crear canvas
-    c = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-    
-    # ===================================================================
-    # HEADER CON METADATA (Usuario y Fecha)
-    # ===================================================================
-    c.setFillColor(colors.HexColor('#2D3047'))
-    c.rect(0, height - 120, width, 120, fill=True, stroke=False)
-    
-    c.setFillColor(colors.white)
-    c.setFont("Helvetica-Bold", 24)
-    c.drawString(50, height - 50, f"Resultados - Partida #{partida_id}")
-    
-    c.setFont("Helvetica", 12)
-    c.drawString(50, height - 75, f"Cuestionario: {info_partida.get('nombre_cuestionario', 'N/A')}")
-    
-    # NUEVA LÍNEA: Usuario creador
-    c.drawString(50, height - 95, f"Creado por: {info_partida.get('usuario_creador', 'Desconocido')}")
-    
-    # NUEVA LÍNEA: Fecha de creación
-    fecha_str = info_partida.get('fecha_creacion', 'N/A')
-    if isinstance(fecha_str, datetime):
-        fecha_str = fecha_str.strftime('%d/%m/%Y %H:%M')
-    c.drawString(50, height - 110, f"Fecha: {fecha_str}")
-    
-    # ===================================================================
-    # INFORMACIÓN GENERAL
-    # ===================================================================
-    c.setFillColor(colors.black)
-    c.setFont("Helvetica", 11)
-    y_pos = height - 150
-    c.drawString(50, y_pos, f"Total de participantes: {len(df)}")
-    
-    # ===================================================================
-    # TABLA DE RESULTADOS
-    # ===================================================================
-    y_pos -= 40
-    
-    # Preparar datos para la tabla
-    table_data = [df.columns.tolist()]  # Headers
-    for _, row in df.iterrows():
-        table_data.append([str(val)[:30] for val in row.values])
-    
-    # Calcular ancho de columnas
-    col_width = (width - 100) / len(df.columns) 
-    col_widths = [col_width] * len(df.columns)
-    
-    # Crear tabla
-    table = Table(table_data, colWidths=col_widths)
-    
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#419D78')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    
-    # Calcular altura disponible
-    table_height = len(table_data) * 20
-    
-    # Dibujar tabla
-    table.wrapOn(c, width - 100, height)
-    table.drawOn(c, 50, max(50, y_pos - table_height))
-    
-    # Guardar PDF
-    c.save()
-    
-    # ⚠️ CRÍTICO: Resetear el puntero del buffer al inicio
-    buffer.seek(0)
-    
-    return buffer
 
 
 # ========================================================
@@ -2680,7 +2707,7 @@ def generar_pdf_mejorado(buffer, df, partida_id, info_partida):
 def subir_archivo_a_drive(buffer, filename, mimetype, drive_tipo, access_token):
     """
     Sube un archivo a OneDrive o Google Drive.
-    
+
     Returns:
         dict: {"success": bool, "url": str, "file_id": str, "error": str}
     """
@@ -2701,17 +2728,17 @@ def subir_a_onedrive(buffer, filename, access_token):
     try:
         buffer.seek(0)
         file_content = buffer.read()
-        
+
         # Endpoint de OneDrive
         url = f"https://graph.microsoft.com/v1.0/me/drive/root:/EduQuiz/{filename}:/content"
-        
+
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/octet-stream"
         }
-        
+
         response = requests.put(url, headers=headers, data=file_content)
-        
+
         if response.status_code in [200, 201]:
             data = response.json()
             return {
@@ -2725,7 +2752,7 @@ def subir_a_onedrive(buffer, filename, access_token):
                 "success": False,
                 "error": f"Error {response.status_code}: {response.text}"
             }
-            
+
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -2817,7 +2844,7 @@ def obtener_url_auth_onedrive():
     client_id = "TU_CLIENT_ID_ONEDRIVE"
     redirect_uri = "http://localhost:5000/api/auth/onedrive/callback"
     scope = "Files.ReadWrite offline_access"
-    
+
     auth_url = (
         f"https://login.microsoftonline.com/common/oauth2/v2.0/authorize?"
         f"client_id={client_id}&"
@@ -2825,7 +2852,7 @@ def obtener_url_auth_onedrive():
         f"redirect_uri={redirect_uri}&"
         f"scope={scope}"
     )
-    
+
     return jsonify({"auth_url": auth_url})
 
 import os
@@ -2844,9 +2871,9 @@ GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:5000/ap
 #     """
 #     data = request.get_json() or {}
 #     login_hint = data.get('login_hint', '')
-    
+
 #     scope = "https://www.googleapis.com/auth/drive.file"
-    
+
 #     params = {
 #         'client_id': GOOGLE_CLIENT_ID,
 #         'redirect_uri': GOOGLE_REDIRECT_URI,
@@ -2855,13 +2882,13 @@ GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:5000/ap
 #         'access_type': 'offline',
 #         'prompt': 'consent'  # Forzar pantalla de consentimiento
 #     }
-    
+
 #     if login_hint:
 #         params['login_hint'] = login_hint
-    
+
 #     from urllib.parse import urlencode
 #     auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
-    
+
 #     return jsonify({"auth_url": auth_url})
 
 @partidas_bp.route('/api/auth/google_drive/url', methods=['GET', 'POST'])
@@ -2876,12 +2903,12 @@ def obtener_url_auth_google():
         login_hint = data.get('login_hint', '')
     else:
         login_hint = request.args.get('login_hint', '')
-    
+
     scope = "https://www.googleapis.com/auth/drive.file"
-    
+
     # Construir URL
     from urllib.parse import urlencode
-    
+
     params = {
         'client_id': GOOGLE_CLIENT_ID,
         'redirect_uri': GOOGLE_REDIRECT_URI,
@@ -2890,12 +2917,12 @@ def obtener_url_auth_google():
         'access_type': 'offline',
         'prompt': 'consent'
     }
-    
+
     if login_hint:
         params['login_hint'] = login_hint
-    
+
     auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
-    
+
     return jsonify({"success": True, "auth_url": auth_url})
 
 
@@ -2906,7 +2933,7 @@ def callback_google_drive():
     """
     code = request.args.get('code')
     error = request.args.get('error')
-    
+
     if error:
         return f"""
         <html>
@@ -2923,14 +2950,14 @@ def callback_google_drive():
         </body>
         </html>
         """
-    
+
     if not code:
         return "Error: No se recibió el código de autorización", 400
-    
+
     try:
         # Intercambiar código por token
         token_url = "https://oauth2.googleapis.com/token"
-        
+
         data = {
             'client_id': GOOGLE_CLIENT_ID,
             'client_secret': GOOGLE_CLIENT_SECRET,
@@ -2938,13 +2965,13 @@ def callback_google_drive():
             'redirect_uri': GOOGLE_REDIRECT_URI,
             'grant_type': 'authorization_code'
         }
-        
+
         response = requests.post(token_url, data=data)
-        
+
         if response.status_code == 200:
             token_data = response.json()
             access_token = token_data.get('access_token')
-            
+
             return f"""
             <html>
             <head>
@@ -2983,7 +3010,7 @@ def callback_google_drive():
                             access_token: '{access_token}'
                         }}, '*');
                     }}
-                    
+
                     setTimeout(() => {{
                         window.close();
                     }}, 2000);
@@ -2993,7 +3020,7 @@ def callback_google_drive():
             """
         else:
             return f"Error al obtener token: {response.text}", 500
-            
+
     except Exception as e:
         print(f"[ERROR] callback_google_drive: {e}", file=sys.stderr)
         return f"Error: {str(e)}", 500
@@ -3074,8 +3101,3 @@ def subir_excel():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-        
-        
-        
-        
-  
