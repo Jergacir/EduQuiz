@@ -49,34 +49,32 @@ excelInput.addEventListener('change', async (e) => {
             return;
         }
 
+        console.log("Preguntas importadas desde Excel:", data.preguntas);
 
-
-
-        // Aquí puedes iterar y añadir al cuestionario
-        data.preguntas.forEach(p => {
-            window.cuestionario.preguntas.push(p); // tu array de preguntas ya existe
+        // Verificar que las preguntas tengan el campo tiempo
+        data.preguntas.forEach((p, idx) => {
+            console.log(`Pregunta ${idx + 1}: tiempo=${p.tiempo}, tiempo_limite=${p.tiempo_limite}`);
         });
-        console.log("Preguntas importadas:", data.preguntas);
 
         // Agregar preguntas al cuestionario usando la función pública
         if (window.agregarPreguntasExcel) {
             window.agregarPreguntasExcel(data.preguntas);
+            alert(`✅ Se importaron ${data.preguntas.length} preguntas correctamente con sus tiempos personalizados.`);
         } else {
             console.error("No se encontró la función agregarPreguntasExcel");
+            alert("Error al cargar las preguntas en el editor");
         }
-         alert("Excel procesado correctamente.");
-
 
     } catch (err) {
         console.error("Error al subir o procesar el Excel:", err);
         alert("Error al subir o procesar el Excel");
-    }finally{
+    } finally {
         excelInput.value = '';
         excelFileName.textContent = 'Ningún archivo seleccionado';
     }
 });
 
-// Función para leer Excel usando SheetJS
+// Función para leer Excel usando SheetJS (no se usa actualmente, procesamiento en backend)
 function readExcel(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -93,15 +91,30 @@ function readExcel(file) {
     });
 }
 
+// Descargar plantilla de Excel con columna TiempoPregunta (EN BLANCO)
 document.getElementById("btnDownloadTemplate").addEventListener("click", () => {
-    // Cabeceras de la plantilla
+    // ✅ Plantilla en blanco sin datos de ejemplo
     const wsData = [
-        ["Pregunta", "RespuestaCorrecta", "Respuesta1", "Respuesta2", "Respuesta3"],
+        ["Pregunta", "RespuestaCorrecta", "Respuesta1", "Respuesta2", "Respuesta3", "TiempoPregunta"],
+        ["", "", "", "", "", ""],
+        ["", "", "", "", "", ""],
+        ["", "", "", "", "", ""]
     ];
 
     // Crear libro y hoja
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(wsData);
+    
+    // Ajustar ancho de columnas para mejor legibilidad
+    ws['!cols'] = [
+        { wch: 40 }, // Pregunta
+        { wch: 20 }, // RespuestaCorrecta
+        { wch: 20 }, // Respuesta1
+        { wch: 20 }, // Respuesta2
+        { wch: 20 }, // Respuesta3
+        { wch: 15 }  // TiempoPregunta
+    ];
+    
     XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
 
     // Descargar

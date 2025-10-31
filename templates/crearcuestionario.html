@@ -26,14 +26,12 @@
         <div class="logo-container">
             <img src="/static/img/logo.png" alt="Logo de EduQuiz" class="logo-image">
         </div>
-        <!-- Navegación -->
         <nav>
             <a href="{{ url_for('pages.frm_home') }}" class="nav-link">
                 <i class="fas fa-home nav-icon"></i> Inicio
             </a>
             <a href="{{ url_for('cuestionarios.frm_cuestionarios') }}" class="nav-link active">
                 <i class="fa-regular fa-file nav-icon"></i> Cuestionarios
-
             </a>
             <a href="{{ url_for('tienda.tienda_index') }}" class="nav-link">
                 <i class="fas fa-store nav-icon"></i> Tienda
@@ -50,7 +48,6 @@
             {% endif %}
         </nav>
 
-        <!-- Configuración y Cerrar Sesión (Parte inferior) -->
         <div class="sidebar-bottom">
             <a href="{{ url_for('usuarios.usuarios_index') }}" class="nav-link">
                 <i class="fas fa-cog nav-icon"></i> Configuración
@@ -61,18 +58,13 @@
         </div>
     </aside>
 
-    <!-- Overlay para móvil -->
     <div id="sidebar-overlay" class="overlay"></div>
 
     <div class="main-content">
-
-        <!-- Barra Superior del Contenido Principal (Mis Cuestionarios, Perfil) -->
         <header class="header">
             <h1>Panel de creación/edición</h1>
 
-            <!-- Búsqueda, Créditos y Perfil -->
             <div class="credits-profile-container">
-                <!-- Créditos y Perfil (Estilo del wireframe) -->
                 <div class="credits-box">
                     <span class="text-sm font-semibold text-gray-800">{{ logged_in_user.cant_monedas }}</span>
                     <i class="fa-solid fa-coins" style="color: #FFD43B;"></i>
@@ -87,10 +79,10 @@
                         </div>
                     </a>
                 </div>
+            </div>
         </header>
 
         <main class="content-area edit-panel-area">
-
             <div class="edit-header">
                 <div class="quiz-title-input">
                     <input type="text" value="Nombre_Cuestionario" class="title-input" placeholder="Ingrese un título">
@@ -105,11 +97,9 @@
             </div>
 
             <div class="edit-content-grid">
-
                 <div class="question-list-sidebar"></div>
 
                 <div class="question-editor">
-
                     <div class="question-media-area">
                         <input type="text" value="¿La tierra es redonda?" class="question-text-input"
                             placeholder="Ingrese la pregunta">
@@ -119,12 +109,9 @@
                             <p>Arrastra o suelta o haz clic para subir</p>
                             <p class="subtitle">Sube una imagen para tu pregunta</p>
 
-
                             <input id="mediaInput" type="file" accept="image/*" class="hidden">
-
                             <button class="btn-upload">Subir</button>
 
-                            <!-- Imagen cargada -->
                             <div class="media-preview hidden">
                                 <img id="previewImage" src="" alt="Vista previa">
                                 <span id="removeImage" class="remove-btn">✕</span>
@@ -153,31 +140,45 @@
                 </div>
 
                 <div class="question-options-sidebar">
+                    <!-- ✅ NUEVO: Input de tiempo por pregunta -->
+                    <h3>⏱️ Tiempo de Pregunta</h3>
+                    <div class="time-input-container">
+                        <input type="number" 
+                               id="timeSelect" 
+                               class="time-input" 
+                               value="30" 
+                               min="1" 
+                               max="600"
+                               placeholder="Tiempo en segundos">
+                        <span class="time-unit">segundos</span>
+                    </div>
+                    <p class="time-hint">⏳ Rango: 1 - 600 segundos (10 min)</p>
 
-                    <h3>Importar Preguntas desde Excel</h3>
-                    <div class="excel-upload-box option-select"> <i class="icon-upload"></i>
-                        <p>Arrastra tu archivo .xlsx o haz clic para seleccionar</p> <input id="excelInput" type="file"
-                            accept=".xlsx, .xls" class="hidden"> <button id="btnUploadExcel" class="btn-upload">Subir
-                            Excel</button>
+                    <h3>📤 Importar Preguntas desde Excel</h3>
+                    <div class="excel-upload-box option-select"> 
+                        <i class="icon-upload"></i>
+                        <p>Arrastra tu archivo .xlsx o haz clic para seleccionar</p> 
+                        <input id="excelInput" type="file" accept=".xlsx, .xls" class="hidden"> 
+                        <button id="btnUploadExcel" class="btn-upload">Subir Excel</button>
                         <p id="excelFileName" class="file-name">Ningún archivo seleccionado</p>
                     </div>
 
-                    <h3></h3>
+                    <h3>📋 Formato de Excel</h3>
                     <div class="option-select excel-format-info">
-                        <p>Formato de Excel requerido (estricto):</p>
+                        <p>Columnas requeridas (estricto):</p>
                         <ul>
-                            <li>Fila 1 (encabezados):
-                                <strong>Pregunta,RespuestaCorrecta,Respuesta1,Respuesta2,Respuesta3</strong>
-                            </li>
-                            <li>Cada fila siguiente representa una pregunta.</li>
-                            <li>Todas las columnas de respuesta deben estar completas.</li>
+                            <li><strong>Pregunta</strong>: Texto de la pregunta</li>
+                            <li><strong>RespuestaCorrecta</strong>: La opción correcta</li>
+                            <li><strong>Respuesta1</strong>: Primera opción</li>
+                            <li><strong>Respuesta2</strong>: Segunda opción</li>
+                            <li><strong>Respuesta3</strong>: Tercera opción</li>
+                            <li><strong>TiempoPregunta</strong>: Segundos (5-300)</li>
                         </ul>
                         <button id="btnDownloadTemplate" class="btn-upload">
-                            <i class="fa-solid fa-download"></i> Descargar plantilla formato Excel
+                            <i class="fa-solid fa-download"></i> Descargar plantilla Excel
                         </button>
                     </div>
                 </div>
-
             </div>
         </main>
     </div>
@@ -209,7 +210,6 @@
             <select id="theme" class="input-select">
                 <option value="default">Clásico</option>
                 <option value="multiple">Múltiple</option>
-
             </select>
 
             <div class="modal-buttons">
@@ -234,7 +234,6 @@
                 <option value="pink">Rosado</option>
             </select>
 
-
             <div class="modal-buttons">
                 <button id="cancelThemes" class="btn-cancel">Cerrar</button>
                 <button id="saveThemes" class="btn-confirm">Guardar tema</button>
@@ -252,7 +251,6 @@
                 <p>Arrastra o haz clic para subir la imagen</p>
 
                 <input id="imageInputModal" type="file" accept="image/*" class="hidden">
-
                 <button id="btnUploadModal" class="btn-upload">Subir</button>
 
                 <div id="previewContainerModal" class="media-preview hidden">
@@ -261,7 +259,6 @@
                 </div>
             </div>
 
-            <!-- NUEVO: input para descripción -->
             <label for="descripcionCuestionario">Descripción:</label>
             <textarea id="descripcionCuestionario" class="input-textarea"
                 placeholder="Agrega una descripción para tu cuestionario..."></textarea>
@@ -292,12 +289,8 @@
             <p class="text-gray-600 mb-2">Comparte este código para visualizar el cuestionario:</p>
             <div id="codigoGenerado" class="text-3xl font-mono text-blue-600 tracking-wider mb-4">ABC123</div>
             <div class="modal-buttons">
-                <button id="copiarCodigoBtn" class="btn-confirm">
-                    Copiar código
-                </button>
-                <button id="cerrarCodigoBtn" class="btn-confirm">
-                    Cerrar
-                </button>
+                <button id="copiarCodigoBtn" class="btn-confirm">Copiar código</button>
+                <button id="cerrarCodigoBtn" class="btn-confirm">Cerrar</button>
             </div>
         </div>
     </div>

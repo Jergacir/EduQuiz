@@ -3006,6 +3006,7 @@ def subir_excel():
     Recibe un Excel con preguntas y respuestas, y devuelve JSON listo para tu JS.
     La columna 'RespuestaCorrecta' se trata como cualquier otra respuesta,
     y su índice se coloca en 'correcta'.
+    NUEVO: Soporta columna 'TiempoPregunta' (en segundos)
     """
     if "file" not in request.files:
         return jsonify({"error": "No se envió ningún archivo"}), 400
@@ -3015,6 +3016,7 @@ def subir_excel():
     try:
         df = pd.read_excel(file)
 
+        # Columnas obligatorias
         columnas_requeridas = ["Pregunta", "RespuestaCorrecta", "Respuesta1", "Respuesta2", "Respuesta3"]
         for col in columnas_requeridas:
             if col not in df.columns:
@@ -3022,12 +3024,11 @@ def subir_excel():
 
         preguntas = []
 
-
-
         for _, row in df.iterrows():
-
+            # Ignorar filas completamente vacías
             if all(pd.isna(row[col]) or str(row[col]).strip() == "" for col in columnas_requeridas):
                 continue
+
             # Limpiar NaN y convertir todo a string
             respuestas = [
                 str(row["Respuesta1"]) if not pd.isna(row["Respuesta1"]) else "",
@@ -3044,16 +3045,34 @@ def subir_excel():
             # Recalcular índice de la respuesta correcta
             correcta = respuestas.index(correcta_texto)
 
+            # ✅ NUEVO: Procesar tiempo de pregunta
+            tiempo_pregunta = 30  # valor por defecto
+            if "TiempoPregunta" in df.columns and not pd.isna(row["TiempoPregunta"]):
+                try:
+                    tiempo_pregunta = int(row["TiempoPregunta"])
+                    # Validar rango: 1-600 segundos (coherente con frontend)
+                    if tiempo_pregunta < 1:
+                        tiempo_pregunta = 1
+                    elif tiempo_pregunta > 600:
+                        tiempo_pregunta = 600
+                except (ValueError, TypeError):
+                    tiempo_pregunta = 30  # fallback si hay error de conversión
+
             preguntas.append({
                 "texto": str(row["Pregunta"]) if not pd.isna(row["Pregunta"]) else "",
                 "respuestas": respuestas,
                 "correcta": correcta,
+                "tiempo": str(tiempo_pregunta),  # ✅ SIN "s" para compatibilidad con input numérico
+                "tiempo_limite": tiempo_pregunta,  # valor numérico para BD
+                "puntos": "standard",
                 "imagen": None
             })
 
         return jsonify({"preguntas": preguntas})
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
         
         

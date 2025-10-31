@@ -1,20 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
     const usuarioIdRaw = document.body.dataset.usuarioId;
     const usuarioId = usuarioIdRaw ? parseInt(usuarioIdRaw, 10) : null;
+    
     // --- Referencias ---
     const titleInput = document.querySelector(".title-input");
     const btnGuardar = document.querySelector(".btn-primary");
     const questionListContainer = document.querySelector(".question-list-sidebar");
-    console.log("Contenedor de preguntas:", questionListContainer);
     const questionEditor = document.querySelector(".question-editor");
     const questionTextInput = document.querySelector(".question-text-input");
     const answerInputs = document.querySelectorAll(".answer-box input");
-    const timeSelect = document.querySelectorAll(".option-select")[0];
+    const timeSelect = document.getElementById("timeSelect"); // ✅ Referencia directa
     const pointsSelect = document.querySelectorAll(".option-select")[1];
     const btnAddQuestion = document.querySelector(".btn-add-question");
     const descripcionInputModal = document.getElementById('descripcionCuestionario');
     const answersGrid = document.querySelector(".answers-grid");
-    const btnAddAnswer = document.querySelector(".btn-add-answer")
+    const btnAddAnswer = document.querySelector(".btn-add-answer");
 
     // --- Subir / Arrastrar imagen ---
     const mediaBox = document.querySelector(".media-upload-box");
@@ -30,8 +30,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const cancelThemes = document.getElementById('cancelThemes');
     const saveThemes = document.getElementById('saveThemes');
     const colorSchemeSelect = document.getElementById('colorScheme');
-    const themePreview = document.getElementById('themePreview');
-
 
     // --- Estado ---
     let cuestionario = {
@@ -42,13 +40,13 @@ document.addEventListener("DOMContentLoaded", () => {
     let preguntaActual = 0;
 
     // --- Funciones auxiliares ---
-
     function crearPreguntaBase() {
         return {
             texto: "",
             respuestas: ["", "", "", ""],
             correcta: 0,
-            tiempo: "30s",
+            tiempo: "30",  // ✅ Ahora es número sin "s"
+            tiempo_limite: 30,  // ✅ Campo adicional para BD
             puntos: "standard",
             imagen: null
         };
@@ -70,9 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <button class="btn-add-question"><i class="icon-plus"></i> Añadir Pregunta</button>
         `;
 
-        // Reasignar eventos
         asignarEventosCards();
-
     }
 
     function asignarEventosCards() {
@@ -83,7 +79,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         cards.forEach(card => {
             card.addEventListener("click", (e) => {
-                // Evitar que click en duplicar/eliminar cambie de pregunta
                 if (e.target.dataset.action) return;
                 guardarPreguntaActual();
                 const index = parseInt(card.dataset.index);
@@ -110,17 +105,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (btnAdd) {
             btnAdd.addEventListener("click", () => {
                 guardarPreguntaActual();
-                // Crear una nueva pregunta base
                 cuestionario.preguntas.push(crearPreguntaBase());
-
-                // Actualizar índice actual al final
                 preguntaActual = cuestionario.preguntas.length - 1;
-
-                // Volver a renderizar lista y cargar nueva pregunta
                 renderPreguntas();
                 cargarPregunta(preguntaActual);
-
-                // Desplazar la barra lateral al final (opcional)
                 questionListContainer.scrollTop = questionListContainer.scrollHeight;
             });
         }
@@ -136,7 +124,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         questionTextInput.value = p.texto;
         renderRespuestas();
-        timeSelect.value = p.tiempo;
+        
+        // ✅ Cargar tiempo (sin "s")
+        timeSelect.value = String(p.tiempo_limite || p.tiempo || 30);
         pointsSelect.value = p.puntos;
         mostrarImagenGuardada(p.imagen);
     }
@@ -145,12 +135,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const p = cuestionario.preguntas[preguntaActual];
         p.texto = questionTextInput.value.trim();
 
-        // Recolectar las respuestas actuales del DOM dinámicamente
         const currentInputs = document.querySelectorAll(".answers-grid .answer-box input");
         p.respuestas = Array.from(currentInputs).map(inp => inp.value.trim());
 
-        // Guardar las opciones actuales
-        p.tiempo = timeSelect.value;
+        // ✅ Guardar tiempo como número
+        const tiempoValor = parseInt(timeSelect.value) || 30;
+        p.tiempo = String(tiempoValor);
+        p.tiempo_limite = tiempoValor;
+        
         p.puntos = pointsSelect.value;
     }
 
@@ -163,7 +155,6 @@ document.addEventListener("DOMContentLoaded", () => {
             answerBox.classList.add("answer-box");
             if (i === p.correcta) answerBox.classList.add("correct");
 
-            // Input de texto
             const input = document.createElement("input");
             input.type = "text";
             input.placeholder = "Escribe aquí la respuesta";
@@ -173,7 +164,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 p.respuestas[i] = input.value.trim();
             });
 
-            // Botón para marcar como correcta
             const btnCorrecta = document.createElement("button");
             btnCorrecta.classList.add("btn-correcta");
             btnCorrecta.textContent = "✓";
@@ -181,10 +171,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             btnCorrecta.addEventListener("click", () => {
                 p.correcta = i;
-                renderRespuestas(); // se re-renderiza para reflejar el cambio
+                renderRespuestas();
             });
 
-            // Botón eliminar (solo si hay más de 4 respuestas)
             const btnEliminar = document.createElement("button");
             btnEliminar.classList.add("btn-eliminar-rpta");
             btnEliminar.textContent = "🗑";
@@ -197,14 +186,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 p.respuestas.splice(i, 1);
 
-                // Si eliminaste la correcta, reajusta índice correcta
                 if (p.correcta === i) p.correcta = 0;
                 else if (p.correcta > i) p.correcta--;
 
                 renderRespuestas();
             });
 
-            // Agregar elementos
             const controls = document.createElement("div");
             controls.classList.add("answer-controls");
             controls.appendChild(btnCorrecta);
@@ -215,7 +202,6 @@ document.addEventListener("DOMContentLoaded", () => {
             answersGrid.appendChild(answerBox);
         });
 
-        // Control botón “Añadir respuesta”
         if (p.respuestas.length >= 6) {
             btnAddAnswer.disabled = true;
             btnAddAnswer.classList.add("disabled");
@@ -231,7 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
             alert("Solo se pueden tener hasta 6 respuestas por pregunta.");
             return;
         }
-        p.respuestas.push(""); // Añadir respuesta vacía
+        p.respuestas.push("");
         renderRespuestas();
     }
 
@@ -239,9 +225,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const original = cuestionario.preguntas[index];
         const copia = JSON.parse(JSON.stringify(original));
         cuestionario.preguntas.splice(index + 1, 0, copia);
-        cargarPregunta(index + 1);
-        renderPreguntas();
         preguntaActual = index + 1;
+        renderPreguntas();
         cargarPregunta(preguntaActual);
     }
 
@@ -257,23 +242,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- Inicialización ---
-
-    // Crear 3 preguntas vacías iniciales
     cuestionario.preguntas = [crearPreguntaBase(), crearPreguntaBase(), crearPreguntaBase()];
 
-    // Si no hay usuario logueado, bloquear guardado y avisar
     if (!usuarioId) {
         btnGuardar.disabled = true;
         btnGuardar.classList.add("disabled");
         btnGuardar.title = "Debes iniciar sesión para guardar el cuestionario";
-        // Opcional: mostrar aviso visible en la UI
         const aviso = document.createElement('div');
         aviso.className = 'notice warning';
         aviso.textContent = 'Debes iniciar sesión para crear y guardar cuestionarios.';
         document.querySelector('.edit-header').appendChild(aviso);
     }
 
-    // Validación título
     titleInput.value = "";
     btnGuardar.disabled = true;
     btnGuardar.classList.add("disabled");
@@ -284,40 +264,88 @@ document.addEventListener("DOMContentLoaded", () => {
         btnGuardar.classList.toggle("disabled", !valido);
     });
 
-    // Escuchar cambios de inputs
     questionTextInput.addEventListener("input", guardarPreguntaActual);
     answerInputs.forEach(inp => inp.addEventListener("input", guardarPreguntaActual));
-    timeSelect.addEventListener("change", guardarPreguntaActual);
+    
+    // ✅ Validación y guardado de tiempo
+    timeSelect.addEventListener("input", (e) => {
+        validarTiempo(e.target);
+        guardarPreguntaActual();
+    });
+    
+    timeSelect.addEventListener("blur", (e) => {
+        validarTiempo(e.target, true); // Validación estricta al perder foco
+    });
+    
     pointsSelect.addEventListener("change", guardarPreguntaActual);
     btnAddAnswer.addEventListener("click", agregarRespuesta);
+    
+    // ✅ Función de validación de tiempo
+    function validarTiempo(input, strict = false) {
+        let valor = parseInt(input.value);
+        
+        // Remover clases de error previas
+        input.classList.remove("error");
+        input.closest(".time-input-container")?.classList.remove("error");
+        
+        // Validar durante escritura (permitir vacío temporalmente)
+        if (!strict && input.value === "") {
+            return;
+        }
+        
+        // Validación estricta (al perder foco o guardar)
+        if (isNaN(valor) || valor < 1) {
+            valor = 30;
+            input.value = valor;
+            mostrarErrorTiempo(input, "Mínimo 1 segundo");
+        } else if (valor > 600) {
+            valor = 600;
+            input.value = valor;
+            mostrarErrorTiempo(input, "Máximo 600 segundos");
+        }
+        
+        return valor;
+    }
+    
+    function mostrarErrorTiempo(input, mensaje) {
+        input.classList.add("error");
+        input.closest(".time-input-container")?.classList.add("error");
+        
+        // Opcional: mostrar tooltip temporal
+        const hint = document.querySelector(".time-hint");
+        if (hint) {
+            const textoOriginal = hint.textContent;
+            hint.textContent = `⚠️ ${mensaje}`;
+            hint.style.color = "#ef4444";
+            
+            setTimeout(() => {
+                hint.textContent = textoOriginal;
+                hint.style.color = "#6b7280";
+            }, 2000);
+        }
+    }
 
-    // Guardar cuestionario
-    // --- Modal de Confirmación de Guardado ---
+    // --- Modal de guardado ---
     const saveModal = document.getElementById("saveModal");
     const cancelSave = document.getElementById("cancelSave");
     const confirmSave = document.getElementById("confirmSave");
 
-    // Abrir modal al presionar "Guardar"
     btnGuardar.addEventListener("click", (e) => {
         e.preventDefault();
         if (btnGuardar.disabled) return;
         saveModal.classList.remove("hidden");
     });
 
-    // Cancelar guardado
     cancelSave.addEventListener("click", () => {
         saveModal.classList.add("hidden");
     });
 
-
-    // --- Preparar cuestionarioData con subida de imágenes ---
     async function prepararCuestionarioData() {
-        // --- Subir imagen del cuestionario si es DataURL ---
         if (cuestionario.imagen && cuestionario.imagen.startsWith("data:image")) {
             const formData = new FormData();
             const blob = await fetch(cuestionario.imagen).then(r => r.blob());
             formData.append("file", blob);
-            formData.append("upload_preset", "cuestionarios_preset"); // tu preset
+            formData.append("upload_preset", "cuestionarios_preset");
 
             try {
                 const resp = await fetch("https://api.cloudinary.com/v1_1/dteucmell/image/upload", {
@@ -325,14 +353,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     body: formData
                 });
                 const data = await resp.json();
-                cuestionario.imagen = data.secure_url; // URL final
+                cuestionario.imagen = data.secure_url;
             } catch (err) {
                 console.error("Error subiendo imagen del cuestionario:", err);
                 cuestionario.imagen = null;
             }
         }
 
-        // --- Subir imágenes de preguntas si son DataURL ---
         for (const p of cuestionario.preguntas) {
             if (p.imagen && p.imagen.startsWith("data:image")) {
                 const formData = new FormData();
@@ -346,15 +373,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         body: formData
                     });
                     const data = await resp.json();
-                    p.imagen = data.secure_url; // URL final
+                    p.imagen = data.secure_url;
                 } catch (err) {
                     console.error("Error subiendo imagen de pregunta:", err);
-                    p.imagen = null; // fallback
+                    p.imagen = null;
                 }
             }
         }
 
-        // --- Construir objeto final ---
         return {
             nombre_cuestionario: cuestionario.titulo,
             descripcion: cuestionario.descripcion,
@@ -366,7 +392,7 @@ document.addEventListener("DOMContentLoaded", () => {
             preguntas: cuestionario.preguntas.map(p => ({
                 texto_pregunta: p.texto,
                 media_url: p.imagen || null,
-                tiempo_limite: parseInt(p.tiempo) || 30,
+                tiempo_limite: p.tiempo_limite || parseInt(p.tiempo) || 30, // ✅ Usar tiempo_limite
                 respuestas: p.respuestas.map((r, i) => ({
                     texto_respuesta: r,
                     estado_respuesta: i === p.correcta ? 1 : 0
@@ -375,7 +401,6 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Confirmar guardado
     confirmSave.addEventListener("click", async () => {
         saveModal.classList.add("hidden");
         guardarPreguntaActual();
@@ -386,7 +411,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const cuestionarioData = await prepararCuestionarioData();
-
         console.log("📦 Datos a enviar:", cuestionarioData);
 
         try {
@@ -399,21 +423,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
 
             if (response.ok) {
-                console.log("Respuesta del servidor:", data);
-
-                // Mostrar modal con el código generado
                 const codigoModal = document.getElementById("codigoModal");
                 const codigoGenerado = document.getElementById("codigoGenerado");
                 const copiarCodigoBtn = document.getElementById("copiarCodigoBtn");
                 const cerrarCodigoBtn = document.getElementById("cerrarCodigoBtn");
 
-                // Insertar el código del backend en el modal
                 codigoGenerado.textContent = data.codigo_visualizacion || "ERROR";
-
-                // Mostrar modal
                 codigoModal.classList.remove("hidden");
 
-                // Copiar código
                 copiarCodigoBtn.onclick = () => {
                     navigator.clipboard.writeText(data.codigo_visualizacion)
                         .then(() => {
@@ -422,10 +439,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         });
                 };
 
-                // Cerrar modal
                 cerrarCodigoBtn.onclick = () => {
                     codigoModal.classList.add("hidden");
-                    // Redirigir luego de cerrar (opcional)
                     window.location.href = "/cuestionario";
                 };
 
@@ -440,46 +455,38 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Cargar primera pregunta
     renderPreguntas();
     cargarPregunta(0);
 
-
     // --- Confirmar salida ---
-    const btnExit = document.querySelector(".btn-secondary"); // Tu botón "Salir"
+    const btnExit = document.querySelector(".btn-secondary");
     const exitModal = document.getElementById("exitModal");
     const cancelExit = document.getElementById("cancelExit");
     const confirmExit = document.getElementById("confirmExit");
 
-    // Mostrar modal
     btnExit.addEventListener("click", (e) => {
         e.preventDefault();
         exitModal.classList.remove("hidden");
     });
 
-    // Cancelar salida
     cancelExit.addEventListener("click", () => {
         exitModal.classList.add("hidden");
     });
 
-    // Confirmar salida -> redirige a Flask
     confirmExit.addEventListener("click", () => {
         window.location.href = "/cuestionario";
     });
 
-    // --- Advertencia al cerrar o recargar la página ---
-    let cambiosPendientes = true; // Cambia a false si guardas el cuestionario
+    let cambiosPendientes = true;
 
     window.addEventListener("beforeunload", function (e) {
         if (cambiosPendientes) {
-            // Mensaje personalizado (solo algunos navegadores lo mostrarán)
             e.preventDefault();
             e.returnValue = "Tienes cambios sin guardar. ¿Seguro que deseas salir?";
         }
     });
 
     // --- Modal de Detalles ---
-    const btnDetalles = document.querySelector('.btn-action .icon-details, .btn-action i.icon-details, .btn-action:nth-child(2)');
     const detailsModal = document.getElementById('detailsModal');
     const cancelDetails = document.getElementById('cancelDetails');
     const saveDetails = document.getElementById('saveDetails');
@@ -489,7 +496,6 @@ document.addEventListener("DOMContentLoaded", () => {
         tema: "default"
     };
 
-    // Abrir modal de detalles
     document.querySelectorAll(".btn-action").forEach(btn => {
         if (btn.querySelector(".icon-details")) {
             btn.addEventListener("click", (e) => {
@@ -499,12 +505,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Cerrar sin guardar
     cancelDetails.addEventListener("click", () => {
         detailsModal.classList.add("hidden");
     });
 
-    // Guardar cambios
     saveDetails.addEventListener("click", () => {
         const privacy = document.getElementById("privacy").value;
         const theme = document.getElementById("theme").value;
@@ -513,33 +517,26 @@ document.addEventListener("DOMContentLoaded", () => {
         detallesConfig.tema = theme;
 
         console.log("Configuración guardada:", detallesConfig);
-
         detailsModal.classList.add("hidden");
     });
 
-
-
-
-    // Abrir selector de archivos al hacer clic en botón
+    // --- Subir imagen ---
     btnUpload.addEventListener("click", (e) => {
         e.stopPropagation();
         mediaInput.click();
     });
 
-    // Manejar selección de archivo
     mediaInput.addEventListener("change", (e) => {
         const file = e.target.files[0];
         if (file) mostrarImagen(file);
     });
 
-    // Permitir click directo en el cuadro para abrir file input
     mediaBox.addEventListener("click", () => {
         if (previewContainer.classList.contains("hidden")) {
             mediaInput.click();
         }
     });
 
-    // --- Drag & Drop ---
     mediaBox.addEventListener("dragover", (e) => {
         e.preventDefault();
         mediaBox.classList.add("dragover");
@@ -556,7 +553,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (file) mostrarImagen(file);
     });
 
-    // --- Mostrar vista previa ---
     function mostrarImagen(file) {
         if (!file.type.startsWith("image/")) {
             alert("Solo se permiten imágenes.");
@@ -567,25 +563,18 @@ document.addEventListener("DOMContentLoaded", () => {
         reader.onload = (e) => {
             previewImage.src = e.target.result;
             previewContainer.classList.remove("hidden");
-
-            // Ocultar textos de arrastre
             mediaBox.querySelectorAll("i, p, .btn-upload").forEach(el => el.classList.add("hidden"));
-
-            // Guardar en el objeto de la pregunta actual
             cuestionario.preguntas[preguntaActual].imagen = e.target.result;
         };
         reader.readAsDataURL(file);
     }
 
-    // --- Eliminar imagen ---
     removeImage.addEventListener("click", (e) => {
         e.stopPropagation();
         previewContainer.classList.add("hidden");
         previewImage.src = "";
         mediaInput.value = "";
         cuestionario.preguntas[preguntaActual].imagen = null;
-
-        // Mostrar nuevamente el cuadro de arrastre
         mediaBox.querySelectorAll("i, p, .btn-upload").forEach(el => el.classList.remove("hidden"));
     });
 
@@ -593,59 +582,43 @@ document.addEventListener("DOMContentLoaded", () => {
         if (dataURL) {
             previewImage.src = dataURL;
             previewContainer.classList.remove("hidden");
-
-            // Ocultar textos de arrastre
             mediaBox.querySelectorAll("i, p, .btn-upload").forEach(el => el.classList.add("hidden"));
         } else {
             previewImage.src = "";
             previewContainer.classList.add("hidden");
-
-            // Mostrar textos de arrastre
             mediaBox.querySelectorAll("i, p, .btn-upload").forEach(el => el.classList.remove("hidden"));
         }
     }
 
-
-
-    // Abrir modal
+    // --- Modal Temas ---
     btnThemes.addEventListener('click', (e) => {
         e.preventDefault();
         themesModal.classList.remove('hidden');
     });
 
-    // Cerrar modal
     cancelThemes.addEventListener('click', () => {
         themesModal.classList.add('hidden');
     });
 
-
-
-    // --- Guardar tema ---
     saveThemes.addEventListener('click', () => {
         const selectedColor = colorSchemeSelect.value;
-
         const tema = { color: selectedColor };
-
         cuestionario.tema = tema;
         aplicarTema(tema);
-
         themesModal.classList.add('hidden');
     });
 
-    // --- Aplicar tema visual ---
     function aplicarTema(tema) {
         const main = document.querySelector('.main-content');
         main.classList.remove('theme-light', 'theme-dark', 'theme-blue', 'theme-green', 'theme-pink');
-
         if (tema.color && tema.color !== 'default') {
             main.classList.add(`theme-${tema.color}`);
         }
-
-        document.body.style.backgroundImage = ''; // aseguramos que no haya imagen previa
+        document.body.style.backgroundImage = '';
     }
 
     // --- Modal Editar Imagen del Cuestionario ---
-    const btnEditarCuestionario = document.querySelector('.btn-action.editar'); // tu botón "Editar"
+    const btnEditarCuestionario = document.querySelector('.btn-action.editar');
     const editImageModal = document.getElementById('editImageModal');
     const cancelEditImage = document.getElementById('cancelEditImage');
     const saveEditImage = document.getElementById('saveEditImage');
@@ -657,14 +630,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const previewImageModal = document.getElementById('previewImageModal');
     const removeImageModal = document.getElementById('removeImageModal');
 
-    let imagenCuestionario = null; // guardará DataURL temporal
+    let imagenCuestionario = null;
 
-    // Abrir modal
     btnEditarCuestionario.addEventListener('click', (e) => {
         e.preventDefault();
         editImageModal.classList.remove('hidden');
 
-        // --- Cargar imagen existente ---
         if (imagenCuestionario === null && cuestionario.url_img_cuestionario) {
             previewImageModal.src = cuestionario.url_img_cuestionario;
             previewContainerModal.classList.remove('hidden');
@@ -672,27 +643,22 @@ document.addEventListener("DOMContentLoaded", () => {
             imagenCuestionario = cuestionario.url_img_cuestionario;
         }
 
-        // --- Cargar descripción existente ---
         descripcionInputModal.value = cuestionario.descripcion || "Cuestionario creado desde el editor";
     });
 
-    // Cerrar modal sin guardar
     cancelEditImage.addEventListener('click', () => {
         editImageModal.classList.add('hidden');
     });
 
-    // Botón subir
     btnUploadModal.addEventListener('click', () => {
         imageInputModal.click();
     });
 
-    // Selección de archivo
     imageInputModal.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) mostrarImagenCuestionario(file);
     });
 
-    // Drag & drop
     mediaBoxModal.addEventListener('dragover', (e) => { e.preventDefault(); mediaBoxModal.classList.add('dragover'); });
     mediaBoxModal.addEventListener('dragleave', () => mediaBoxModal.classList.remove('dragover'));
     mediaBoxModal.addEventListener('drop', (e) => {
@@ -702,7 +668,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (file) mostrarImagenCuestionario(file);
     });
 
-    // Función vista previa
     function mostrarImagenCuestionario(file) {
         if (!file.type.startsWith('image/')) { alert("Solo se permiten imágenes."); return; }
 
@@ -710,49 +675,49 @@ document.addEventListener("DOMContentLoaded", () => {
         reader.onload = (e) => {
             previewImageModal.src = e.target.result;
             previewContainerModal.classList.remove('hidden');
-
-            // Ocultar textos de arrastre
             mediaBoxModal.querySelectorAll('i, p, .btn-upload').forEach(el => el.classList.add('hidden'));
-
-            imagenCuestionario = e.target.result; // guardamos la imagen temporal
+            imagenCuestionario = e.target.result;
         };
         reader.readAsDataURL(file);
     }
 
-    // Eliminar imagen
     removeImageModal.addEventListener('click', () => {
         previewContainerModal.classList.add('hidden');
         previewImageModal.src = '';
         imageInputModal.value = '';
         imagenCuestionario = null;
-
         mediaBoxModal.querySelectorAll('i, p, .btn-upload').forEach(el => el.classList.remove('hidden'));
     });
 
-    // Guardar imagen del cuestionario
     saveEditImage.addEventListener('click', () => {
         if (imagenCuestionario) {
-            // Guardar temporal en el objeto principal
             cuestionario.imagen = imagenCuestionario;
             console.log("Imagen del cuestionario guardada:", imagenCuestionario);
         }
 
-        // Guardar descripción
         const descripcion = descripcionInputModal.value.trim();
         if (descripcion) {
             cuestionario.descripcion = descripcion;
             console.log("Descripción del cuestionario guardada:", descripcion);
         } else {
-            cuestionario.descripcion = "Cuestionario creado desde el editor"; // valor por defecto
+            cuestionario.descripcion = "Cuestionario creado desde el editor";
         }
 
         editImageModal.classList.add('hidden');
     });
 
-    // Función pública para agregar preguntas desde Excel
+    // ✅ Función pública para importar desde Excel
     window.agregarPreguntasExcel = function (nuevasPreguntas) {
-        cuestionario.preguntas = nuevasPreguntas;
-        preguntaActual = 0; // cargar la primera
+        console.log("📥 Agregando preguntas desde Excel:", nuevasPreguntas);
+        
+        // Asegurar que cada pregunta tenga tiempo_limite
+        cuestionario.preguntas = nuevasPreguntas.map(p => ({
+            ...p,
+            tiempo: String(p.tiempo_limite || parseInt(p.tiempo) || 30),
+            tiempo_limite: p.tiempo_limite || parseInt(p.tiempo) || 30
+        }));
+        
+        preguntaActual = 0;
         renderPreguntas();
         cargarPregunta(preguntaActual);
     };
