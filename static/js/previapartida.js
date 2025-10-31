@@ -15,6 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const esProfesor = loggedUser && loggedUser.tipo_usuario === 'P';
 
     console.log("📋 Config:", { loggedUser, isGroupGame, numGrupos, codigoPartida, esProfesor });
+    const participantCountElement = document.getElementById('participantCount');
+    let previousCount = 0;
 
 
     // ===================================================================
@@ -310,7 +312,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let isPolling = false;
 
     // ===================================================================
-    // MEJORADO: Polling que detecta cambios de estado
+    // MODIFICAR: Función de polling para actualizar contador
     // ===================================================================
     async function pollParticipantes() {
         if (isPolling) {
@@ -336,7 +338,24 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
 
             if (data.success) {
-                // 🔥 CLAVE: Detectar cambio de estado
+                // ✅ NUEVO: Actualizar contador de participantes
+                const currentCount = data.total || 0;
+                if (participantCountElement) {
+                    participantCountElement.textContent = currentCount;
+
+                    // Efecto visual cuando el contador cambia
+                    if (currentCount !== previousCount) {
+                        const counterContainer = participantCountElement.closest('.participants-counter');
+                        counterContainer.classList.add('updated');
+                        setTimeout(() => {
+                            counterContainer.classList.remove('updated');
+                        }, 500);
+                    }
+
+                    previousCount = currentCount;
+                }
+
+                // Detectar cambio de estado
                 if (data.estado_partida !== estadoActual) {
                     console.log(`🔄 CAMBIO DE ESTADO: ${estadoActual} → ${data.estado_partida}`);
                     manejarCambioEstado(data.estado_partida);
@@ -344,8 +363,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 // Actualizar participantes solo si hubo cambios
-                if (data.timestamp !== lastTimestamp) {
-                    console.log(`🔄 Actualización (${data.total} participantes)`);
+                if (data.participantes && data.timestamp !== lastTimestamp) {
+                    console.log(`🔄 Actualización (${currentCount} participantes)`);
                     lastTimestamp = data.timestamp;
                     renderParticipantes(data.participantes);
                 }

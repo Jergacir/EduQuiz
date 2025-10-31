@@ -216,7 +216,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log("⏰ Tiempo agotado");
 
         // Marcar respuestas no contestadas como incorrectas
-        marcarRespuestasNoContestadas();
+        //marcarRespuestasNoContestadas();
 
         // Mostrar respuestas correctas
         mostrarRespuestasCorrectas();
@@ -242,6 +242,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ===================================================================
     // Marcar respuestas no contestadas como incorrectas
     // ===================================================================
+    /*
     async function marcarRespuestasNoContestadas() {
         try {
             const response = await fetch(`/api/partida/${codigoPartida}/marcar_no_respondidas`, {
@@ -259,6 +260,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.error("Error:", error);
         }
     }
+    */
 
     // ===================================================================
     // Mostrar respuestas correctas (bordear en verde/rojo)
@@ -286,49 +288,59 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Polling de respuestas recibidas
     // ===================================================================
     async function actualizarParticipantes() {
-    // Solo actualizar si hay una pregunta activa
-    if (!preguntaActiva) return;
-
-    try {
-        // Obtener info general de la partida
-        const response = await fetch(`/api/partida/${codigoPartida}/poll`);
-        if (!response.ok) return;
-
-        const data = await response.json();
-        if (!data.success) return;
-
-        // Total de participantes
-        const total = data.total || 0;
-        totalParticipantes.textContent = total;
-        totalAlumnos.textContent = total;
-
-        // Obtener respuestas recibidas de la pregunta actual
-        const respuestasRecibidas = await obtenerRespuestasRecibidas();
-
-        // Actualizar UI
-        respondidos.textContent = respuestasRecibidas;
-
-        // Calcular porcentaje
-        const porcentaje = total > 0 ? Math.round((respuestasRecibidas / total) * 100) : 0;
-        progressPercent.textContent = `${porcentaje}%`;
-
-        // Actualizar círculo de progreso
-        const circumference = 2 * Math.PI * 52; // radio = 52
-        const offset = circumference - (porcentaje / 100) * circumference;
-        progressCircle.style.strokeDashoffset = offset;
-
-        // Debug: ver valores en consola
-        console.log("Polling:", { total, respuestasRecibidas, todosRespondieron });
-
-        // Verificar si todos respondieron
-        if (total > 0 && respuestasRecibidas >= total && !todosRespondieron) {
-            todosHanRespondido();
+        // Solo actualizar si hay una pregunta activa
+        if (!preguntaActiva) {
+            console.log("⏸️ Polling pausado (no hay pregunta activa)");
+            return;
         }
 
-    } catch (error) {
-        console.error("Error en polling:", error);
+        try {
+            // Obtener info general de la partida
+            const response = await fetch(`/api/partida/${codigoPartida}/poll`);
+            if (!response.ok) {
+                console.warn("⚠️ Error en polling:", response.status);
+                return;
+            }
+
+            const data = await response.json();
+            if (!data.success) {
+                console.warn("⚠️ Polling sin éxito:", data);
+                return;
+            }
+
+            // Total de participantes
+            const total = data.total || 0;
+            totalParticipantes.textContent = total;
+            totalAlumnos.textContent = total;
+
+            // Obtener respuestas recibidas de la pregunta actual
+            const respuestasRecibidas = await obtenerRespuestasRecibidas();
+
+            // Actualizar UI
+            respondidos.textContent = respuestasRecibidas;
+
+            // Calcular porcentaje
+            const porcentaje = total > 0 ? Math.round((respuestasRecibidas / total) * 100) : 0;
+            progressPercent.textContent = `${porcentaje}%`;
+
+            // Actualizar círculo de progreso
+            const circumference = 2 * Math.PI * 52;
+            const offset = circumference - (porcentaje / 100) * circumference;
+            progressCircle.style.strokeDashoffset = offset;
+
+            // 📊 Log detallado para debugging
+            console.log(`📊 Polling [Pregunta ${preguntaActual + 1}]: ${respuestasRecibidas}/${total} respuestas (${porcentaje}%) | Todos respondieron: ${todosRespondieron}`);
+
+            // Verificar si todos respondieron
+            if (total > 0 && respuestasRecibidas >= total && !todosRespondieron) {
+                console.log("✅ TODOS HAN RESPONDIDO - Activando botón");
+                todosHanRespondido();
+            }
+
+        } catch (error) {
+            console.error("❌ Error en polling:", error);
+        }
     }
-}
 
     // ===================================================================
     // Obtener cantidad de respuestas recibidas

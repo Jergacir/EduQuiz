@@ -209,7 +209,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function enviarRespuesta(respuestaId, tiempoUsado) {
         try {
             const pregunta = await cargarPreguntaActual();
-            if (!pregunta) return;
+            if (!pregunta) {
+                console.error("❌ No se pudo cargar pregunta para enviar respuesta");
+                return;
+            }
 
             const tiempoRespuesta = pregunta.tiempo_limite - tiempoUsado;
 
@@ -227,13 +230,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             const data = await response.json();
 
             if (data.success) {
-                console.log("✅ Respuesta enviada:", data);
+                console.log("✅ Respuesta enviada correctamente:", data);
+            } else if (data.pregunta_desactualizada) {
+                // La pregunta ya cambió, forzar actualización
+                console.warn("⚠️ Pregunta desactualizada, recargando...");
+                await pollEstadoPartida(); // Forzar actualización inmediata
             } else {
                 console.error("❌ Error al enviar respuesta:", data.message);
             }
 
         } catch (error) {
-            console.error("❌ Error enviando respuesta:", error);
+            console.error("❌ Error de red enviando respuesta:", error);
         }
     }
 

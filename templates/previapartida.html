@@ -1,3 +1,4 @@
+<!-- templates/previapartida.html -->
 <!DOCTYPE html>
 <html lang="es">
 
@@ -28,7 +29,14 @@
             <button class="start-game-button">Iniciar Partida</button>
         </div>
 
-        <h2 class="waiting-message">Esperando participantes</h2>
+        <!-- ✅ NUEVO: Sección con contador de participantes -->
+        <div class="waiting-header">
+            <h2 class="waiting-message">Esperando participantes</h2>
+            <div class="participants-counter">
+                <i class="fas fa-users"></i>
+                <span id="participantCount">0</span>
+            </div>
+        </div>
 
         <!-- Vista Individual -->
         <div id="individual-view" class="participants-container individual-layout">

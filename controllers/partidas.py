@@ -400,8 +400,14 @@ def api_estado_usuario(codigo_partida):
         conexion.close()
 
 
+# partidas.py
+
 @partidas_bp.route('/api/partida/<string:codigo_partida>/avanzar', methods=['POST'])
 def api_avanzar_pregunta(codigo_partida):
+    """
+    Avanza a la siguiente pregunta.
+    ANTES de avanzar, marca como incorrectas las respuestas NO contestadas de la pregunta ACTUAL.
+    """
     logged = _get_logged_in_user()
     if not logged or not logged.get('usuario_id'):
         return {"success": False, "message": "Usuario no logueado"}, 401
@@ -413,9 +419,10 @@ def api_avanzar_pregunta(codigo_partida):
 
     try:
         with conexion.cursor() as cursor:
-            # Verificar si el usuario es participante (líder o no)
+            # 1️⃣ Obtener partida y verificar permisos
             sql = """
-                SELECT par.participante_id, par.lider_id, part.partida_id, part.pregunta_actual_index, part.usuario_creador_id
+                SELECT par.participante_id, par.lider_id, part.partida_id,
+                       part.pregunta_actual_index, part.usuario_creador_id, part.cuestionario_id
                 FROM participante par
                 JOIN partida part ON par.partida_id = part.partida_id
                 WHERE par.usuario_id = %s AND part.codigo_partida = %s
@@ -423,10 +430,10 @@ def api_avanzar_pregunta(codigo_partida):
             cursor.execute(sql, (usuario_id, codigo_partida))
             row = cursor.fetchone()
 
-            # Si no es participante, verificar si es el profesor creador
+            # Si no es participante, verificar si es profesor creador
             if not row:
                 sql_partida = """
-                    SELECT partida_id, usuario_creador_id, usuario_creador_id, pregunta_actual_index
+                    SELECT partida_id, usuario_creador_id, pregunta_actual_index, cuestionario_id
                     FROM partida
                     WHERE codigo_partida = %s
                 """
@@ -436,138 +443,123 @@ def api_avanzar_pregunta(codigo_partida):
                 if not partida:
                     return {"success": False, "message": "Partida no encontrada"}, 404
 
-                # Si es el creador, también puede avanzar
-                if partida['usuario_creador_id'] == usuario_id:
-                    nueva_index = partida['pregunta_actual_index'] + 1
-                    sql_update = "UPDATE partida SET pregunta_actual_index = %s WHERE partida_id = %s"
-                    cursor.execute(sql_update, (nueva_index, partida['partida_id']))
-                    conexion.commit()
-                    return {"success": True, "nueva_pregunta_index": nueva_index}
-                else:
+                if partida['usuario_creador_id'] != usuario_id:
                     return {"success": False, "message": "Usuario no está en la partida"}, 404
 
-            # Si sí es participante, verificar que sea líder
-            participante_id, lider_id, partida_id, pregunta_actual_index, usuario_creador_id = row
+                partida_id = partida['partida_id']
+                pregunta_actual_index = partida['pregunta_actual_index']
+                cuestionario_id = partida['cuestionario_id']
+                es_profesor = True
+            else:
+                # Es participante, verificar que sea líder
+                if row['participante_id'] != row['lider_id']:
+                    return {"success": False, "message": "Solo el líder puede avanzar"}, 403
 
-            if participante_id != lider_id:
-                return {"success": False, "message": "Solo el líder puede avanzar"}, 403
+                partida_id = row['partida_id']
+                pregunta_actual_index = row['pregunta_actual_index']
+                cuestionario_id = row['cuestionario_id']
+                es_profesor = False
 
-            # Avanzar la pregunta
-            nueva_index = pregunta_actual_index + 1
-            sql_update = "UPDATE partida SET pregunta_actual_index = %s WHERE partida_id = %s"
-            cursor.execute(sql_update, (nueva_index, partida_id))
-            conexion.commit()
-
-            return {"success": True, "nueva_pregunta_index": nueva_index}
-
-    except Exception as e:
-        print(f"[api_avanzar_pregunta] Error: {e}")
-        return {"success": False, "message": "Error interno"}, 500
-    finally:
-        conexion.close()
-
-
-@partidas_bp.route('/api/partida/<string:codigo_partida>/marcar_no_respondidas', methods=['POST'])
-def api_marcar_no_respondidas(codigo_partida):
-    logged = _get_logged_in_user()
-    if not logged or not logged.get('usuario_id'):
-        return {"success": False, "message": "Usuario no logueado"}, 401
-
-    usuario_id = logged['usuario_id']
-    conexion = dbmod.obtenerConexion()
-    if not conexion:
-        return {"success": False, "message": "No se pudo conectar a la base de datos"}, 500
-
-    try:
-        with conexion.cursor() as cursor:
-            # 1️⃣ Obtener partida y cuestionario
-            sql = """
-                SELECT partida_id, cuestionario_id
-                FROM partida
-                WHERE codigo_partida = %s
-            """
-            cursor.execute(sql, (codigo_partida,))
-            partida = cursor.fetchone()
-            if not partida:
-                return {"success": False, "message": "Partida no encontrada"}, 404
-
-            partida_id = partida['partida_id']
-            cuestionario_id = partida['cuestionario_id']
-            print(f"➡️ Partida encontrada: partida_id={partida_id}, cuestionario_id={cuestionario_id}")
-
-            # 2️⃣ Obtener participantes
-            cursor.execute("""
-                SELECT participante_id, cant_preguntas_incorrectas
-                FROM participante
-                WHERE partida_id = %s
-            """, (partida_id,))
-            participantes = cursor.fetchall()
-            print(f"➡️ Participantes encontrados: {participantes}")
-
-            if not participantes:
-                print("⚠️ No hay participantes en esta partida.")
-                return {"success": False, "message": "No hay participantes en la partida"}, 404
-
-            # 3️⃣ Obtener todas las preguntas del cuestionario
+            # 2️⃣ Obtener la pregunta ACTUAL (antes de avanzar)
             cursor.execute("""
                 SELECT pregunta_id, texto_pregunta, tiempo_limite
                 FROM pregunta
                 WHERE cuestionario_id = %s
-                ORDER BY pregunta_id ASC
-            """, (cuestionario_id,))
-            preguntas = cursor.fetchall()
-            print(f"➡️ Preguntas encontradas: {preguntas}")
+                ORDER BY pregunta_id
+                LIMIT 1 OFFSET %s
+            """, (cuestionario_id, pregunta_actual_index))
 
-            if not preguntas:
-                print("⚠️ No hay preguntas en este cuestionario.")
-                return {"success": False, "message": "No hay preguntas en el cuestionario"}, 404
+            pregunta_actual = cursor.fetchone()
+            if not pregunta_actual:
+                return {"success": False, "message": "No hay más preguntas"}, 404
 
-            # 4️⃣ Recorrer cada participante y marcar pregunta como no respondida si no existe
-            for participante in participantes:
+            pregunta_id_actual = pregunta_actual['pregunta_id']
+            texto_pregunta = pregunta_actual['texto_pregunta']
+            tiempo_maximo = pregunta_actual['tiempo_limite'] or 30
+
+            print(f"📌 Avanzando desde pregunta {pregunta_actual_index} (ID: {pregunta_id_actual})")
+
+            # 3️⃣ Obtener TODOS los participantes de la partida
+            cursor.execute("""
+                SELECT participante_id
+                FROM participante
+                WHERE partida_id = %s
+            """, (partida_id,))
+
+            todos_participantes = cursor.fetchall()
+            print(f"👥 Total participantes: {len(todos_participantes)}")
+
+            # 4️⃣ Para cada participante, verificar si respondió la pregunta ACTUAL
+            participantes_sin_responder = []
+
+            for participante in todos_participantes:
                 participante_id = participante['participante_id']
-                cant_incorrectas = participante['cant_preguntas_incorrectas']
 
-                for pregunta in preguntas:
-                    pregunta_id = pregunta['pregunta_id']
-                    texto_pregunta = pregunta['texto_pregunta']
-                    tiempo_maximo = pregunta['tiempo_limite'] or 30  # valor por defecto si es NULL
+                cursor.execute("""
+                    SELECT COUNT(*) AS total
+                    FROM pregunta_participante
+                    WHERE participante_id = %s AND pregunta_id = %s
+                """, (participante_id, pregunta_id_actual))
 
-                    # Verificar si ya existe
-                    cursor.execute("""
-                        SELECT COUNT(*) AS total
-                        FROM pregunta_participante
-                        WHERE participante_id = %s AND pregunta_id = %s
-                    """, (participante_id, pregunta_id))
-                    existe = cursor.fetchone()['total']
-                    print(f"participante_id={participante_id}, pregunta_id={pregunta_id}, existe={existe}")
+                existe = cursor.fetchone()['total']
 
-                    if existe == 0:
-                        # Insertar como no respondida
-                        cursor.execute("""
-                            INSERT INTO pregunta_participante (
-                                participante_id, pregunta_id, respuesta_seleccionada_id,
-                                texto_pregunta, correcta, tiempo_pregunta, tiempo_maximo_pregunta
-                            ) VALUES (%s, %s, NULL, %s, 0, %s, %s)
-                        """, (participante_id, pregunta_id, texto_pregunta, tiempo_maximo, tiempo_maximo))
-                        print(f"✅ Insertado pregunta_participante para participante {participante_id}, pregunta {pregunta_id}")
+                if existe == 0:
+                    participantes_sin_responder.append(participante_id)
 
-                        # Actualizar participante: incrementar cant_preguntas_incorrectas
-                        cursor.execute("""
-                            UPDATE participante
-                            SET cant_preguntas_incorrectas = cant_preguntas_incorrectas + 1
-                            WHERE participante_id = %s
-                        """, (participante_id,))
-                        print(f"🔺 Actualizado participante {participante_id}: cant_preguntas_incorrectas +1")
+            print(f"❌ Participantes sin responder: {len(participantes_sin_responder)}")
+
+            # 5️⃣ Insertar respuesta NULL para los que no respondieron
+            for participante_id in participantes_sin_responder:
+                cursor.execute("""
+                    INSERT INTO pregunta_participante (
+                        participante_id, pregunta_id, respuesta_seleccionada_id,
+                        texto_pregunta, correcta, tiempo_pregunta, tiempo_maximo_pregunta
+                    ) VALUES (%s, %s, NULL, %s, 0, %s, %s)
+                """, (participante_id, pregunta_id_actual, texto_pregunta, tiempo_maximo, tiempo_maximo))
+
+                # Actualizar contador de incorrectas
+                cursor.execute("""
+                    UPDATE participante
+                    SET cant_preguntas_incorrectas = cant_preguntas_incorrectas + 1
+                    WHERE participante_id = %s
+                """, (participante_id,))
+
+            print(f"✅ Insertadas {len(participantes_sin_responder)} respuestas NULL")
+
+            # 6️⃣ AHORA SÍ avanzar a la siguiente pregunta
+            nueva_index = pregunta_actual_index + 1
+
+            cursor.execute("""
+                UPDATE partida
+                SET pregunta_actual_index = %s,
+                    tiempo_inicio_pregunta = NOW()
+                WHERE partida_id = %s
+            """, (nueva_index, partida_id))
 
             conexion.commit()
-            return {"success": True, "message": "Preguntas no respondidas marcadas correctamente"}
+
+            print(f"➡️ Avanzado a pregunta {nueva_index}")
+
+            return {"success": True, "nueva_pregunta_index": nueva_index}, 200
 
     except Exception as e:
+        print(f"❌ Error en api_avanzar_pregunta: {e}")
         import traceback
         traceback.print_exc()
-        return {"success": False, "message": "Error interno del servidor"}, 500
+        try:
+            if conexion and conexion.open:
+                conexion.rollback()
+        except:
+            pass
+        return {"success": False, "message": str(e)}, 500
     finally:
-        conexion.close()
+        if conexion:
+            try:
+                conexion.close()
+            except:
+                pass
+
+
 
 # ====================================================================
 # API ENDPOINTS PARA AJAX POLLING
@@ -1491,18 +1483,18 @@ def api_cambiar_estado_partida(codigo_partida):
         conexion.close()
 
 # controllers/partidas.py (añadir estos endpoints)
-
 @partidas_bp.route('/api/partida/<codigo_partida>/respuestas_recibidas', methods=['GET'])
 def api_obtener_respuestas_recibidas(codigo_partida):
     """
-    Obtiene la cantidad de respuestas recibidas en la pregunta actual
+    Cuenta cuántas respuestas se han registrado para la pregunta actual.
+    INCLUYE respuestas NULL (alumno no respondió a tiempo).
     """
     pregunta_index = request.args.get('pregunta_index', 0, type=int)
-    
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({'success': False, 'error': 'Error de conexión'}), 500
-    
+
     try:
         with conexion.cursor() as cursor:
             # Obtener partida
@@ -1511,11 +1503,11 @@ def api_obtener_respuestas_recibidas(codigo_partida):
                 FROM partida
                 WHERE codigo_partida = %s
             """, (codigo_partida,))
-            
+
             partida = cursor.fetchone()
             if not partida:
                 return jsonify({'success': False, 'error': 'Partida no encontrada'}), 404
-            
+
             # Obtener pregunta actual según índice
             cursor.execute("""
                 SELECT pregunta_id
@@ -1524,34 +1516,42 @@ def api_obtener_respuestas_recibidas(codigo_partida):
                 ORDER BY pregunta_id
                 LIMIT 1 OFFSET %s
             """, (partida['cuestionario_id'], pregunta_index))
-            
+
             pregunta = cursor.fetchone()
             if not pregunta:
                 return jsonify({'success': False, 'error': 'Pregunta no encontrada'}), 404
-            
-            # Contar solo respuestas que realmente se enviaron
+
+            # ✅ CONTAR TODAS LAS RESPUESTAS (incluyendo NULL)
             cursor.execute("""
                 SELECT COUNT(DISTINCT pp.participante_id) as total
                 FROM pregunta_participante pp
                 JOIN participante p ON pp.participante_id = p.participante_id
                 WHERE p.partida_id = %s
                   AND pp.pregunta_id = %s
-                  AND pp.respuesta_seleccionada_id IS NOT NULL
             """, (partida['partida_id'], pregunta['pregunta_id']))
-            
+
             result = cursor.fetchone()
             respuestas_recibidas = result['total'] if result else 0
-            
+
+            # 📊 Log para debugging
+            print(f"📊 Respuestas recibidas para pregunta {pregunta_index}: {respuestas_recibidas}")
+
             return jsonify({
                 'success': True,
                 'respuestas_recibidas': respuestas_recibidas
             }), 200
-            
+
     except Exception as e:
-        print(f"[ERROR] api_obtener_respuestas_recibidas: {e}", file=sys.stderr)
+        print(f"❌ Error en api_obtener_respuestas_recibidas: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        conexion.close()
+        if conexion:
+            try:
+                conexion.close()
+            except:
+                pass
 
 
 
@@ -1699,6 +1699,7 @@ def api_obtener_ranking(codigo_partida):
         conexion.close()
 
 
+
 # =========================================================================
 # NUEVO ENDPOINT: Registrar respuesta de participante (versión 100% diccionario)
 # =========================================================================
@@ -1709,10 +1710,10 @@ def api_responder_pregunta():
     participante_id = data.get('participante_id')
     pregunta_id = data.get('pregunta_id')
     respuesta_id = data.get('respuesta_seleccionada_id')
-    tiempo_respuesta = data.get('tiempo_respuesta', 0)  # Tiempo que tardó en responder
+    tiempo_respuesta = data.get('tiempo_respuesta', 0)
 
     if not participante_id or not pregunta_id:
-        return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
+        return jsonify({'success': False, 'message': 'Faltan datos'}), 400
 
     conexion = dbmod.obtenerConexion()
     if not conexion:
@@ -1720,67 +1721,86 @@ def api_responder_pregunta():
 
     try:
         with conexion.cursor() as cursor:
-            # 1️⃣ Obtener participante
+            # 1️⃣ Obtener participante y partida
             cursor.execute("""
-                SELECT participante_id, lider_id, partida_id, grupo_id
-                FROM participante
-                WHERE participante_id = %s
+                SELECT par.participante_id, par.lider_id, par.partida_id, par.grupo_id,
+                       part.pregunta_actual_index, part.cuestionario_id
+                FROM participante par
+                JOIN partida part ON par.partida_id = part.partida_id
+                WHERE par.participante_id = %s
             """, (participante_id,))
+
             participante = cursor.fetchone()
             if not participante:
                 return jsonify({'success': False, 'message': 'Participante no encontrado'}), 404
 
-            participante_id_db = participante["participante_id"]
-            lider_id = participante["lider_id"]
             partida_id = participante["partida_id"]
-            grupo_id = participante["grupo_id"]
+            pregunta_actual_index = participante["pregunta_actual_index"]
+            cuestionario_id = participante["cuestionario_id"]
 
-            # 2️⃣ Verificar si ya respondió
+            # 2️⃣ Verificar que la pregunta corresponde al índice actual
             cursor.execute("""
-                SELECT 1 FROM pregunta_participante
-                WHERE participante_id = %s AND pregunta_id = %s
-            """, (participante_id, pregunta_id))
-            if cursor.fetchone():
-                return jsonify({'success': False, 'message': 'Ya respondiste esta pregunta'}), 400
-
-            # 3️⃣ Obtener texto y límite de tiempo de la pregunta
-            cursor.execute("""
-                SELECT texto_pregunta, tiempo_limite
+                SELECT pregunta_id, texto_pregunta, tiempo_limite
                 FROM pregunta
-                WHERE pregunta_id = %s
-            """, (pregunta_id,))
-            pregunta = cursor.fetchone()
-            if not pregunta:
+                WHERE cuestionario_id = %s
+                ORDER BY pregunta_id
+                LIMIT 1 OFFSET %s
+            """, (cuestionario_id, pregunta_actual_index))
+
+            pregunta_esperada = cursor.fetchone()
+
+            if not pregunta_esperada:
                 return jsonify({'success': False, 'message': 'Pregunta no encontrada'}), 404
 
-            texto_pregunta = pregunta["texto_pregunta"]
-            tiempo_limite = pregunta["tiempo_limite"] or 30
+            # ✅ VALIDACIÓN CRÍTICA: Verificar que sea la pregunta correcta
+            if pregunta_esperada['pregunta_id'] != pregunta_id:
+                print(f"⚠️ Intento de responder pregunta antigua: esperada={pregunta_esperada['pregunta_id']}, recibida={pregunta_id}")
+                return jsonify({
+                    'success': False,
+                    'message': 'Esta pregunta ya no está activa',
+                    'pregunta_desactualizada': True
+                }), 400
 
-            # 4️⃣ Verificar si la respuesta es correcta
+            # 3️⃣ Verificar si ya respondió
+            cursor.execute("""
+                SELECT correcta, tiempo_pregunta
+                FROM pregunta_participante
+                WHERE participante_id = %s AND pregunta_id = %s
+            """, (participante_id, pregunta_id))
+
+            respuesta_existente = cursor.fetchone()
+            if respuesta_existente:
+                return jsonify({
+                    'success': True,
+                    'message': 'Respuesta ya registrada',
+                    'correcta': bool(respuesta_existente['correcta']),
+                    'puntos_ganados': 0,
+                    'duplicado': True
+                }), 200
+
+            # 4️⃣ Obtener datos de la pregunta
+            texto_pregunta = pregunta_esperada["texto_pregunta"]
+            tiempo_limite = pregunta_esperada["tiempo_limite"] or 30
+
+            # 5️⃣ Verificar si es correcta
             correcta = 0
+            puntos_ganados = 0
+
             if respuesta_id:
                 cursor.execute("""
-                    SELECT estado_respuesta 
+                    SELECT estado_respuesta
                     FROM respuesta
                     WHERE respuesta_id = %s AND pregunta_id = %s
                 """, (respuesta_id, pregunta_id))
+
                 respuesta = cursor.fetchone()
                 if respuesta and respuesta["estado_respuesta"] == 1:
                     correcta = 1
+                    tiempo_restante = max(0, tiempo_limite - tiempo_respuesta)
+                    puntos_ganados = int(1000 * (tiempo_restante / tiempo_limite))
+                    puntos_ganados = max(100, puntos_ganados)
 
-            # 5️⃣ CALCULAR PUNTOS SEGÚN FÓRMULA
-            puntos_ganados = 0
-            if correcta == 1:
-                # Fórmula: puntos = 1000 * (tiempo_restante / tiempo_limite)
-                # Si responde en 15s de 30s → puntos = 1000 * (15/30) = 500
-                # Si responde en 0s (instantáneo) → 1000 puntos
-                tiempo_restante = max(0, tiempo_limite - tiempo_respuesta)
-                puntos_ganados = int(1000 * (tiempo_restante / tiempo_limite))
-                
-                # Asegurar mínimo de 100 puntos si es correcta
-                puntos_ganados = max(100, puntos_ganados)
-
-            # 6️⃣ Insertar la respuesta del participante
+            # 6️⃣ Insertar respuesta
             cursor.execute("""
                 INSERT INTO pregunta_participante (
                     participante_id, pregunta_id, respuesta_seleccionada_id,
@@ -1792,7 +1812,7 @@ def api_responder_pregunta():
                 texto_pregunta, correcta, tiempo_respuesta, tiempo_limite
             ))
 
-            # 7️⃣ Actualizar estadísticas Y PUNTUACIÓN
+            # 7️⃣ Actualizar estadísticas
             if correcta == 1:
                 cursor.execute("""
                     UPDATE participante
@@ -1808,62 +1828,58 @@ def api_responder_pregunta():
                 """, (participante_id,))
 
             # 8️⃣ Replicar si es líder
-            if lider_id == participante_id_db:
+            lider_id = participante["lider_id"]
+            if lider_id == participante["participante_id"]:
                 cursor.execute("""
                     SELECT participante_id
                     FROM participante
                     WHERE lider_id = %s
                       AND partida_id = %s
                       AND participante_id != %s
-                """, (participante_id_db, partida_id, participante_id_db))
-                miembros = [row["participante_id"] for row in cursor.fetchall()]
+                """, (participante["participante_id"], partida_id, participante_id))
 
-                if miembros:
-                    # Insertar respuesta para cada miembro
+                miembros = cursor.fetchall()
+
+                for miembro in miembros:
+                    miembro_id = miembro["participante_id"]
+
+                    # Verificar si ya respondió
                     cursor.execute("""
-                        INSERT INTO pregunta_participante (
-                            participante_id, pregunta_id, respuesta_seleccionada_id,
-                            texto_pregunta, correcta, tiempo_pregunta, tiempo_maximo_pregunta
-                        )
-                        SELECT p.participante_id, %s, %s, %s, %s, %s, %s
-                        FROM participante p
-                        WHERE p.lider_id = %s
-                          AND p.partida_id = %s
-                          AND p.participante_id != %s
-                          AND NOT EXISTS (
-                              SELECT 1 FROM pregunta_participante pp
-                              WHERE pp.participante_id = p.participante_id
-                                AND pp.pregunta_id = %s
-                          )
-                    """, (
-                        pregunta_id, respuesta_id, texto_pregunta, correcta,
-                        tiempo_respuesta, tiempo_limite,
-                        participante_id_db, partida_id, participante_id_db, pregunta_id
-                    ))
-                    
-                    # Actualizar puntuación de miembros
-                    if correcta == 1:
+                        SELECT 1 FROM pregunta_participante
+                        WHERE participante_id = %s AND pregunta_id = %s
+                    """, (miembro_id, pregunta_id))
+
+                    if not cursor.fetchone():
                         cursor.execute("""
-                            UPDATE participante
-                            SET cant_preguntas_correctas = cant_preguntas_correctas + 1,
-                                puntuacion_total = puntuacion_total + %s
-                            WHERE lider_id = %s
-                              AND partida_id = %s
-                              AND participante_id != %s
-                        """, (puntos_ganados, participante_id_db, partida_id, participante_id_db))
-                    else:
-                        cursor.execute("""
-                            UPDATE participante
-                            SET cant_preguntas_incorrectas = cant_preguntas_incorrectas + 1
-                            WHERE lider_id = %s
-                              AND partida_id = %s
-                              AND participante_id != %s
-                        """, (participante_id_db, partida_id, participante_id_db))
+                            INSERT INTO pregunta_participante (
+                                participante_id, pregunta_id, respuesta_seleccionada_id,
+                                texto_pregunta, correcta, tiempo_pregunta, tiempo_maximo_pregunta
+                            )
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            miembro_id, pregunta_id, respuesta_id,
+                            texto_pregunta, correcta, tiempo_respuesta, tiempo_limite
+                        ))
+
+                        if correcta == 1:
+                            cursor.execute("""
+                                UPDATE participante
+                                SET cant_preguntas_correctas = cant_preguntas_correctas + 1,
+                                    puntuacion_total = puntuacion_total + %s
+                                WHERE participante_id = %s
+                            """, (puntos_ganados, miembro_id))
+                        else:
+                            cursor.execute("""
+                                UPDATE participante
+                                SET cant_preguntas_incorrectas = cant_preguntas_incorrectas + 1
+                                WHERE participante_id = %s
+                            """, (miembro_id,))
 
             conexion.commit()
+
             return jsonify({
-                'success': True, 
-                'message': 'Respuesta registrada', 
+                'success': True,
+                'message': 'Respuesta registrada',
                 'correcta': bool(correcta),
                 'puntos_ganados': puntos_ganados
             }), 200
@@ -1871,10 +1887,19 @@ def api_responder_pregunta():
     except Exception as e:
         import traceback
         traceback.print_exc()
+        try:
+            if conexion and conexion.open:
+                conexion.rollback()
+        except:
+            pass
         return jsonify({"success": False, "message": str(e)}), 500
 
     finally:
-        conexion.close()
+        if conexion:
+            try:
+                conexion.close()
+            except:
+                pass
 
 
 # =========================================================================
