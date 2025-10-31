@@ -49,9 +49,9 @@ excelInput.addEventListener('change', async (e) => {
             return;
         }
 
-        
 
-       
+
+
         // Aquí puedes iterar y añadir al cuestionario
         data.preguntas.forEach(p => {
             window.cuestionario.preguntas.push(p); // tu array de preguntas ya existe
@@ -65,11 +65,14 @@ excelInput.addEventListener('change', async (e) => {
             console.error("No se encontró la función agregarPreguntasExcel");
         }
          alert("Excel procesado correctamente.");
-  
+
 
     } catch (err) {
         console.error("Error al subir o procesar el Excel:", err);
         alert("Error al subir o procesar el Excel");
+    }finally{
+        excelInput.value = '';
+        excelFileName.textContent = 'Ningún archivo seleccionado';
     }
 });
 

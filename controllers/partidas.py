@@ -3000,7 +3000,6 @@ def callback_google_drive():
 
 
 
-
 @partidas_bp.route("/api/subir_excel", methods=["POST"])
 def subir_excel():
     """
@@ -3023,7 +3022,12 @@ def subir_excel():
 
         preguntas = []
 
+
+
         for _, row in df.iterrows():
+
+            if all(pd.isna(row[col]) or str(row[col]).strip() == "" for col in columnas_requeridas):
+                continue
             # Limpiar NaN y convertir todo a string
             respuestas = [
                 str(row["Respuesta1"]) if not pd.isna(row["Respuesta1"]) else "",
@@ -3051,3 +3055,8 @@ def subir_excel():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+        
+        
+        
+        
+  
