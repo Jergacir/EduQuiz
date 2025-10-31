@@ -1124,7 +1124,7 @@ def frm_resultados_partida(partida_id):
             'resultados_partida.html',
             partida_info=partida_info_dict,
             partida_id=partida_id,
-            ranking=ranking,
+            resultados=ranking,
             logged_in_user=logged
         )
     finally:

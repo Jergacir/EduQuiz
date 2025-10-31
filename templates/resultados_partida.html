@@ -121,10 +121,10 @@
                     {% for jugador in resultados %}
                     <div class="ranking-item">
                         <span class="jugador-posicion pos-{{ loop.index }}">{{ loop.index }}</span>
-                        <img src="{{ jugador.avatar_url | default(url_for('static', filename='img/avatar.jpeg')) }}" alt="Avatar" class="jugador-avatar">
+                        <img src="{{ jugador.avatar | default(url_for('static', filename='img/avatar.jpeg')) }}" alt="Avatar" class="jugador-avatar">
                         <div class="jugador-info">
-                            <span class="jugador-nombre">{{ jugador.nombre }}</span>
-                            <span class="jugador-puntuacion">{{ jugador.puntaje }} puntos</span>
+                            <span class="jugador-nombre">{{ jugador.jugador }}</span>
+                            <span class="jugador-puntuacion"><i class="fa-solid fa-coins" style="color: #FFD43B;"></i> {{ jugador.puntuacion_total }} puntos</span>
                         </div>
                     </div>
                     {% endfor %}
