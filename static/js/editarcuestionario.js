@@ -18,7 +18,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const previewContainer = document.querySelector(".media-preview");
     const previewImage = document.getElementById("previewImage");
     const removeImage = document.getElementById("removeImage");
-
+    let detallesConfig = {
+        privacidad: "public"
+    };
     // --- Estado ---
     let cuestionario = { titulo: "", preguntas: [] };
     let preguntaActual = 0;
@@ -259,6 +261,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         const descripcionInputModal = document.getElementById("descripcionCuestionario");
         cuestionario.descripcion = data.descripcion || "";
         if (descripcionInputModal) descripcionInputModal.value = cuestionario.descripcion;
+        // ✅ NUEVO: Cargar privacidad desde backend
+        const privacySelect = document.getElementById("privacy");
+        if (data.publico === 1) {
+            privacySelect.value = "public";
+            detallesConfig.privacidad = "public";
+        } else {
+            privacySelect.value = "private";
+            detallesConfig.privacidad = "private";
+        }
+
         cuestionario.preguntas = data.preguntas.map(p => {
             const respuestas = p.respuestas.map(r => r.texto_respuesta);
             const correctaIndex = p.respuestas.findIndex(r => r.estado_respuesta === 1);
@@ -359,7 +371,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             nombre_cuestionario: cuestionario.titulo,
             descripcion: cuestionario.descripcion,
             publico: detallesConfig.privacidad === "public" ? 1 : 0,
-            modo_juego: detallesConfig.tema === "multiple" ? "M" : "C",
+            modo_juego: "C",
             tiempo_limite_pregunta: 30,
             usuario_id: usuarioId,
             url_img_cuestionario: cuestionario.imagen || null,
@@ -422,10 +434,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const cancelDetails = document.getElementById('cancelDetails');
     const saveDetails = document.getElementById('saveDetails');
 
-    let detallesConfig = {
-        privacidad: "public",
-        tema: "default"
-    };
+    
 
     // Abrir modal de detalles
     document.querySelectorAll(".btn-action").forEach(btn => {
@@ -445,10 +454,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Guardar cambios de detalles
     saveDetails.addEventListener("click", () => {
         const privacy = document.getElementById("privacy").value;
-        const theme = document.getElementById("theme").value;
+
 
         detallesConfig.privacidad = privacy;
-        detallesConfig.tema = theme;
+
 
         console.log("Configuración guardada:", detallesConfig);
 

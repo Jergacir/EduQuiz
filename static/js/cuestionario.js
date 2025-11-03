@@ -385,7 +385,7 @@ document.addEventListener("DOMContentLoaded", () => {
             nombre_cuestionario: cuestionario.titulo,
             descripcion: cuestionario.descripcion,
             publico: detallesConfig.privacidad === "public" ? 1 : 0,
-            modo_juego: detallesConfig.tema === "multiple" ? "M" : "C",
+            modo_juego: "C",
             tiempo_limite_pregunta: 30,
             usuario_id: usuarioId,
             url_img_cuestionario: cuestionario.imagen || null,
@@ -492,8 +492,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const saveDetails = document.getElementById('saveDetails');
 
     let detallesConfig = {
-        privacidad: "public",
-        tema: "default"
+        privacidad: "public"
     };
 
     document.querySelectorAll(".btn-action").forEach(btn => {
@@ -511,10 +510,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     saveDetails.addEventListener("click", () => {
         const privacy = document.getElementById("privacy").value;
-        const theme = document.getElementById("theme").value;
+        
 
         detallesConfig.privacidad = privacy;
-        detallesConfig.tema = theme;
+
 
         console.log("Configuración guardada:", detallesConfig);
         detailsModal.classList.add("hidden");
