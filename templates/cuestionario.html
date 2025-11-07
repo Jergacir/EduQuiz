@@ -171,10 +171,15 @@
                 <div id="comunidad-container" class="quiz-grid"><!-- comunidad se insertará aquí --></div>
             </section>
             {% endif %}
-
+            {% if logged_in_user.tipo_usuario == 'P' %}
             <p id="no-quizzes" class="no-quizzes-message" style="display: none;">
                 Aún no has creado ningún cuestionario. Haz clic en "Crear Cuestionario" para empezar.
             </p>
+            {% else %}
+            <p id="no-quizzes" class="no-quizzes-message" style="display: none;">
+                No tienes ningún cuestionario.No lo pienses más y obtén tus cuestionarios.
+            </p>
+            {% endif %}
             <div id="loading-quizzes" class="loading-quizzes" style="display: none;">
                 <i class="fas fa-circle-notch fa-spin"></i>
                 <p style="margin-top: 8px;">Cargando datos...</p>
