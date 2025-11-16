@@ -59,7 +59,7 @@ profesor_required = _make_login_decorator('auth.frm_login')
 
 
 def _register_blueprints(app):
-    names = ['auth', 'usuarios', 'tienda', 'cuestionarios', 'partidas', 'pages', 'modificarcontrasena']
+    names = ['auth', 'usuarios', 'tienda', 'cuestionarios', 'partidas', 'pages', 'modificarcontrasena', 'apiv1']
     for name in names:
         try:
             # If controllers/<name>.py exists, load it directly (avoids importing a package
