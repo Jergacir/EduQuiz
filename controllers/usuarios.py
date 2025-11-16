@@ -6,6 +6,7 @@ import db as dbmod
 import os
 import time
 from werkzeug.utils import secure_filename
+from utils import verify_password_sha256, hash_password_sha256
 
 usuarios_bp = Blueprint('usuarios', __name__, template_folder='../../templates')
 
@@ -49,9 +50,10 @@ def obtener_perfil_api():
 
 @usuarios_bp.route('/api/perfil', methods=['PUT'])
 def actualizar_perfil_api():
-    """Actualiza nombre, username y correo del usuario logueado.
+    """Actualiza username y correo del usuario logueado.
 
-    El front-end envía JSON con { nombre, username, correo }.
+    NO se permite cambiar el campo `nombre` (nombres y apellidos) desde esta API.
+    El front-end puede enviar `url_foto_perfil` para actualizar la foto.
     """
     if 'user_id' not in session:
         return jsonify({'error': 'No autenticado.'}), 401
@@ -60,13 +62,13 @@ def actualizar_perfil_api():
     if not data:
         return jsonify({'error': 'Cuerpo JSON vacío.'}), 400
 
-    nombre = data.get('nombre')
+    # No permitimos actualizar `nombre` desde aquí. Sólo username y correo son actualizables.
     username = data.get('username')
     correo = data.get('correo')
     url_foto_perfil = data.get('url_foto_perfil')
 
-    if not nombre or not username or not correo:
-        return jsonify({'error': 'Faltan campos requeridos.'}), 400
+    if not username or not correo:
+        return jsonify({'error': 'Faltan campos requeridos: username y correo.'}), 400
 
     user_id = session['user_id']
     conexion = dbmod.obtenerConexion()
@@ -81,7 +83,8 @@ def actualizar_perfil_api():
                 if cursor.fetchone():
                     return jsonify({'error': 'El correo o username ya está en uso por otro usuario.'}), 409
 
-                cursor.execute('UPDATE usuario SET nombre=%s, username=%s, correo=%s WHERE usuario_id=%s', (nombre, username, correo, user_id))
+                # Actualizar únicamente username y correo. `nombre` se mantiene tal cual en la BD.
+                cursor.execute('UPDATE usuario SET username=%s, correo=%s WHERE usuario_id=%s', (username, correo, user_id))
                 conexion.commit()
 
                 # Si se envió url de foto de perfil, actualizarla y la sesión
@@ -212,8 +215,7 @@ def register_gestor_api():
         return jsonify({"success": False, "message": "DNI inválido. Debe contener 8 dígitos."}), 400
 
     try:
-        hashed_password_bytes = __import__('extensions').bcrypt.generate_password_hash(contrasena_plana)
-        contrasena_cifrada = hashed_password_bytes.decode('utf-8')
+        contrasena_cifrada, _ = hash_password_sha256(contrasena_plana)
     except Exception:
         return jsonify({"success": False, "message": "Error al cifrar la contraseña."}), 500
 
@@ -374,8 +376,7 @@ def crear_usuario_api():
         return jsonify({"success": False, "error": "Tipo de usuario inválido (solo A, P, G, E permitidos)."}), 400
 
     try:
-        hashed_password_bytes = __import__('extensions').bcrypt.generate_password_hash(contrasena_plana)
-        contrasena_cifrada = hashed_password_bytes.decode('utf-8')
+        contrasena_cifrada, _ = hash_password_sha256(contrasena_plana)
     except Exception:
         return jsonify({"success": False, "error": "Error al cifrar la contraseña."}), 500
 
@@ -498,20 +499,19 @@ def cambiar_contrasena_api():
 
         bcrypt = __import__('extensions').bcrypt
         try:
-            if not bcrypt.check_password_hash(hashed, contrasena_actual):
+            if not verify_password_sha256(contrasena_actual, hashed):
                 return jsonify({'error': 'Contraseña actual incorrecta.'}), 403
         except Exception:
             # Protección extra: si el método falla, no permitir el cambio
             return jsonify({'error': 'Error verificando la contraseña actual.'}), 500
 
         # Evitar reutilizar la misma contraseña
-        if bcrypt.check_password_hash(hashed, nueva_contrasena):
+        if verify_password_sha256(nueva_contrasena, hashed):
             return jsonify({'error': 'La nueva contraseña no puede ser igual a la actual.'}), 400
 
         # Generar y guardar la nueva
         try:
-            nueva_hash_bytes = bcrypt.generate_password_hash(nueva_contrasena)
-            nueva_hash = nueva_hash_bytes.decode('utf-8')
+            nueva_hash, _ = hash_password_sha256(nueva_contrasena)
         except Exception:
             return jsonify({'error': 'Error al cifrar la nueva contraseña.'}), 500
 

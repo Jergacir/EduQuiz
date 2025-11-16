@@ -4,9 +4,53 @@ import random
 import pymysql
 import re
 from extensions import bcrypt as bcrypt_ext
-from utils import send_verification_email, mask_email
+from utils import send_verification_email, mask_email, hash_password_sha256, verify_password_sha256
+from flask import make_response
+import hashlib
 
 auth_bp = Blueprint('auth', __name__, template_folder='../../templates')
+
+def encriptar_sha256(texto):
+    texto = texto.encode('utf-8')
+    objHash = hashlib.sha256(texto)
+    textenc = objHash.hexdigest()
+    return textenc
+
+def verify_password_hybrid(password_plain: str, stored_hash: str) -> bool:
+    """Verifica contraseña con bcrypt O SHA-256"""
+    if not stored_hash or not password_plain:
+        print(f"❌ verify_password_hybrid: Datos faltantes - stored_hash={bool(stored_hash)}, password_plain={bool(password_plain)}")
+        return False
+
+    print(f"🔍 verify_password_hybrid: Verificando contraseña...")
+    print(f"   Hash almacenado: {stored_hash[:30]}...")
+
+    # Detectar si es bcrypt
+    if stored_hash.startswith(('$2b$', '$2a$', '$2y$')):
+        print(f"   Tipo detectado: BCRYPT")
+        try:
+            result = bcrypt_ext.check_password_hash(stored_hash, password_plain)
+            print(f"   Resultado bcrypt: {result}")
+            return result
+        except Exception as e:
+            print(f"❌ Error verificando bcrypt: {e}")
+            return False
+    # Detectar si es SHA-256 con salt (formato: hash$salt)
+    elif '$' in stored_hash and len(stored_hash) > 64:
+        print(f"   Tipo detectado: SHA-256")
+        print(f"   Longitud total: {len(stored_hash)}")
+        try:
+            result = verify_password_sha256(password_plain, stored_hash)
+            print(f"   Resultado SHA-256: {result}")
+            return result
+        except Exception as e:
+            print(f"❌ Error verificando SHA-256: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    else:
+        print(f"⚠️ Hash no reconocido - longitud: {len(stored_hash)}, contiene '$': {'$' in stored_hash}")
+        return False
 
 
 @auth_bp.route('/login')
@@ -21,10 +65,6 @@ def frm_registro():
 
 @auth_bp.route('/verificar', methods=['GET'], endpoint='frm_verificar')
 def frm_verificar():
-    """Página para que el usuario ingrese el código de verificación que recibió por email.
-
-    Acepta un parámetro `email` en la query string para prellenar el campo.
-    """
     email = request.args.get('email', '')
     masked = mask_email(email) if email else ''
     return render_template('verificar.html', email=email, email_masked=masked)
@@ -32,20 +72,23 @@ def frm_verificar():
 
 @auth_bp.route('/logout')
 def logout():
-    # Limpiar toda la sesión para evitar que queden valores de avatar u otros datos
     try:
         session.clear()
     except Exception:
-        # Fallback: eliminar claves conocidas si clear no funciona
-        for k in ['user_id', 'url_foto_perfil', 'url_avatar', 'username', 'cant_monedas']:
+        for k in ['user_id', 'url_foto_perfil', 'url_avatar', 'username', 'cant_monedas', 'tipo_usuario']:
             session.pop(k, None)
     flash('Has cerrado sesión exitosamente.', 'success')
-    return redirect(url_for('auth.frm_login'))
+    resp = make_response(redirect(url_for('auth.frm_login')))
+
+    # Eliminar ambas cookies
+    resp.set_cookie('username', '', expires=0)
+    resp.set_cookie('correo', '', expires=0)
+
+    return resp
 
 
 @auth_bp.route('/procesarregistro', methods=['POST'])
 def procesarregistro():
-    # Mover la lógica del viejo main.procesarregistro aquí
     tipo = request.form.get('tipo')
     dni = request.form.get('dni')
     email = request.form.get('email')
@@ -94,12 +137,14 @@ def procesarregistro():
         flash('Tipo de usuario inválido.', 'error')
         return redirect(url_for('auth.frm_registro'))
 
-    hashed_bytes = bcrypt_ext.generate_password_hash(contrasena_plana)
-    contrasena_cifrada = hashed_bytes.decode('utf-8')
+    # ✅ ENCRIPTAR CON SHA-256
+    contrasena_cifrada, salt_usado = hash_password_sha256(contrasena_plana)
+    print(f"🔐 Registro: Nueva contraseña encriptada con SHA-256")
+    print(f"   Salt: {salt_usado[:20]}...")
+    print(f"   Hash completo: {contrasena_cifrada[:50]}...")
 
     username = email.split('@')[0]
     nombre = username.replace('_', ' ').title()
-
     verification_code = ''.join(str(random.randint(0,9)) for _ in range(6))
 
     conexion = dbmod.obtenerConexion()
@@ -129,15 +174,13 @@ def procesarregistro():
 
                 conexion.commit()
 
-        # Intentar enviar código de verificación (utils.send_verification_email)
         try:
-            from utils import send_verification_email
             send_verification_email(email, verification_code)
             flash('Se envió un código de verificación a tu correo.', 'info')
         except Exception:
             flash('No se pudo enviar el correo de verificación automáticamente.', 'warning')
 
-        masked = __import__('utils').mask_email(email)
+        masked = mask_email(email)
         return render_template('verificar.html', email=email, email_masked=masked)
 
     except Exception as e:
@@ -150,71 +193,149 @@ def procesarregistro():
 def procesarlogin():
     correo = request.form.get('correo')
     contrasena_plana = request.form.get('contrasena')
-    conexion = dbmod.obtenerConexion()
 
-    # Detectar si la petición viene por AJAX (X-Requested-With) para devolver JSON
+    print(f"\n{'='*60}")
+    print(f"🔐 INICIO DE SESIÓN - {correo}")
+    print(f"{'='*60}")
+
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
+    conexion = dbmod.obtenerConexion()
     if not conexion:
+        print("❌ Error: No hay conexión a la BD")
         if is_ajax:
             return jsonify({'success': False, 'message': 'Error de conexión a BD.'}), 500
         return redirect(url_for('pages.frm_error'))
 
+    cursor = None
     try:
-        with conexion.cursor() as cursor:
-            sql = "SELECT usuario_id, contrasena, verificado, correo, vigencia, COALESCE(url_foto_perfil,'') AS url_foto_perfil, COALESCE(url_avatar,'') AS url_avatar, username, cant_monedas, tipo_usuario FROM usuario WHERE correo=%s"
-            cursor.execute(sql, (correo,))
-            result = cursor.fetchone()
+        cursor = conexion.cursor()
+
+        # 1. BUSCAR USUARIO
+        sql = "SELECT usuario_id, contrasena, verificado, correo, vigencia, COALESCE(url_foto_perfil,'') AS url_foto_perfil, COALESCE(url_avatar,'') AS url_avatar, username, cant_monedas, tipo_usuario FROM usuario WHERE correo=%s"
+        cursor.execute(sql, (correo,))
+        result = cursor.fetchone()
 
         if not result:
-            # Correo no encontrado
+            print(f"❌ Usuario no encontrado: {correo}")
             if is_ajax:
                 return jsonify({'success': False, 'code': 'email_not_found', 'message': 'Correo no encontrado.'}), 404
             flash('Correo no encontrado. ¿Deseas registrarte?', 'error')
             return redirect(url_for('auth.frm_login'))
 
-        if result and bcrypt_ext.check_password_hash(result['contrasena'], contrasena_plana):
-            # Usuario encontrado y contraseña correcta
-            if result.get('vigencia', 0) == 0:
-                # Cuenta inactiva
-                if is_ajax:
-                    return jsonify({'success': False, 'code': 'inactive', 'message': 'Tu cuenta está inactiva.'}), 403
-                flash('Tu cuenta está inactiva.', 'error')
-                return redirect(url_for('auth.frm_login'))
+        stored_hash = result.get('contrasena')
+        usuario_id = result['usuario_id']
 
-            if result.get('verificado', 0) == 0:
-                # No verificado
-                if is_ajax:
-                    return jsonify({'success': False, 'code': 'not_verified', 'message': 'Tu cuenta aún no está verificada.'}), 403
-                flash('Tu cuenta aún no está verificada.', 'warning')
-                return render_template('verificar.html', email=result.get('correo'), email_masked=__import__('utils').mask_email(result.get('correo')))
+        print(f"✅ Usuario encontrado: ID={usuario_id}")
+        print(f"   Hash en BD: {stored_hash[:50]}...")
+        print(f"   Longitud hash: {len(stored_hash)}")
 
-            # Login exitoso
-            session['user_id'] = result['usuario_id']
-            # Guardar datos útiles en la sesión para evitar inconsistencias en el header
-            try:
-                session['url_foto_perfil'] = result.get('url_foto_perfil') or ''
-                session['url_avatar'] = result.get('url_avatar') or ''
-                session['username'] = result.get('username') or ''
-                session['cant_monedas'] = result.get('cant_monedas') or 0
-                session['tipo_usuario'] = result.get('tipo_usuario') or ''
-            except Exception:
-                # No crítico si falla almacenar en sesión
-                pass
-            if is_ajax:
-                return jsonify({'success': True, 'redirect': url_for('pages.frm_home')}), 200
-            return redirect(url_for('pages.frm_home'))
-
-        else:
-            # Credenciales incorrectas (usuario existe pero contraseña no coincide)
+        # 2. VERIFICAR CONTRASEÑA (NO ENCRIPTAR DE NUEVO)
+        if not verify_password_hybrid(contrasena_plana, stored_hash):
+            print(f"❌ CONTRASEÑA INCORRECTA")
             if is_ajax:
                 return jsonify({'success': False, 'code': 'credentials', 'message': 'Credenciales incorrectas.'}), 401
             flash('Credenciales incorrectas.', 'error')
             return redirect(url_for('auth.frm_login'))
 
+        print(f"✅ CONTRASEÑA CORRECTA")
+
+        # 3. VERIFICAR ESTADO DE CUENTA
+        if result.get('vigencia', 0) == 0:
+            print(f"⚠️ Cuenta inactiva")
+            if is_ajax:
+                return jsonify({'success': False, 'code': 'inactive', 'message': 'Tu cuenta está inactiva.'}), 403
+            flash('Tu cuenta está inactiva.', 'error')
+            return redirect(url_for('auth.frm_login'))
+
+        if result.get('verificado', 0) == 0:
+            print(f"⚠️ Cuenta no verificada")
+            if is_ajax:
+                return jsonify({'success': False, 'code': 'not_verified', 'message': 'Tu cuenta aún no está verificada.'}), 403
+            flash('Tu cuenta aún no está verificada.', 'warning')
+            return render_template('verificar.html', email=result.get('correo'), email_masked=mask_email(result.get('correo')))
+
+        # 4. MIGRAR DE BCRYPT A SHA-256 SI ES NECESARIO
+        if stored_hash.startswith(('$2b$', '$2a$', '$2y$')):
+            try:
+                new_hash, salt_usado = hash_password_sha256(contrasena_plana)
+                print(f"🔄 Migrando usuario {usuario_id} de bcrypt a SHA-256...")
+                print(f"   Nuevo salt: {salt_usado[:20]}...")
+                print(f"   Nuevo hash: {new_hash[:50]}...")
+
+                # ✅ USAR EL CURSOR QUE YA TENEMOS ABIERTO
+                cursor.execute(
+                    "UPDATE usuario SET contrasena=%s WHERE usuario_id=%s",
+                    (new_hash, usuario_id)
+                )
+                conexion.commit()
+
+                print(f"✅ Usuario {usuario_id} migrado exitosamente")
+
+                # Verificar que se guardó correctamente
+                cursor.execute("SELECT contrasena FROM usuario WHERE usuario_id=%s", (usuario_id,))
+                verificacion = cursor.fetchone()
+                if verificacion:
+                    print(f"   Hash guardado en BD: {verificacion['contrasena'][:50]}...")
+
+            except Exception as e:
+                print(f"❌ Error migrando usuario {usuario_id}: {e}")
+                import traceback
+                traceback.print_exc()
+                try:
+                    conexion.rollback()
+                except:
+                    pass
+
+        # 5. LOGIN EXITOSO - Crear sesión
+        print(f"✅ LOGIN EXITOSO - Creando sesión")
+        session['user_id'] = usuario_id
+        session['url_foto_perfil'] = result.get('url_foto_perfil') or ''
+        session['url_avatar'] = result.get('url_avatar') or ''
+        session['username'] = result.get('username') or ''
+        session['cant_monedas'] = result.get('cant_monedas') or 0
+        session['tipo_usuario'] = result.get('tipo_usuario') or ''
+
+        print(f"{'='*60}\n")
+
+        username = encriptar_sha256(session.get('username', ''))
+        correo = encriptar_sha256(result.get('correo', ''))
+
+        if is_ajax:
+            # Crear respuesta JSON y establecer múltiples cookies
+            resp = make_response(jsonify({
+                'success': True,
+                'redirect': url_for('pages.frm_home')
+            }))
+            resp.set_cookie('username', username, max_age=60*60*24*30)  # 30 días
+            resp.set_cookie('correo', correo, max_age=60*60*24*30)      # 30 días
+            return resp, 200
+
+        # Flujo tradicional (no-AJAX)
+        resp = make_response(redirect(url_for('pages.frm_home')))
+        resp.set_cookie('username', username, max_age=60*60*24*30)
+        resp.set_cookie('correo', correo, max_age=60*60*24*30)
+        return resp
+
     except Exception as e:
-        print(f"Error en procesarlogin: {e}")
+        print(f"❌ Error CRÍTICO en procesarlogin: {e}")
+        import traceback
+        traceback.print_exc()
+
+        if is_ajax:
+            return jsonify({'success': False, 'message': 'Error interno del servidor.'}), 500
         return redirect(url_for('pages.frm_error'))
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conexion:
+            try:
+                conexion.close()
+            except:
+                pass
 
 
 @auth_bp.route('/procesar_verificacion', methods=['POST'])
@@ -228,10 +349,6 @@ def procesar_verificacion():
         email = request.form.get('email')
         codigo = request.form.get('codigo')
         nombre_reniec = request.form.get('nombre_reniec')
-
-    print("=== [DEBUG procesar_verificacion] ===")
-    print(f"Email: {email}, Nombre RENIEC: {nombre_reniec}")
-    print("===================================")
 
     if not email or not codigo:
         if data:
@@ -273,14 +390,12 @@ def procesar_verificacion():
                     if nombre_final.strip() == dni:
                         nombre_final = "(Sin nombre RENIEC)"
 
-                    # Generar username basado en el nombre completo: Primernombre_InicialApellido1InicialApellido2
                     def generate_username_from_fullname(fullname: str) -> str:
                         try:
                             parts = [p for p in fullname.strip().split() if p]
                             if not parts:
                                 return temp.get('username') or 'user'
                             first_name = parts[0].title()
-                            # tomar las dos últimas partes como apellidos (si existen)
                             if len(parts) >= 3:
                                 last_parts = parts[-2:]
                             elif len(parts) == 2:
@@ -290,20 +405,16 @@ def procesar_verificacion():
 
                             initials = ''
                             for lp in last_parts:
-                                # usar la primera letra en mayúscula, conservar caracteres como Ñ
                                 if lp:
                                     initials += lp[0].upper()
 
-                            # Si no hay apellidos, usar la inicial del segundo token si existe
                             username_candidate = f"{first_name}_{initials}" if initials else f"{first_name}"
-                            # Limpiar espacios y caracteres problemáticos
                             username_candidate = username_candidate.replace(' ', '_')
                             return username_candidate
                         except Exception:
                             return temp.get('username') or 'user'
 
                     base_username = generate_username_from_fullname(nombre_final)
-                    # Asegurar unicidad en la tabla usuario
                     username = base_username
                     suffix = 1
                     cursor.execute("SELECT 1 FROM usuario WHERE username=%s", (username,))
@@ -312,6 +423,10 @@ def procesar_verificacion():
                         suffix += 1
                         cursor.execute("SELECT 1 FROM usuario WHERE username=%s", (username,))
 
+                    print(f"🔐 Verificación: Insertando usuario con contraseña SHA-256")
+                    print(f"   Hash: {temp['contrasena'][:50]}...")
+
+                    # ✅ La contraseña YA está encriptada en registro_temp
                     cursor.execute("""
                         INSERT INTO usuario (username, nombre, contrasena, correo, dni, tipo_usuario, cant_monedas, verificado)
                         VALUES (%s,%s,%s,%s,%s,%s,%s,1)
@@ -319,54 +434,46 @@ def procesar_verificacion():
                           temp['dni'], temp['tipo_usuario'], temp.get('cant_monedas', 0)))
 
                     cursor.execute("DELETE FROM registro_temp WHERE temp_id=%s", (temp['temp_id'],))
-                    # Asignar skins por defecto a este nuevo usuario (si existen)
+
                     try:
-                        # Obtener el id del usuario recién insertado de forma robusta
                         cursor.execute("SELECT usuario_id FROM usuario WHERE correo=%s", (temp['correo'],))
                         new_user = cursor.fetchone()
                         new_user_id = new_user.get('usuario_id') if new_user else None
                         if new_user_id:
-                            # Determinar nombre de la tabla inventario (mayúsc/minúsc)
                             inventario_table = 'inventario'
                             try:
                                 cursor.execute("SELECT 1 FROM inventario LIMIT 1")
                             except Exception:
                                 inventario_table = 'Inventario'
 
-                            # Obtener skins por defecto (skinDefault = 1)
                             try:
                                 cursor.execute("SELECT skin_id FROM skin WHERE COALESCE(skinDefault, 0) = 1")
                                 default_skins = cursor.fetchall() or []
                             except Exception:
                                 default_skins = []
 
-                            # Si no hay skins explícitamente marcadas como default, usar un fallback
-                            # (por ejemplo, la primera skin activa encontrada) para garantizar
-                            # que los usuarios reciban al menos una skin inicial.
                             if not default_skins:
                                 try:
                                     cursor.execute("SELECT skin_id FROM skin WHERE vigencia = 1 ORDER BY skin_id ASC LIMIT 1")
                                     fallback = cursor.fetchall() or []
                                     if fallback:
                                         default_skins = fallback
-                                        print("Info: no se encontraron skins con skinDefault=1; usando fallback (primera skin activa).")
                                 except Exception:
-                                    # mantener default_skins vacío si falla el fallback
                                     default_skins = []
 
                             for ds in default_skins:
                                 try:
                                     sk_id = ds.get('skin_id') or ds.get('id') or ds
-                                    # Verificar que no exista ya en el inventario del usuario
                                     check_sql = f"SELECT 1 FROM {inventario_table} WHERE usuario_id=%s AND id_item=%s AND tipo_item='SKIN'"
                                     cursor.execute(check_sql, (new_user_id, sk_id))
                                     if not cursor.fetchone():
                                         insert_sql = f"INSERT INTO {inventario_table} (usuario_id, id_item, tipo_item, equipada, fecha_adquisicion) VALUES (%s, %s, %s, %s, NOW())"
                                         cursor.execute(insert_sql, (new_user_id, sk_id, 'SKIN', 0))
                                 except Exception as e:
-                                    print(f"Warning asignando skin por defecto (usuario {new_user_id}): {e}")
+                                    print(f"Warning asignando skin por defecto: {e}")
                     except Exception as e:
                         print(f"Warning al asignar skins por defecto: {e}")
+
                     conexion.commit()
 
                     if data:
@@ -408,14 +515,15 @@ def get_dni():
             return jsonify({"dni": row.get("dni")})
     except Exception as e:
         return jsonify({"error": "Error interno", "detail": str(e)}), 500
-# ------------------- Reenviar código -------------------
+
+
 @auth_bp.route('/reenviar_codigo', methods=['POST'])
 def reenviar_codigo():
     data = request.get_json(silent=True)
     email = data.get('email') if data else request.form.get('email')
 
     if not email:
-        return jsonify({'success': False, 'message': 'Falta el email'}), 400 if data else flash('Falta el email', 'error')
+        return jsonify({'success': False, 'message': 'Falta el email'}), 400
 
     conexion = dbmod.obtenerConexion()
     if not conexion:

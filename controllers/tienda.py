@@ -606,6 +606,7 @@ def api_inventario_tiene_equipada():
 
 
 
+
 @tienda_bp.route('/api/tienda/comprar', methods=['POST'])
 def api_tienda_comprar():
     if not _is_logged_in():

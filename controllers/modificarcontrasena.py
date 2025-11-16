@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import re
 import sys
 import db as dbmod
+from utils import hash_password_sha256
 
 
 modificarcontrasena_bp = Blueprint('modificarcontrasena', __name__, template_folder='../../templates')
@@ -235,9 +236,7 @@ def restablecer_post():
                 usuario_id = row['usuario_id']
                 # Actualizar contraseña usando bcrypt desde extensions
                 try:
-                    bcrypt = __import__('extensions').bcrypt
-                    hashed_bytes = bcrypt.generate_password_hash(nueva)
-                    hashed = hashed_bytes.decode('utf-8')
+                    hashed, _ = hash_password_sha256(nueva)
                 except Exception:
                     flash('Error al cifrar la contraseña.', 'error')
                     return redirect(url_for('auth.frm_login'))

@@ -4,6 +4,10 @@ import ssl
 from email.message import EmailMessage
 from flask import url_for
 import sys
+import hashlib
+import secrets
+import traceback # Importar traceback para el manejo de errores
+
 
 # Gmail API imports
 try:
@@ -39,27 +43,22 @@ def get_gmail_service():
     """Obtiene el servicio de Gmail autenticado usando token.pickle"""
     creds = None
 
-    # Determinar rutas absolutas (buscar en el mismo directorio que utils.py)
     base_dir = os.path.dirname(os.path.abspath(__file__))
     token_path = os.path.join(base_dir, 'token.pickle')
     cred_path = os.path.join(base_dir, 'credentials.json')
 
-    # DEBUG: imprimir rutas para facilitar depuración en hosting (ej: PythonAnywhere)
     print(f"[DEBUG] get_gmail_service cwd={os.getcwd()} base_dir={base_dir}")
     print(f"[DEBUG] looking for token: {token_path} exists={os.path.exists(token_path)}")
     print(f"[DEBUG] looking for credentials: {cred_path} exists={os.path.exists(cred_path)}")
 
-    # El token se guarda en token.pickle después del primer login
     if os.path.exists(token_path):
         with open(token_path, 'rb') as token:
             creds = pickle.load(token)
 
-    # Si no hay credenciales válidas, hacer login
     if not creds or not getattr(creds, 'valid', False):
         if creds and getattr(creds, 'expired', False) and getattr(creds, 'refresh_token', None):
             creds.refresh(Request())
         else:
-            # Preferir credentials.json en el directorio del módulo; si no existe, intentar cwd
             if os.path.exists(cred_path):
                 credentials_file = cred_path
             elif os.path.exists('credentials.json'):
@@ -71,10 +70,8 @@ def get_gmail_service():
 
             flow = InstalledAppFlow.from_client_secrets_file(
                 credentials_file, SCOPES)
-            # run_local_server opens a browser; typically you generate token locally and upload token.pickle
             creds = flow.run_local_server(port=0)
 
-        # Guardar credenciales para la próxima vez (en el mismo directorio que utils.py)
         try:
             with open(token_path, 'wb') as token:
                 pickle.dump(creds, token)
@@ -88,53 +85,36 @@ def send_email_via_gmail_api(to_email: str, subject: str, html_body: str):
     """Envía email usando Gmail API"""
     if not GMAIL_API_AVAILABLE:
         raise RuntimeError("Gmail API libraries not installed")
-    
+
     message = MIMEText(html_body, 'html')
     message['to'] = to_email
     message['subject'] = subject
-    
-    # Codificar el mensaje
+
     raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
-    
+
     try:
         service = get_gmail_service()
         send_message = service.users().messages().send(
-            userId="me", 
+            userId="me",
             body={'raw': raw}
         ).execute()
-        
+
         print(f"[GMAIL API] Email enviado exitosamente a {to_email}, Message ID: {send_message['id']}")
         return send_message
     except Exception as e:
         print(f"[GMAIL API ERROR] {str(e)}")
         raise
-# ============================================
 
 
-# Funciones de envío de correo simplificadas para mantener la lógica central fuera de main.py
-# NOTA: Estas funciones usan Gmail API si está disponible, sino SMTP
 def send_verification_email(to_email: str, code: str):
-    """Envía un correo con el código de verificación.
-    
-    Usa Gmail API si está disponible (requiere token.pickle y credentials.json),
-    sino usa SMTP tradicional.
-    
-    Variables de entorno para SMTP (fallback):
-    - EMAIL_HOST: servidor SMTP (ej: smtp.gmail.com)
-    - EMAIL_PORT: puerto (ej: 587)
-    - EMAIL_USER: usuario
-    - EMAIL_PASS: contraseña o app password
-    """
-    # Intentar usar Gmail API primero
+    """Envía un correo con el código de verificación."""
     use_gmail_api = os.environ.get('USE_GMAIL_API', 'true').strip().lower() in ('1', 'true', 'yes', 'on')
 
-    # Comprobar token.pickle tanto en el cwd como en el directorio del módulo (WSGI puede cambiar el cwd)
     module_dir = os.path.dirname(os.path.abspath(__file__))
     token_paths = [os.path.join(module_dir, 'token.pickle'), os.path.abspath('token.pickle')]
     token_exists = any(os.path.exists(p) for p in token_paths)
 
-    # DEBUG: mostrar qué ruta de token se detectó
-    print(f"[DEBUG] send_verification_email use_gmail_api={use_gmail_api} GMAIL_API_AVAILABLE={GMAIL_API_AVAILABLE} token_exists={token_exists} token_paths={token_paths}")
+    print(f"[DEBUG] send_verification_email use_gmail_api={use_gmail_api} GMAIL_API_AVAILABLE={GMAIL_API_AVAILABLE} token_exists={token_exists}")
 
     if use_gmail_api and GMAIL_API_AVAILABLE and token_exists:
         return _send_verification_email_via_gmail_api(to_email, code)
@@ -144,7 +124,6 @@ def send_verification_email(to_email: str, code: str):
 
 def _send_verification_email_via_gmail_api(to_email: str, code: str):
     """Envía email de verificación usando Gmail API"""
-    # Construir enlace de verificación
     try:
         verify_link = url_for('frm_verificar', email=to_email, _external=True)
     except Exception:
@@ -152,7 +131,7 @@ def _send_verification_email_via_gmail_api(to_email: str, code: str):
         verify_link = f"{base}/verificar?email={to_email}" if base else f"/verificar?email={to_email}"
 
     subject = 'Confirma tu cuenta en EduQuiz'
-    
+
     html_body = f"""
     <!doctype html>
     <html>
@@ -197,9 +176,153 @@ def _send_verification_email_via_gmail_api(to_email: str, code: str):
         </body>
     </html>
     """
-    
+
     print(f"[DEBUG] Enviando email via Gmail API a {to_email}")
     return send_email_via_gmail_api(to_email, subject, html_body)
+
+
+# ============================================
+# HASH DE CONTRASEÑAS CON SHA-256
+# ============================================
+
+def hash_password_sha256(password: str, salt: str = None) -> tuple:
+    """
+    Hashea una contraseña usando SHA-256 con salt.
+    Formato: salt$hash
+    """
+    if salt is None:
+        # **CORRECCIÓN 1:** Usar 16 bytes (32 caracteres hex) para el salt.
+        # Esto asegura que el hash total (32 + 1 + 64 = 97)
+        # quepa en un VARCHAR(100) y evita el truncamiento.
+        salt = secrets.token_hex(16)
+
+    salted_password = salt + password
+    hash_obj = hashlib.sha256(salted_password.encode('utf-8'))
+    password_hash = hash_obj.hexdigest() # 64 caracteres
+
+    # Total: 32 (salt) + 1 ($) + 64 (hash) = 97 caracteres.
+    hash_completo = f"{salt}${password_hash}"
+
+    return hash_completo, salt
+
+
+def verify_password_sha256(password: str, stored_hash: str) -> bool:
+    """
+    **CORRECCIÓN 2:** Lógica de verificación robustecida.
+    Verifica si una contraseña coincide con el hash almacenado.
+    Versión flexible: Acepta salt$hash (normal o truncado) O hash$salt
+    """
+    try:
+        if not stored_hash or '$' not in stored_hash:
+            print(f"⚠️ Hash inválido: no contiene '$'")
+            return False
+
+        parts = stored_hash.split('$', 1)
+        if len(parts) != 2:
+            print(f"⚠️ Hash inválido: formato incorrecto (partes: {len(parts)})")
+            return False
+
+        part1, part2 = parts
+
+        print(f"🔍 verify_password_sha256:")
+        print(f"   Part1 length: {len(part1)}")
+        print(f"   Part2 length: {len(part2)}")
+
+        # El hash SHA-256 (hexdigest) SIEMPRE tiene 64 caracteres.
+
+        if len(part2) == 64:
+            # Caso 1: salt(X)$hash(64). Formato estándar (nuevo o antiguo).
+            # (Esto funcionará para los nuevos hashes de 97 caracteres)
+            print(f"   ⚙️ Formato detectado: salt$hash (hash completo en part2)")
+            salt = part1
+            stored_password_hash = part2
+
+            salted_password = salt + password
+            hash_obj = hashlib.sha256(salted_password.encode('utf-8'))
+            password_hash = hash_obj.hexdigest()
+
+            resultado = secrets.compare_digest(password_hash, stored_password_hash)
+
+            if not resultado:
+                print(f"❌ Verificación fallida (salt$hash):")
+                print(f"   Hash esperado:  {stored_password_hash[:20]}...")
+                print(f"   Hash calculado: {password_hash[:20]}...")
+            else:
+                print(f"✅ Verificación exitosa (salt$hash)")
+            return resultado
+
+        elif len(part1) == 64:
+            # Caso 2: Ambigüedad.
+            # - Podría ser hash(64)$salt(X) (formato invertido).
+            # - Podría ser salt(64)$hash(X) (formato correcto, pero hash truncado - TU CASO)
+            print(f"   ⚠️ Ambigüedad detectada (part1=64). Verificando ambos formatos...")
+
+            # Prueba 1: Asumir formato salt$hash (salt=part1, hash=part2)
+            # (Este es el caso de tu log: salt(64)$hash(35))
+            salt_1 = part1
+            stored_hash_1 = part2 # Hash truncado
+            print(f"      Prueba 1 (salt$hash truncado): salt={salt_1[:10]}... hash_fragment={stored_hash_1[:10]}... (len={len(stored_hash_1)})")
+
+            salted_password_1 = salt_1 + password
+            hash_obj_1 = hashlib.sha256(salted_password_1.encode('utf-8'))
+            password_hash_1 = hash_obj_1.hexdigest() # Hash completo (64)
+
+            # Comparamos el hash calculado completo contra el fragmento truncado
+            if secrets.compare_digest(password_hash_1[:len(stored_hash_1)], stored_hash_1):
+                print(f"   ✅ Verificación exitosa (Prueba 1: salt$hash truncado)")
+                print(f"      Hash calculado: {password_hash_1[:20]}...")
+                print(f"      Hash esperado (trunc): {stored_hash_1[:20]}...")
+                return True
+            else:
+                print(f"      Prueba 1 fallida. Calculado (trunc): {password_hash_1[:len(stored_hash_1)]}")
+
+
+            # Prueba 2: Asumir formato hash$salt (hash=part1, salt=part2)
+            # (Esto es lo que tu código anterior intentó hacer y falló)
+            salt_2 = part2
+            stored_hash_2 = part1 # Hash completo
+            print(f"      Prueba 2 (hash$salt): salt={salt_2[:10]}... (len={len(salt_2)}) hash_completo={stored_hash_2[:10]}...")
+
+            salted_password_2 = salt_2 + password
+            hash_obj_2 = hashlib.sha256(salted_password_2.encode('utf-8'))
+            password_hash_2 = hash_obj_2.hexdigest() # Hash completo (64)
+
+            resultado_2 = secrets.compare_digest(password_hash_2, stored_hash_2)
+
+            if resultado_2:
+                 print(f"   ✅ Verificación exitosa (Prueba 2: hash$salt)")
+            else:
+                print(f"❌ Verificación fallida (Ambas pruebas):")
+                print(f"   (Prueba 2) Esperado: {stored_hash_2[:20]}... | Calculado: {password_hash_2[:20]}...")
+
+            return resultado_2
+
+        else:
+            # Caso 3: Ninguna parte tiene 64.
+            # Probablemente un hash muy antiguo o muy truncado.
+            # Asumir salt$hash por defecto (el más probable).
+            print(f"   ⚠️ Ninguna parte tiene 64 caracteres. Asumiendo salt$hash por defecto.")
+            salt = part1
+            stored_password_hash_fragment = part2
+
+            salted_password = salt + password
+            hash_obj = hashlib.sha256(salted_password.encode('utf-8'))
+            password_hash = hash_obj.hexdigest()
+
+            # Comparar con truncamiento
+            resultado = secrets.compare_digest(password_hash[:len(stored_password_hash_fragment)], stored_password_hash_fragment)
+
+            if not resultado:
+                print(f"❌ Verificación fallida (defecto):")
+                print(f"   Hash esperado (trunc): {stored_password_hash_fragment[:20]}...")
+                print(f"   Hash calculado (trunc): {password_hash[:len(stored_password_hash_fragment)]}...")
+
+            return resultado
+
+    except Exception as e:
+        print(f"❌ Error en verify_password_sha256: {e}")
+        traceback.print_exc()
+        return False
 
 
 def _send_verification_email_via_smtp(to_email: str, code: str):
@@ -209,19 +332,18 @@ def _send_verification_email_via_smtp(to_email: str, code: str):
     smtp_user = os.environ.get('EMAIL_USER')
     smtp_pass = os.environ.get('EMAIL_PASS')
     from_header = os.environ.get('EMAIL_FROM') or smtp_user
+
     if not host or not smtp_user or not smtp_pass:
         raise RuntimeError('Configuración SMTP incompleta. Ajusta EMAIL_HOST/EMAIL_USER/EMAIL_PASS')
 
     subject = 'Confirma tu cuenta en EduQuiz'
 
-    # Construir enlace de verificación
     try:
         verify_link = url_for('frm_verificar', email=to_email, _external=True)
     except Exception:
         base = os.environ.get('APP_BASE_URL', '').rstrip('/')
         verify_link = f"{base}/verificar?email={to_email}" if base else f"/verificar?email={to_email}"
 
-    # Mensaje de texto plano
     text_body = (
         f"Hola,\n\n"
         f"Gracias por registrarte en EduQuiz. Para completar tu registro introduce el siguiente código de verificación:\n\n"
@@ -231,7 +353,6 @@ def _send_verification_email_via_smtp(to_email: str, code: str):
         f"Saludos,\nEquipo EduQuiz"
     )
 
-    # Mensaje HTML
     html_body = f"""
     <!doctype html>
     <html>
@@ -257,7 +378,6 @@ def _send_verification_email_via_smtp(to_email: str, code: str):
                                         <div style="display:inline-block;background:#f3f6fb;padding:14px 20px;border-radius:12px;font-size:22px;letter-spacing:6px;color:#0a58ca;font-weight:600;">{code}</div>
                                     </div>
 
-                                    <!-- Botón estilo Outlook-friendly usando tabla -->
                                     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 auto;" align="center">
                                         <tr>
                                             <td align="center" bgcolor="#0a58ca" style="border-radius:8px;">
@@ -279,17 +399,12 @@ def _send_verification_email_via_smtp(to_email: str, code: str):
     """
 
     msg = EmailMessage()
-    # Usa EMAIL_FROM si está configurado en el entorno, sino el usuario SMTP
     msg['From'] = from_header
     msg['To'] = to_email
     msg['Subject'] = subject
     msg.set_content(text_body)
     msg.add_alternative(html_body, subtype='html')
 
-    # DEBUG: imprimir configuración SMTP (sin exponer la contraseña)
-    print(f"[DEBUG] Enviando email SMTP -> host={host}, port={port}, smtp_user={smtp_user}, from_header={from_header}, to={to_email}")
-
-    # Opción para pruebas locales: si SKIP_TLS_VERIFY está activado, crear contexto sin verificación
     skip_tls = os.environ.get('SKIP_TLS_VERIFY', '0') in ('1', 'true', 'True')
     if skip_tls:
         context = ssl._create_unverified_context()
@@ -299,16 +414,11 @@ def _send_verification_email_via_smtp(to_email: str, code: str):
     try:
         with smtplib.SMTP(host, port, timeout=20) as server:
             server.set_debuglevel(1)
-            # STARTTLS con contexto
             server.starttls(context=context)
-            # Autenticación con SMTP_USER
             server.login(smtp_user, smtp_pass)
             server.send_message(msg)
 
-        print("[DEBUG] Email enviado (o al menos enviado al servidor SMTP)")
+        print("[DEBUG] Email enviado exitosamente via SMTP")
     except Exception as e:
-        # Mostrar traza completa para depuración
-        import traceback
         traceback.print_exc()
-        # Re-lanzar para que los handlers existentes puedan reaccionar o capturarlo
         raise
