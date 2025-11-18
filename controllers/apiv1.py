@@ -2,13 +2,23 @@ from flask import Blueprint, request, jsonify
 import sys
 import db as dbmod
 
+# ✅ NUEVO: Importar funciones de autenticación
+from auth_utils import jwt_required_api_enhanced, get_user_from_jwt_or_session
+
 apiv1_bp = Blueprint('apiv1', __name__, url_prefix="/")
 
 # ============================================================
 # 1. GET api_obtenercuestionarios  → Lista todos los cuestionarios activos
 # ============================================================
 @apiv1_bp.route('/api_obtenercuestionarios', methods=['GET'])
+@jwt_required_api_enhanced  # ✅ Agregar decorador
 def api_obtener_cuestionarios():
+
+    user_data = get_user_from_jwt_or_session()
+
+    if not user_data:
+        return jsonify({'status': 'error', 'mensaje': 'No autenticado'}), 401
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({'status': 'error', 'mensaje': 'No se pudo conectar a la BD'}), 500
