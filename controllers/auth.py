@@ -7,6 +7,9 @@ from extensions import bcrypt as bcrypt_ext
 from utils import send_verification_email, mask_email, hash_password_sha256, verify_password_sha256
 from flask import make_response
 import hashlib
+from auth_utils import generate_jwt_token
+from auth_utils import verify_jwt_from_cookie
+from auth_utils import generate_jwt_token, verify_jwt_from_cookie
 
 auth_bp = Blueprint('auth', __name__, template_folder='../../templates')
 
@@ -55,6 +58,34 @@ def verify_password_hybrid(password_plain: str, stored_hash: str) -> bool:
 
 @auth_bp.route('/login')
 def frm_login():
+    """
+    ✨ NUEVA LÓGICA: Si el usuario ya está autenticado (tiene sesión y JWT válido),
+    redirigir automáticamente a home
+    """
+
+    # 1. Verificar si existe sesión activa
+    """
+    if 'user_id' in session:
+        # 2. Verificar si el JWT es válido
+        jwt_payload = verify_jwt_from_cookie()
+
+        if jwt_payload:
+            # 3. Verificar que el user_id coincida
+            if jwt_payload.get('user_id') == session.get('user_id'):
+                print(f"✅ Usuario ya autenticado (ID: {session.get('user_id')}), redirigiendo a home...")
+                flash('Ya has iniciado sesión.', 'info')
+                return redirect(url_for('pages.frm_home'))
+            else:
+                # JWT no coincide con sesión - limpiar todo
+                print(f"⚠️ JWT no coincide con sesión, limpiando...")
+                session.clear()
+        else:
+            # JWT inválido o expirado - limpiar sesión
+            print(f"⚠️ JWT inválido o expirado, limpiando sesión...")
+            session.clear()
+
+    # Si llegamos aquí, el usuario NO está autenticado
+    """
     return render_template('login.html')
 
 
@@ -72,17 +103,27 @@ def frm_verificar():
 
 @auth_bp.route('/logout')
 def logout():
+    # 1. Limpiar sesión de Flask
     try:
         session.clear()
     except Exception:
         for k in ['user_id', 'url_foto_perfil', 'url_avatar', 'username', 'cant_monedas', 'tipo_usuario']:
             session.pop(k, None)
+
     flash('Has cerrado sesión exitosamente.', 'success')
     resp = make_response(redirect(url_for('auth.frm_login')))
 
-    # Eliminar ambas cookies
-    resp.set_cookie('username', '', expires=0)
-    resp.set_cookie('correo', '', expires=0)
+    # 2. ✨ ELIMINAR COOKIE DE SESIÓN DE FLASK (la que aparece en tu screenshot)
+    resp.set_cookie('session', '', expires=0, path='/', httponly=True, samesite='Lax')
+
+    # 3. ✨ ELIMINAR JWT TOKEN
+    resp.set_cookie('jwt_token', '', expires=0, path='/', httponly=True, samesite='Lax')
+
+    # 4. Eliminar cookies legacy
+    resp.set_cookie('username', '', expires=0, path='/')
+    resp.set_cookie('correo', '', expires=0, path='/')
+
+    print("🧹 Logout: Todas las cookies eliminadas (session, jwt_token, username, correo)")
 
     return resp
 
@@ -225,12 +266,12 @@ def procesarlogin():
 
         stored_hash = result.get('contrasena')
         usuario_id = result['usuario_id']
+        username = result.get('username') or ''
+        tipo_usuario = result.get('tipo_usuario') or ''
 
         print(f"✅ Usuario encontrado: ID={usuario_id}")
-        print(f"   Hash en BD: {stored_hash[:50]}...")
-        print(f"   Longitud hash: {len(stored_hash)}")
 
-        # 2. VERIFICAR CONTRASEÑA (NO ENCRIPTAR DE NUEVO)
+        # 2. VERIFICAR CONTRASEÑA
         if not verify_password_hybrid(contrasena_plana, stored_hash):
             print(f"❌ CONTRASEÑA INCORRECTA")
             if is_ajax:
@@ -260,61 +301,65 @@ def procesarlogin():
             try:
                 new_hash, salt_usado = hash_password_sha256(contrasena_plana)
                 print(f"🔄 Migrando usuario {usuario_id} de bcrypt a SHA-256...")
-                print(f"   Nuevo salt: {salt_usado[:20]}...")
-                print(f"   Nuevo hash: {new_hash[:50]}...")
-
-                # ✅ USAR EL CURSOR QUE YA TENEMOS ABIERTO
-                cursor.execute(
-                    "UPDATE usuario SET contrasena=%s WHERE usuario_id=%s",
-                    (new_hash, usuario_id)
-                )
+                cursor.execute("UPDATE usuario SET contrasena=%s WHERE usuario_id=%s", (new_hash, usuario_id))
                 conexion.commit()
-
                 print(f"✅ Usuario {usuario_id} migrado exitosamente")
-
-                # Verificar que se guardó correctamente
-                cursor.execute("SELECT contrasena FROM usuario WHERE usuario_id=%s", (usuario_id,))
-                verificacion = cursor.fetchone()
-                if verificacion:
-                    print(f"   Hash guardado en BD: {verificacion['contrasena'][:50]}...")
-
             except Exception as e:
                 print(f"❌ Error migrando usuario {usuario_id}: {e}")
-                import traceback
-                traceback.print_exc()
                 try:
                     conexion.rollback()
                 except:
                     pass
 
-        # 5. LOGIN EXITOSO - Crear sesión
-        print(f"✅ LOGIN EXITOSO - Creando sesión")
+        # 5. ✨ GENERAR TOKEN JWT
+        jwt_token = generate_jwt_token(usuario_id, username, tipo_usuario)
+
+        if not jwt_token:
+            print(f"❌ Error generando JWT para usuario {usuario_id}")
+            if is_ajax:
+                return jsonify({'success': False, 'message': 'Error generando token de autenticación'}), 500
+            flash('Error en el sistema. Intenta nuevamente.', 'error')
+            return redirect(url_for('auth.frm_login'))
+
+        print(f"✅ JWT generado exitosamente")
+
+        # 6. CREAR SESIÓN DE FLASK (mantenemos compatibilidad)
         session['user_id'] = usuario_id
         session['url_foto_perfil'] = result.get('url_foto_perfil') or ''
         session['url_avatar'] = result.get('url_avatar') or ''
-        session['username'] = result.get('username') or ''
+        session['username'] = username
         session['cant_monedas'] = result.get('cant_monedas') or 0
-        session['tipo_usuario'] = result.get('tipo_usuario') or ''
+        session['tipo_usuario'] = tipo_usuario
 
+        print(f"✅ LOGIN EXITOSO - Sesión y JWT creados")
         print(f"{'='*60}\n")
 
-        username = encriptar_sha256(session.get('username', ''))
-        correo = encriptar_sha256(result.get('correo', ''))
+        # 7. COOKIES LEGACY (encriptadas con SHA-256)
+        username_hash = encriptar_sha256(username)
+        correo_hash = encriptar_sha256(result.get('correo', ''))
 
         if is_ajax:
-            # Crear respuesta JSON y establecer múltiples cookies
             resp = make_response(jsonify({
                 'success': True,
                 'redirect': url_for('pages.frm_home')
             }))
-            resp.set_cookie('username', username, max_age=60*60*24*30)  # 30 días
-            resp.set_cookie('correo', correo, max_age=60*60*24*30)      # 30 días
-            return resp, 200
+        else:
+            resp = make_response(redirect(url_for('pages.frm_home')))
 
-        # Flujo tradicional (no-AJAX)
-        resp = make_response(redirect(url_for('pages.frm_home')))
-        resp.set_cookie('username', username, max_age=60*60*24*30)
-        resp.set_cookie('correo', correo, max_age=60*60*24*30)
+        # 8. ✨ ESTABLECER COOKIE JWT (HttpOnly para seguridad)
+        resp.set_cookie(
+            'jwt_token',
+            jwt_token,
+            max_age=60*60*24*30,  # 30 días
+            httponly=True,  # 🔒 Previene acceso desde JavaScript (XSS protection)
+            secure=False,  # Cambiar a True en producción con HTTPS
+            samesite='Lax'  # 🔒 Protección CSRF
+        )
+
+        # Cookies legacy (compatibilidad)
+        resp.set_cookie('username', username_hash, max_age=60*60*24*30)
+        resp.set_cookie('correo', correo_hash, max_age=60*60*24*30)
+
         return resp
 
     except Exception as e:
