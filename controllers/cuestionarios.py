@@ -2,8 +2,8 @@ from flask import Blueprint, render_template, request, jsonify, session
 import sys
 import random
 import string
+from auth_utils import jwt_required_api_enhanced, get_user_from_jwt_or_session
 import db as dbmod
-
 
 def _get_logged_in_user():
     """Devuelve un dict con los datos del usuario logueado o {} si no hay sesión."""
@@ -40,7 +40,13 @@ def frm_editarcuestionarios():
 
 
 @cuestionarios_bp.route('/api/cuestionarios/<int:usuario_id>', methods=['GET'])
+@jwt_required_api_enhanced
 def listar_cuestionarios(usuario_id):
+    user_data = get_user_from_jwt_or_session()
+
+    if not user_data:
+        return jsonify({'error': 'No autenticado.'}), 401
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify([])
@@ -60,7 +66,14 @@ def listar_cuestionarios(usuario_id):
 
 
 @cuestionarios_bp.route('/api/cuestionarios_publicos', methods=['GET'])
+@jwt_required_api_enhanced
 def listar_cuestionarios_publicos():
+    # ✅ Obtener usuario (funciona tanto para Postman como navegador)
+    user_data = get_user_from_jwt_or_session()
+
+    if not user_data:
+        return jsonify({'error': 'No autenticado.'}), 401
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify([])
@@ -80,7 +93,14 @@ def listar_cuestionarios_publicos():
 
 
 @cuestionarios_bp.route('/api/cuestionarios/<int:cuestionario_id>', methods=['PUT'])
+@jwt_required_api_enhanced
 def eliminar_cuestionario(cuestionario_id):
+    # ✅ Obtener usuario (funciona tanto para Postman como navegador)
+    user_data = get_user_from_jwt_or_session()
+
+    if not user_data:
+        return jsonify({'error': 'No autenticado.'}), 401
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({'status': 'error', 'mensaje': 'No se pudo conectar a la BD.'}), 500
@@ -102,7 +122,14 @@ def generar_codigo_unico(cursor):
             return codigo
 
 @cuestionarios_bp.route('/api/cuestionario_completo', methods=['POST'])
+@jwt_required_api_enhanced
 def crear_cuestionario_completo():
+    # ✅ Obtener usuario (funciona tanto para Postman como navegador)
+    user_data = get_user_from_jwt_or_session()
+
+    if not user_data:
+        return jsonify({'error': 'No autenticado.'}), 401
+
     data = request.get_json()
     if not data or 'nombre_cuestionario' not in data or 'preguntas' not in data:
         return jsonify({'error': 'Faltan datos requeridos'}), 400
@@ -121,7 +148,7 @@ def crear_cuestionario_completo():
             with conexion.cursor() as cursor:
                 codigo_visualizacion = generar_codigo_unico(cursor)
                 url_img_cuestionario_cloud = data.get('url_img_cuestionario') or ''
-                
+
                 # 2. Inserción del Cuestionario
                 sql_cuestionario = """
                     INSERT INTO cuestionario
@@ -165,7 +192,7 @@ def crear_cuestionario_completo():
                             resp.get('estado_respuesta', 0),
                             pregunta_id
                         ))
-                
+
                 # 🎯 4. LÓGICA AGREGADA: Sumar 5000 monedas al usuario
                 sql_update_monedas = """
                     UPDATE usuario
@@ -194,7 +221,14 @@ def crear_cuestionario_completo():
 
 
 @cuestionarios_bp.route('/api/cuestionario_completo/<int:cuestionario_id>', methods=['GET'])
+@jwt_required_api_enhanced
 def obtener_cuestionario_completo(cuestionario_id):
+    # ✅ Obtener usuario (funciona tanto para Postman como navegador)
+    user_data = get_user_from_jwt_or_session()
+
+    if not user_data:
+        return jsonify({'error': 'No autenticado.'}), 401
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({'error': 'No se pudo conectar a la base de datos'}), 500
@@ -239,10 +273,17 @@ def obtener_cuestionario_completo(cuestionario_id):
 
 
 @cuestionarios_bp.route('/api/cuestionarios/clone/<int:cuestionario_id>', methods=['POST'])
+@jwt_required_api_enhanced
 def clonar_cuestionario(cuestionario_id):
     """Clona un cuestionario (estructura completa de preguntas y respuestas)
     y lo asigna al usuario logueado (session['user_id']). Devuelve el nuevo id creado.
     """
+    # ✅ Obtener usuario (funciona tanto para Postman como navegador)
+    user_data = get_user_from_jwt_or_session()
+
+    if not user_data:
+        return jsonify({'error': 'No autenticado.'}), 401
+
     if 'user_id' not in session:
         return jsonify({'error': 'No autorizado'}), 401
 
@@ -310,11 +351,18 @@ def clonar_cuestionario(cuestionario_id):
 
 
 @cuestionarios_bp.route('/verificar_codigo/<int:cuestionario_id>', methods=['POST'])
+@jwt_required_api_enhanced
 def verificar_codigo(cuestionario_id):
     """Verifica que el código enviado coincide con el código_visualizacion del cuestionario.
 
     Devuelve JSON {'valido': True|False} o un objeto error en caso de fallo.
     """
+    # ✅ Obtener usuario (funciona tanto para Postman como navegador)
+    user_data = get_user_from_jwt_or_session()
+
+    if not user_data:
+        return jsonify({'error': 'No autenticado.'}), 401
+
     data = request.get_json(silent=True)
     if not data or 'codigo' not in data:
         return jsonify({'error': 'Falta el campo "codigo" en el cuerpo'}), 400
@@ -344,8 +392,16 @@ def verificar_codigo(cuestionario_id):
 
 
 @cuestionarios_bp.route('/api/cuestionario/por_codigo/<codigo>', methods=['GET'])
+@jwt_required_api_enhanced
 def buscar_cuestionario_por_codigo(codigo):
     """Buscar un cuestionario por su codigo_visualizacion. Devuelve {'cuestionario_id': id} o 404."""
+
+    # ✅ Obtener usuario (funciona tanto para Postman como navegador)
+    user_data = get_user_from_jwt_or_session()
+
+    if not user_data:
+        return jsonify({'error': 'No autenticado.'}), 401
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         return jsonify({'error': 'No se pudo conectar a la base de datos'}), 500
@@ -360,11 +416,18 @@ def buscar_cuestionario_por_codigo(codigo):
     except Exception as e:
         print(f"Error buscar_cuestionario_por_codigo: {e}", file=sys.stderr)
         return jsonify({'error': str(e)}), 500
-    
+
 
 
 @cuestionarios_bp.route("/api/cuestionario_completo/<int:cuestionario_id>", methods=["PUT"])
+@jwt_required_api_enhanced
 def actualizar_cuestionario_completo(cuestionario_id):
+    # ✅ Obtener usuario (funciona tanto para Postman como navegador)
+    user_data = get_user_from_jwt_or_session()
+
+    if not user_data:
+        return jsonify({'error': 'No autenticado.'}), 401
+
     data = request.get_json()
 
     if not data or "nombre_cuestionario" not in data or "preguntas" not in data:

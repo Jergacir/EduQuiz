@@ -64,7 +64,7 @@ def frm_login():
     """
 
     # 1. Verificar si existe sesión activa
-    """
+
     if 'user_id' in session:
         # 2. Verificar si el JWT es válido
         jwt_payload = verify_jwt_from_cookie()
@@ -85,7 +85,7 @@ def frm_login():
             session.clear()
 
     # Si llegamos aquí, el usuario NO está autenticado
-    """
+
     return render_template('login.html')
 
 
@@ -113,7 +113,7 @@ def logout():
     flash('Has cerrado sesión exitosamente.', 'success')
     resp = make_response(redirect(url_for('auth.frm_login')))
 
-    # 2. ✨ ELIMINAR COOKIE DE SESIÓN DE FLASK (la que aparece en tu screenshot)
+    # 2. ✨ ELIMINAR COOKIE DE SESIÓN DE FLASK (
     resp.set_cookie('session', '', expires=0, path='/', httponly=True, samesite='Lax')
 
     # 3. ✨ ELIMINAR JWT TOKEN
@@ -232,8 +232,14 @@ def procesarregistro():
 
 @auth_bp.route('/procesarlogin', methods=['POST'])
 def procesarlogin():
-    correo = request.form.get('correo')
-    contrasena_plana = request.form.get('contrasena')
+    # ✅ DETECTAR SI ES JSON O FORM-DATA
+    if request.is_json:
+        data = request.get_json()
+        correo = data.get('correo')
+        contrasena_plana = data.get('contrasena')
+    else:
+        correo = request.form.get('correo')
+        contrasena_plana = request.form.get('contrasena')
 
     print(f"\n{'='*60}")
     print(f"🔐 INICIO DE SESIÓN - {correo}")
@@ -241,14 +247,22 @@ def procesarlogin():
 
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
+    # ✅ MEJORAR DETECCIÓN DE API REQUEST
+    is_api_request = (
+        request.is_json or  # Si envía JSON
+        request.headers.get('Accept') == 'application/json' or
+        is_ajax
+    )
+
     conexion = dbmod.obtenerConexion()
     if not conexion:
         print("❌ Error: No hay conexión a la BD")
-        if is_ajax:
+        if is_api_request:
             return jsonify({'success': False, 'message': 'Error de conexión a BD.'}), 500
         return redirect(url_for('pages.frm_error'))
 
     cursor = None
+
     try:
         cursor = conexion.cursor()
 
@@ -259,7 +273,7 @@ def procesarlogin():
 
         if not result:
             print(f"❌ Usuario no encontrado: {correo}")
-            if is_ajax:
+            if is_api_request:
                 return jsonify({'success': False, 'code': 'email_not_found', 'message': 'Correo no encontrado.'}), 404
             flash('Correo no encontrado. ¿Deseas registrarte?', 'error')
             return redirect(url_for('auth.frm_login'))
@@ -274,7 +288,7 @@ def procesarlogin():
         # 2. VERIFICAR CONTRASEÑA
         if not verify_password_hybrid(contrasena_plana, stored_hash):
             print(f"❌ CONTRASEÑA INCORRECTA")
-            if is_ajax:
+            if is_api_request:
                 return jsonify({'success': False, 'code': 'credentials', 'message': 'Credenciales incorrectas.'}), 401
             flash('Credenciales incorrectas.', 'error')
             return redirect(url_for('auth.frm_login'))
@@ -284,14 +298,14 @@ def procesarlogin():
         # 3. VERIFICAR ESTADO DE CUENTA
         if result.get('vigencia', 0) == 0:
             print(f"⚠️ Cuenta inactiva")
-            if is_ajax:
+            if is_api_request:
                 return jsonify({'success': False, 'code': 'inactive', 'message': 'Tu cuenta está inactiva.'}), 403
             flash('Tu cuenta está inactiva.', 'error')
             return redirect(url_for('auth.frm_login'))
 
         if result.get('verificado', 0) == 0:
             print(f"⚠️ Cuenta no verificada")
-            if is_ajax:
+            if is_api_request:
                 return jsonify({'success': False, 'code': 'not_verified', 'message': 'Tu cuenta aún no está verificada.'}), 403
             flash('Tu cuenta aún no está verificada.', 'warning')
             return render_template('verificar.html', email=result.get('correo'), email_masked=mask_email(result.get('correo')))
@@ -316,14 +330,14 @@ def procesarlogin():
 
         if not jwt_token:
             print(f"❌ Error generando JWT para usuario {usuario_id}")
-            if is_ajax:
+            if is_api_request:
                 return jsonify({'success': False, 'message': 'Error generando token de autenticación'}), 500
             flash('Error en el sistema. Intenta nuevamente.', 'error')
             return redirect(url_for('auth.frm_login'))
 
         print(f"✅ JWT generado exitosamente")
 
-        # 6. CREAR SESIÓN DE FLASK (mantenemos compatibilidad)
+        # 6. CREAR SESIÓN DE FLASK
         session['user_id'] = usuario_id
         session['url_foto_perfil'] = result.get('url_foto_perfil') or ''
         session['url_avatar'] = result.get('url_avatar') or ''
@@ -332,42 +346,67 @@ def procesarlogin():
         session['tipo_usuario'] = tipo_usuario
 
         print(f"✅ LOGIN EXITOSO - Sesión y JWT creados")
-        print(f"{'='*60}\n")
+        print(f"📊 is_api_request={is_api_request}, request.is_json={request.is_json}")
 
-        # 7. COOKIES LEGACY (encriptadas con SHA-256)
+        # 7. COOKIES LEGACY
         username_hash = encriptar_sha256(username)
         correo_hash = encriptar_sha256(result.get('correo', ''))
 
-        if is_ajax:
-            resp = make_response(jsonify({
+        is_pure_api_call = is_api_request and not is_ajax
+
+        # 8️⃣ DETECTAR SI ES REQUEST DE API (Postman) o NAVEGADOR
+        if is_pure_api_call:
+            # PARA POSTMAN: Retornar JWT en el body
+            return jsonify({
                 'success': True,
-                'redirect': url_for('pages.frm_home')
-            }))
+                'message': 'Login exitoso',
+                'jwt_token': jwt_token,  # 🔑 ESTO ES LO QUE USARÁS EN POSTMAN
+                'user': {
+                    'usuario_id': usuario_id,
+                    'username': username,
+                    'tipo_usuario': tipo_usuario,
+                    'cant_monedas': result.get('cant_monedas') or 0
+                }
+            }), 200
         else:
-            resp = make_response(redirect(url_for('pages.frm_home')))
+            # 1. Crear la respuesta base (Redirección para form tradicional o JSON para AJAX)
+            if is_ajax:
+                # Si es AJAX, devolvemos JSON con la URL de redirección
+                resp = make_response(jsonify({'success': True, 'redirect_to': url_for('pages.frm_home')}), 200)
+                print(f"📊 Respuesta AJAX. Cookies configuradas.")
+            else:
+                # Si es formulario tradicional, redireccionamos directamente
+                resp = make_response(redirect(url_for('pages.frm_home')))
+                print(f"📊 Respuesta Formulario. Cookies configuradas.")
 
-        # 8. ✨ ESTABLECER COOKIE JWT (HttpOnly para seguridad)
-        resp.set_cookie(
-            'jwt_token',
-            jwt_token,
-            max_age=60*60*24*30,  # 30 días
-            httponly=True,  # 🔒 Previene acceso desde JavaScript (XSS protection)
-            secure=False,  # Cambiar a True en producción con HTTPS
-            samesite='Lax'  # 🔒 Protección CSRF
-        )
+            # 2. Establecer JWT en cookie
 
-        # Cookies legacy (compatibilidad)
-        resp.set_cookie('username', username_hash, max_age=60*60*24*30)
-        resp.set_cookie('correo', correo_hash, max_age=60*60*24*30)
+            # PARA NAVEGADOR: Redireccionar y establecer cookies
+            #resp = make_response(redirect(url_for('pages.frm_home')))
 
-        return resp
+            # Establecer JWT en cookie
+            resp.set_cookie(
+                'jwt_token',
+                jwt_token,
+                max_age=60*60*24*30,
+                httponly=True,
+                secure=True,
+                samesite='Lax'
+            )
+
+            # Cookies legacy
+            resp.set_cookie('username', username_hash, max_age=60*60*24*30)
+            resp.set_cookie('correo', correo_hash, max_age=60*60*24*30)
+
+            return resp
+
 
     except Exception as e:
         print(f"❌ Error CRÍTICO en procesarlogin: {e}")
         import traceback
         traceback.print_exc()
 
-        if is_ajax:
+        if is_api_request:
             return jsonify({'success': False, 'message': 'Error interno del servidor.'}), 500
         return redirect(url_for('pages.frm_error'))
     finally:

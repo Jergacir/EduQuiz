@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, jsonify, request, session, redirect, url_for
 import sys
 import db as dbmod
+from auth_utils import jwt_required_api_enhanced, get_user_from_jwt_or_session
 tienda_bp = Blueprint('tienda', __name__, template_folder='../../templates')
 
 # Ruta para inventario
@@ -246,11 +247,13 @@ def listar_accesorios_api():
 
 
 @tienda_bp.route('/api/tienda/skins', methods=['GET'])
+@jwt_required_api_enhanced
 def listar_skins_api():
-    if not _is_logged_in():
+    # ✅ Obtener usuario (funciona tanto para Postman como navegador)
+    user_data = get_user_from_jwt_or_session()
+
+    if not user_data:
         return jsonify({'error': 'No autenticado.'}), 401
-    if not _is_gestor(session['user_id']):
-        return jsonify({'error': 'Acceso prohibido.'}), 403
 
     conexion = dbmod.obtenerConexion()
     if not conexion:
