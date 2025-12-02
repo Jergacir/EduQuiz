@@ -12,24 +12,32 @@ servers:
 tags:
   - name: Cuestionario
     description: Operaciones para gestionar cuestionarios.
+  - name: Pregunta
+    description: Operaciones para gestionar preguntas.
+  - name: Respuesta
+    description: Operaciones para gestionar respuestas.
   - name: Partida
-    description: Operaciones relacionadas a las partidas
-  - name: Preguntas
-    description: Operaciones relacionadas a las partidas
+    description: Operaciones relacionadas a las partidas.
+  - name: Participante
+    description: Operaciones relacionadas a los participantes.
   - name: Usuario
-    description: Operaciones de gestión de usuarios
+    description: Operaciones relacionadas a los usuarios.
   - name: Skin
-    description: Operaciones relacionadas a las skins o apariencias.
+    description: Operaciones relacionadas a las skins.
   - name: Inventario
-    description: Operaciones CRUD para el inventario de ítems de los usuarios.
+    description: Operaciones relacionadas al inventario.
+  - name: Pregunta_Participante
+    description: Operaciones relacionadas a las respuestas de los participantes.
+
+security:
+  - jwt_auth: []
 
 paths:
+# ---------------- CUESTIONARIO ----------------
   /api_obtenercuestionarios:
     get:
-      tags:
-        - Cuestionario
+      tags: [Cuestionario]
       summary: Lista todos los cuestionarios activos.
-      description: Retorna una lista de cuestionarios con estado=1 (activo).
       responses:
         '200':
           description: Operación exitosa
@@ -38,24 +46,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/CuestionarioRptaLista'
         '401':
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         '500':
-          $ref: "#/components/schemas/ErrorInterno"
+          $ref: '#/components/responses/ServerError'
 
   /api_obtenercuestionarioporid/{cuestionario_id}:
     get:
-      tags:
-        - Cuestionario
+      tags: [Cuestionario]
       summary: Obtiene un cuestionario por ID.
-      description: Retorna un solo cuestionario activo por su ID.
       parameters:
         - name: cuestionario_id
           in: path
-          description: ID del cuestionario a obtener.
           required: true
           schema:
             type: integer
@@ -68,18 +69,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/CuestionarioRptaUnico'
         '401':
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         '500':
-          $ref: "#/components/schemas/ErrorInterno"
+          $ref: '#/components/responses/ServerError'
 
   /api_registrarcuestionario:
     post:
-      tags:
-        - Cuestionario
+      tags: [Cuestionario]
       summary: Registra un nuevo cuestionario
       requestBody:
         required: true
@@ -93,37 +89,17 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  mensaje:
-                    type: string
-                    example: Cuestionario registrado correctamente
-                  status:
-                    type: string
-                    example: ok
+                $ref: '#/components/schemas/RptaMensajeOK'
         "400":
-          description: Datos incompletos
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBasico"
+          $ref: '#/components/responses/BadRequestError'
         "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
-  
+          $ref: '#/components/responses/ServerError'
+
   /api_actualizarcuestionario:
     post:
-      tags:
-        - Cuestionario
+      tags: [Cuestionario]
       summary: Actualiza un cuestionario existente
       requestBody:
         required: true
@@ -137,36 +113,17 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  mensaje:
-                    type: string
-                    example: Cuestionario actualizado correctamente
-                  status:
-                    type: string
-                    example: ok
+                $ref: '#/components/schemas/RptaMensajeOK'
         "400":
-          description: Datos incompletos
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBasico"
+          $ref: '#/components/responses/BadRequestError'
         "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
+          $ref: '#/components/responses/ServerError'
+
   /api_eliminarcuestionario:
     post:
-      tags:
-        - Cuestionario
+      tags: [Cuestionario]
       summary: Elimina un cuestionario por ID
       requestBody:
         required: true
@@ -184,37 +141,18 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  mensaje:
-                    type: string
-                    example: Cuestionario eliminado correctamente
-                  status:
-                    type: string
-                    example: ok
+                $ref: '#/components/schemas/RptaMensajeOK'
         "400":
-          description: Datos incompletos
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBasico"
+          $ref: '#/components/responses/BadRequestError'
         "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
+          $ref: '#/components/responses/ServerError'
 
+# ---------------- PREGUNTA ----------------
   /api_obtenerpreguntas:
     get:
-      tags:
-        - Preguntas
+      tags: [Pregunta]
       summary: Obtiene todas las preguntas registradas
       responses:
         "200":
@@ -232,22 +170,13 @@ paths:
                     type: string
                     example: ok
         "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
+          $ref: '#/components/responses/ServerError'
 
   /api_obtenerpreguntaporid/{pregunta_id}:
     get:
-      tags:
-        - Preguntas
+      tags: [Pregunta]
       summary: Obtiene una pregunta por su ID
       parameters:
         - in: path
@@ -269,22 +198,13 @@ paths:
                     type: string
                     example: ok
         "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
+          $ref: '#/components/responses/ServerError'
 
   /api_registrarpregunta:
     post:
-      tags:
-        - Preguntas
+      tags: [Pregunta]
       summary: Registra una nueva pregunta
       requestBody:
         required: true
@@ -298,37 +218,17 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  mensaje:
-                    type: string
-                    example: Pregunta registrada correctamente
-                  status:
-                    type: string
-                    example: ok
+                $ref: '#/components/schemas/RptaMensajeOK'
         "400":
-          description: Datos incompletos
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBasico"
+          $ref: '#/components/responses/BadRequestError'
         "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
+          $ref: '#/components/responses/ServerError'
 
   /api_actualizarpregunta:
     post:
-      tags:
-        - Preguntas
+      tags: [Pregunta]
       summary: Actualiza una pregunta existente
       requestBody:
         required: true
@@ -342,37 +242,17 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  mensaje:
-                    type: string
-                    example: Pregunta actualizada correctamente
-                  status:
-                    type: string
-                    example: ok
+                $ref: '#/components/schemas/RptaMensajeOK'
         "400":
-          description: Datos incompletos
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBasico"
+          $ref: '#/components/responses/BadRequestError'
         "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
+          $ref: '#/components/responses/ServerError'
 
   /api_eliminarpregunta:
     post:
-      tags:
-        - Preguntas
+      tags: [Pregunta]
       summary: Elimina una pregunta por ID
       requestBody:
         required: true
@@ -390,37 +270,136 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  mensaje:
-                    type: string
-                    example: Pregunta eliminada correctamente
-                  status:
-                    type: string
-                    example: ok
+                $ref: '#/components/schemas/RptaMensajeOK'
         "400":
-          description: Datos incompletos
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBasico"
+          $ref: '#/components/responses/BadRequestError'
         "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
-          description: Error interno
+          $ref: '#/components/responses/ServerError'
+
+# ---------------- RESPUESTA ----------------
+  /api_obtenerrespuestas:
+    get:
+      tags: [Respuesta]
+      summary: Lista todas las respuestas.
+      responses:
+        '200':
+          description: Operación exitosa
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorInterno"
-  
+                $ref: '#/components/schemas/RespuestaRptaLista'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api_obtenerrespuestaporid/{respuesta_id}:
+    get:
+      tags: [Respuesta]
+      summary: Obtiene una respuesta por ID.
+      parameters:
+        - name: respuesta_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaRptaUnico'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api_registrarrespuesta:
+    post:
+      tags: [Respuesta]
+      summary: Inserta una nueva respuesta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RespuestaRegistro'
+      responses:
+        '200':
+          description: Respuesta registrada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RptaMensajeOK'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api_actualizarrespuesta:
+    post:
+      tags: [Respuesta]
+      summary: Actualiza una respuesta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RespuestaActualizacion'
+      responses:
+        '200':
+          description: Respuesta actualizada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RptaMensajeOK'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api_eliminarrespuesta:
+    post:
+      tags: [Respuesta]
+      summary: Elimina una respuesta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - respuesta_id
+              properties:
+                respuesta_id:
+                  type: integer
+                  format: int32
+      responses:
+        '200':
+          description: Respuesta eliminada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RptaMensajeOK'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+# ---------------- PARTIDA ----------------
   /api_obtenerpartidas:
     get:
-      tags: 
-        - Partida
+      tags: [Partida]
       summary: Listado de partidas
       parameters:
         - in: query
@@ -435,26 +414,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RespuestaPartidas"
-        "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
-        "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
 
-  /api_obtenerpartidaporid/{partida_id}:
+  /api_obtenerpartidaporid:
     get:
-      tags: 
-        - Partida
+      tags: [Partida]
       summary: Obtener una partida por su ID
       parameters:
-        - in: path
+        - in: query
           name: partida_id
           required: true
           schema:
@@ -466,38 +432,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RespuestaPartida"
-        "400":
-          description: Faltan campos obligatorios
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBasico"
-        "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
         "404":
           description: No encontrada
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RespuestaError"
-        "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
 
-  /api_obtenerpartidaporcodigo/{codigo_partida}:
+  /api_obtenerpartidaporcodigo:
     get:
-      tags:
-        - Partida
+      tags: [Partida]
       summary: Obtener una partida por su código
       parameters:
-        - in: path
+        - in: query
           name: codigo_partida
           required: true
           schema:
@@ -509,36 +456,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RespuestaPartida"
-        "400":
-            description: Datos incompletos
-            content:
-              application/json:
-                schema:
-                  $ref: "#/components/schemas/ErrorBasico"
         "404":
           description: No encontrada
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RespuestaError"
-        
-        "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
-        "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
 
   /api_registrarpartida:
     post:
-      tags: 
-        - Partida
+      tags: [Partida]
       summary: Registrar una nueva partida
       requestBody:
         required: true
@@ -553,68 +480,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RespuestaCrearPartida"
-        "400":
-            description: Datos incompletos
-            content:
-              application/json:
-                schema:
-                  $ref: "#/components/schemas/ErrorBasico"
-        "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
-        "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
 
-  /api_actualizarpartida:
-    post:
-      tags:
-        - Partida
-      summary: Actualiza datos de una partida.
-      description: Modifica el estado, el índice de la pregunta actual, etc., de una partida.
-      requestBody:
-        description: Datos para actualizar la partida.
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PartidaActualizacion'
-      responses:
-        '200':
-          description: Partida actualizada correctamente
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PartidaRptaActualizacion'
-        "400":
-          description: Faltan campos obligatorios
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBasico"
-        "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
-        "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
-          
   /api_eliminarpartida:
     post:
-      tags:
-        - Partida
+      tags: [Partida]
       summary: Eliminar o marcar como eliminada una partida
       requestBody:
         required: true
@@ -633,28 +502,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RespuestaDeletePartida"
-        "400":
-          description: Faltan campos obligatorios
+  
+  /api_avanzarpregunta:
+    post:
+      tags:
+        - Partida
+      summary: Avanza a la siguiente pregunta de la partida.
+      description: Llama a un procedimiento almacenado (`avanzar_pregunta`) para gestionar el cambio de pregunta en el juego.
+      requestBody:
+        description: Código de la partida a avanzar.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - codigo_partida
+              properties:
+                codigo_partida:
+                  type: string
+                  example: ABCXYZ
+      responses:
+        '200':
+          description: Pregunta avanzada correctamente
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorBasico"
-        "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
-        "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
+                $ref: '#/components/schemas/PartidaRptaAvanzar'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+# ---------------- USUARIO ----------------
   /api_obtenerusuarios:
     get:
-      tags:
-        - Usuario
+      tags: [Usuario]
       summary: Obtiene el listado de usuarios
       parameters:
         - in: query
@@ -670,22 +555,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/RespuestaUsuarios"
         "401":
-          description: No autenticado (JWT inválido o ausente)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
+          $ref: '#/components/responses/ServerError'
 
   /api_obtenerusuarioporid:
     get:
-      tags:
-        - Usuario
+      tags: [Usuario]
       summary: Obtiene un usuario por su ID
       parameters:
         - in: query
@@ -701,11 +577,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/RespuestaUsuario"
         "401":
-          description: No autenticado (JWT inválido o ausente)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           description: Usuario no encontrado
           content:
@@ -713,16 +585,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/RespuestaErrorusuario"
         "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
+          $ref: '#/components/responses/ServerError'
 
   /api_registrarusuario:
     post:
-      tags:
-        - Usuario
+      tags: [Usuario]
       summary: Registra un nuevo usuario
       requestBody:
         required: true
@@ -738,17 +605,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/RespuestaCrearUsuario"
         "400":
-          description: Datos incompletos
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEliminarUsuario"
+          $ref: '#/components/responses/BadRequestError'
         "401":
-          description: No autenticado (JWT inválido o ausente)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "409":
           description: Usuario ya existe
           content:
@@ -756,16 +615,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Respuesta409Usuario"
         "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInternoRegistrarUsuario"
+          $ref: '#/components/responses/ServerError'
 
   /api_actualizarusuario:
     post:
-      tags:
-        - Usuario
+      tags: [Usuario]
       summary: Actualiza un usuario existente
       requestBody:
         required: true
@@ -781,28 +635,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/RespuestaUpdateUsuario"
         "400":
-          description: Datos incompletos
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEliminarUsuario"
+          $ref: '#/components/responses/BadRequestError'
         "401":
-          description: No autenticado (JWT inválido o ausente)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEliminarUsuario"
+          $ref: '#/components/responses/ServerError'
 
   /api_eliminarusuario:
     post:
-      tags:
-        - Usuario
+      tags: [Usuario]
       summary: Marca un usuario como eliminado (vigencia=0)
       requestBody:
         required: true
@@ -822,44 +663,144 @@ paths:
               schema:
                 $ref: "#/components/schemas/RespuestaDeleteUsuario"
         "400":
-          description: Datos incompletos
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEliminarUsuario"
+          $ref: '#/components/responses/BadRequestError'
         "401":
-          description: No autenticado (JWT inválido o ausente)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
-          description: Error interno
+          $ref: '#/components/responses/ServerError'
+
+# ---------------- PARTICIPANTE ----------------
+  /api_obtenerparticipantes:
+    get:
+      tags: [Participante]
+      summary: Lista todos los participantes.
+      responses:
+        '200':
+          description: Operación exitosa
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorInterno"
-  
-# ============================================================
-# Skin APIs
-# ============================================================
+                $ref: '#/components/schemas/ParticipanteRptaLista'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api_obtenerparticipanteporid/{participante_id}:
+    get:
+      tags: [Participante]
+      summary: Obtiene un participante por ID.
+      parameters:
+        - name: participante_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipanteRptaUnico'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api_registrarparticipante:
+    post:
+      tags: [Participante]
+      summary: Inserta un nuevo participante.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParticipanteRegistro'
+      responses:
+        '200':
+          description: Participante registrado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RptaMensajeOK'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api_actualizarparticipante:
+    post:
+      tags: [Participante]
+      summary: Actualiza datos de un participante.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParticipanteActualizacion'
+      responses:
+        '200':
+          description: Participante actualizado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RptaMensajeOK'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api_eliminarparticipante:
+    post:
+      tags: [Participante]
+      summary: Elimina un participante.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - participante_id
+              properties:
+                participante_id:
+                  type: integer
+                  format: int32
+      responses:
+        '200':
+          description: Participante eliminado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RptaMensajeOK'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+# ---------------- SKIN ----------------
   /api_obtenerskins:
     get:
-      tags:
-        - Skin
+      tags: [Skin]
       summary: Lista todas las skins.
-      description: Retorna una lista de todas las skins, con opción a filtrar por vigencia y categoría.
       parameters:
         - name: vigencia
           in: query
-          description: Filtrar por estado de vigencia (1=Activo, 0=Inactivo).
           required: false
           schema:
             type: integer
             enum: [0, 1]
         - name: categoria
           in: query
-          description: Filtrar por categoría de la skin.
           required: false
           schema:
             type: string
@@ -873,18 +814,15 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
-          $ref: '#/components/responses/ServerErrorGeneral'
+          $ref: '#/components/responses/ServerError'
 
   /api_obtenerskinporid:
     get:
-      tags:
-        - Skin
+      tags: [Skin]
       summary: Obtiene una skin por ID.
-      description: Retorna una sola skin por su ID.
       parameters:
         - name: skin_id
           in: query
-          description: ID de la skin a obtener.
           required: true
           schema:
             type: integer
@@ -897,7 +835,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SkinRptaUnico'
         '400':
-          $ref: '#/components/responses/BadRequestErrorSkin'
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
@@ -907,16 +845,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/RptaErrorGeneral'
         '500':
-          $ref: '#/components/responses/ServerErrorGeneral'
+          $ref: '#/components/responses/ServerError'
 
   /api_registrarskin:
     post:
-      tags:
-        - Skin
+      tags: [Skin]
       summary: Registra una nueva skin.
-      description: Crea un nuevo registro en la tabla `skin`.
       requestBody:
-        description: Datos de la nueva skin.
         required: true
         content:
           application/json:
@@ -930,20 +865,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/SkinRptaRegistro'
         '400':
-          $ref: '#/components/responses/BadRequestErrorSkin'
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
-          $ref: '#/components/responses/ServerErrorGeneral'
+          $ref: '#/components/responses/ServerError'
 
   /api_actualizarskin:
     post:
-      tags:
-        - Skin
+      tags: [Skin]
       summary: Actualiza datos de una skin.
-      description: Modifica los campos de una skin por su `skin_id`.
       requestBody:
-        description: Datos para actualizar la skin.
         required: true
         content:
           application/json:
@@ -957,20 +889,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/SkinRptaActualizacion'
         '400':
-          $ref: '#/components/responses/BadRequestErrorSkin'
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
-          $ref: '#/components/responses/ServerErrorGeneral'
+          $ref: '#/components/responses/ServerError'
 
   /api_eliminarskin:
     post:
-      tags:
-        - Skin
+      tags: [Skin]
       summary: Elimina lógicamente una skin.
-      description: Establece el campo `vigencia` a 0 (eliminación lógica) para una skin.
       requestBody:
-        description: ID de la skin a eliminar.
         required: true
         content:
           application/json:
@@ -984,38 +913,32 @@ paths:
                   format: int32
       responses:
         '200':
-          description: Skin eliminada (vigencia=0)
+          description: Skin eliminada
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SkinRptaEliminacion'
         '400':
-          $ref: '#/components/responses/BadRequestErrorSkin'
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
-          $ref: '#/components/responses/ServerErrorGeneral'
+          $ref: '#/components/responses/ServerError'
 
-# ============================================================
-# Inventario APIs
-# ============================================================
+# ---------------- INVENTARIO ----------------
   /api_obtenerinventarios:
     get:
-      tags:
-        - Inventario
+      tags: [Inventario]
       summary: Lista todos los ítems de inventario.
-      description: Retorna una lista de ítems de inventario, con opción a filtrar por usuario y tipo de ítem.
       parameters:
         - name: usuario_id
           in: query
-          description: ID del usuario para filtrar el inventario.
           required: false
           schema:
             type: integer
             format: int32
         - name: tipo_item
           in: query
-          description: Tipo de ítem para filtrar ('SKIN' o 'ACCESORIO').
           required: false
           schema:
             type: string
@@ -1030,18 +953,15 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
-          $ref: '#/components/responses/ServerErrorGeneral'
+          $ref: '#/components/responses/ServerError'
 
   /api_obtenerinventarioporid:
     get:
-      tags:
-        - Inventario
+      tags: [Inventario]
       summary: Obtiene un ítem de inventario por ID.
-      description: Retorna un solo ítem de inventario por su `id_inventario`.
       parameters:
         - name: id_inventario
           in: query
-          description: ID del registro de inventario a obtener.
           required: true
           schema:
             type: integer
@@ -1054,7 +974,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/InventarioRptaUnico'
         '400':
-          $ref: '#/components/responses/BadRequestErrorGeneral'
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
@@ -1064,16 +984,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/RptaErrorGeneral'
         '500':
-          $ref: '#/components/responses/ServerErrorGeneral'
+          $ref: '#/components/responses/ServerError'
 
   /api_registrarinventario:
     post:
-      tags:
-        - Inventario
+      tags: [Inventario]
       summary: Registra un nuevo ítem en el inventario.
-      description: Agrega un ítem al inventario de un usuario.
       requestBody:
-        description: Datos del ítem de inventario.
         required: true
         content:
           application/json:
@@ -1087,20 +1004,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/InventarioRptaRegistro'
         '400':
-          $ref: '#/components/responses/BadRequestErrorGeneral'
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
-          $ref: '#/components/responses/ServerErrorGeneral'
+          $ref: '#/components/responses/ServerError'
 
   /api_actualizarinventario:
     post:
-      tags:
-        - Inventario
+      tags: [Inventario]
       summary: Actualiza un ítem de inventario.
-      description: Modifica los campos de un ítem de inventario por su `id_inventario`.
       requestBody:
-        description: Datos para actualizar el ítem de inventario.
         required: true
         content:
           application/json:
@@ -1114,20 +1028,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/InventarioRptaActualizacion'
         '400':
-          $ref: '#/components/responses/BadRequestErrorGeneral'
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
-          $ref: '#/components/responses/ServerErrorGeneral'
+          $ref: '#/components/responses/ServerError'
 
   /api_eliminarinventario:
     post:
-      tags:
-        - Inventario
+      tags: [Inventario]
       summary: Elimina un ítem de inventario.
-      description: Elimina físicamente un registro de la tabla `inventario` por su ID.
       requestBody:
-        description: ID del registro de inventario a eliminar.
         required: true
         content:
           application/json:
@@ -1147,292 +1058,222 @@ paths:
               schema:
                 $ref: '#/components/schemas/InventarioRptaEliminacion'
         '400':
-          $ref: '#/components/responses/BadRequestErrorGeneral'
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
-          $ref: '#/components/responses/ServerErrorGeneral'
-          
+          $ref: '#/components/responses/ServerError'
+
+# ---------------- PREGUNTA_PARTICIPANTE (NUEVO) ----------------
   /api_obtenerpreguntaparticipantes:
     get:
-      tags:
-        - Pregunta_Participante
-      summary: Obtiene las preguntas asignadas a participantes
+      tags: [Pregunta_Participante]
+      summary: Lista registros de preguntas-participantes.
       parameters:
-        - in: query
-          name: participante_id
+        - name: participante_id
+          in: query
+          required: false
           schema:
             type: integer
-          description: Filtrar por ID del participante
-        - in: query
-          name: pregunta_id
+            format: int32
+        - name: pregunta_id
+          in: query
+          required: false
           schema:
             type: integer
-          description: Filtrar por ID de la pregunta
+            format: int32
       responses:
-        "200":
-          description: Datos obtenidos correctamente
+        '200':
+          description: Operación exitosa
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RespuestaPreguntaParticipante"
-        "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
-        "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
-                
+                $ref: '#/components/schemas/RespuestaPreguntaParticipante'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
   /api_obtenerpreguntaparticipanteporid:
     get:
-      tags:
-        - Pregunta_Participante
-      summary: Obtiene el detalle de una pregunta de participante por ID
+      tags: [Pregunta_Participante]
+      summary: Obtiene un registro pregunta-participante por ID.
       parameters:
-        - in: query
-          name: pregunta_participante_id
+        - name: pregunta_participante_id
+          in: query
+          required: true
           schema:
             type: integer
-          required: true
-          description: ID único del registro (PK)
+            format: int32
       responses:
-        "200":
-          description: Registro encontrado
+        '200':
+          description: Operación exitosa
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RespuestaPreguntaParticipanteUnico"
-        "400":
-          description: Faltan datos (ID requerido)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RespuestaError"
-              example:
-                error: "pregunta_participante_id requerido"
-                ok: false
-        "404":
-          description: Registro no encontrado en BD
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RespuestaError"
-              example:
-                error: "Registro no encontrado"
-                ok: false
-        "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
-        "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
-  
-  /api_registrarpreguntaparticipante:
-    post:
-      tags:
-        - Pregunta_Participante
-      summary: Registra la respuesta de un participante a una pregunta
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RegistrarPreguntaParticipanteReq"
-      responses:
-        "200":
-          description: Registro exitoso
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RespuestaRegistroPreguntaParticipante"
-        "400":
-          description: Faltan campos obligatorios
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RespuestaError"
-              example:
-                error: "Faltan campos: participante_id, pregunta_id, texto_pregunta, correcta, tiempo_pregunta, tiempo_maximo_pregunta"
-                ok: false
-        "401":
-          description: No autenticado (Token inválido o ausente)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
-              example:
-                description: "Request does not contain a valid access token"
-                error: "Authorization Required"
-                status: "error"
-                status_code: 401
-        "500":
-          description: Error interno del servidor
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
-              example:
-                status: "error"
-                mensaje: "Error interno inesperado"
-                
-  /api_actualizarpreguntaparticipante:
-    post:
-      tags:
-        - Pregunta_Participante
-      summary: Actualiza datos de una respuesta de participante
-      description: Permite actualizar campos específicos (tiempo, respuesta, corrección) de una pregunta realizada por un participante.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ActualizarPreguntaParticipanteReq"
-      responses:
-        "200":
-          description: Actualización exitosa
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RespuestaUpdatePreguntaParticipante"
-        "400":
-          description: Faltan campos
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RespuestaError"
-              examples:
-                json_invalido:
-                  summary: JSON mal formado o vacío
-                  value:
-                    error: "El cuerpo de la solicitud no es un JSON válido o está vacío"
-                    ok: false
-                id_faltante:
-                  summary: ID requerido faltante
-                  value:
-                    error: "pregunta_participante_id requerido"
-                    ok: false
-        "401":
-          description: No autenticado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
-        "500":
-          description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInterno"
-                
-  /api_eliminarpreguntaparticipante:
-    post:
-      tags:
-        - Pregunta_Participante
-      summary: Elimina una respuesta de participante por ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/EliminarPreguntaParticipanteReq"
-      responses:
-        "200":
-          description: Eliminación exitosa
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RespuestaDeletePreguntaParticipante"
-        "400":
-          description: ID requerido faltante
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RespuestaError"
-              example:
-                error: "pregunta_participante_id requerido"
-                ok: false
-        "404":
+                $ref: '#/components/schemas/RespuestaPreguntaParticipanteUnico'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
           description: Registro no encontrado
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RespuestaError"
-              example:
-                error: "Registro no encontrado"
-                ok: false
-        "401":
-          description: No autenticado
+                $ref: '#/components/schemas/RespuestaError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api_registrarpreguntaparticipante:
+    post:
+      tags: [Pregunta_Participante]
+      summary: Registra la respuesta de un participante a una pregunta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarPreguntaParticipanteReq'
+      responses:
+        '200':
+          description: Registro de respuesta creado correctamente
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorAuthJWT"
-        "500":
-          description: Error interno
+                $ref: '#/components/schemas/RespuestaRegistroPreguntaParticipante'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api_actualizarpreguntaparticipante:
+    post:
+      tags: [Pregunta_Participante]
+      summary: Actualiza un registro pregunta-participante.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizarPreguntaParticipanteReq'
+      responses:
+        '200':
+          description: Registro actualizado correctamente
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorInterno"
+                $ref: '#/components/schemas/RespuestaUpdatePreguntaParticipante'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api_eliminarpreguntaparticipante:
+    post:
+      tags: [Pregunta_Participante]
+      summary: Elimina un registro pregunta-participante.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EliminarPreguntaParticipanteReq'
+      responses:
+        '200':
+          description: Registro eliminado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaDeletePreguntaParticipante'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Registro no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaError'
+        '500':
+          $ref: '#/components/responses/ServerError'
 
 components:
   schemas:
-  # --- Cuestionario Schema ---
+    # --- SCHEMAS GENERALES Y ERRORES ---
+    RptaMensajeOK:
+      type: object
+      properties:
+        mensaje: {type: string, example: Operación realizada correctamente}
+        status: {type: string, example: ok}
+    RptaError:
+      type: object
+      properties:
+        mensaje: {type: string}
+        status: {type: string, example: error}
+    ErrorBasico:
+      type: object
+      properties:
+        mensaje: {type: string, example: Faltan campos obligatorios}
+        status: {type: string, example: error}
+    ErrorAuthJWT:
+      type: object
+      properties:
+        description: {type: string, example: "Request does not contain a valid access token"}
+        error: {type: string, example: "Authorization Required"}
+        status: {type: string, example: error}
+        status_code: {type: integer, example: 401}
+    ErrorInterno:
+      type: object
+      properties:
+        mensaje: {type: string, example: Error interno inesperado}
+        status: {type: string, example: error}
+    RespuestaError:
+      type: object
+      properties:
+        ok: {type: boolean, example: false}
+        error: {type: string}
+    RptaErrorGeneral:
+      type: object
+      properties:
+        error: {type: string, example: "Recurso no encontrado"}
+        ok: {type: boolean, example: false}
+    ErrorInternoRegistrarUsuario:
+      type: object
+      properties:
+        error: {type: string}
+        ok: {type: boolean, example: false}
+    ErrorEliminarUsuario:
+      type: object
+      properties:
+        error: {type: string}
+        ok: {type: boolean, example: false}
+    BadRequestErrorSkinSchema:
+      type: object
+      properties:
+        error: {type: string, example: "skin_id requerido"}
+        ok: {type: boolean, example: false}
+
+    # --- SCHEMAS CUESTIONARIO ---
     Cuestionario:
       type: object
       properties:
-        codigo_visualizacion:
-          type: string
-          example: MYPKJW
-        cuestionario_id:
-          type: integer
-          format: int32
-          example: 1
-        descripcion:
-          type: string
-          nullable: true
-          example: Descripción detallada del cuestionario.
-        estado:
-          type: integer
-          enum: [0, 1]
-          example: 1
-        modo_juego:
-          type: string
-          example: C
-        nombre_cuestionario:
-          type: string
-          example: Cuestionario de Prueba
-        origen_cuestionario_id:
-          type: integer
-          format: int64
-          example: null
-        publico:
-          type: integer
-          enum: [0, 1]
-          example: 1
-        tiempo_limite_pregunta:
-          type: integer
-          format: int32
-          example: 30
-        url_img_cuestionario:
-          type: string
-          nullable: true
-          example: https://res.cloudinary.com/dteucmell/image/upload/v1761334394/dsdzuitcs6plamt9iuml.png
-        usuario_id:
-          type: integer
-          format: int32
-          example: 1
-        
+        codigo_visualizacion: {type: string, example: MYPKJW}
+        cuestionario_id: {type: integer, format: int32, example: 1}
+        descripcion: {type: string, nullable: true, example: Descripción.}
+        estado: {type: integer, enum: [0, 1], example: 1}
+        modo_juego: {type: string, example: C}
+        nombre_cuestionario: {type: string, example: Cuestionario de Prueba}
+        origen_cuestionario_id: {type: integer, format: int64, nullable: true}
+        publico: {type: integer, enum: [0, 1], example: 1}
+        tiempo_limite_pregunta: {type: integer, format: int32, example: 30}
+        url_img_cuestionario: {type: string, nullable: true}
+        usuario_id: {type: integer, format: int32, example: 1}
     CuestionarioRptaLista:
       type: object
       properties:
@@ -1440,404 +1281,118 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Cuestionario'
-        status:
-          type: string
-          example: ok
+        status: {type: string, example: ok}
     CuestionarioRptaUnico:
       type: object
       properties:
         data:
           $ref: '#/components/schemas/Cuestionario'
-        status:
-          type: string
-          example: ok
+        status: {type: string, example: ok}
     CuestionarioRegistro:
       type: object
-      required:
-        - nombre_cuestionario
-        - publico
-        - modo_juego
-        - tiempo_limite_pregunta
-        - usuario_id
-        - codigo_visualizacion
+      required: [nombre_cuestionario, publico, modo_juego, tiempo_limite_pregunta, usuario_id, codigo_visualizacion]
       properties:
-        nombre_cuestionario:
-          type: string
-          example: Nuevo Cuestionario
-        descripcion:
-          type: string
-          nullable: true
-          example: Descripción opcional
-        publico:
-          type: integer
-          enum: [0, 1]
-          example: 1
-        modo_juego:
-          type: string
-          example: C
-        tiempo_limite_pregunta:
-          type: integer
-          format: int32
-          example: 30
-        usuario_id:
-          type: integer
-          format: int32
-          example: 101
-        url_img_cuestionario:
-          type: string
-          nullable: true
-          example: https://ejemplo.com/img/nuevo.jpg
-        codigo_visualizacion:
-          type: string
-          example: CODE567
+        nombre_cuestionario: {type: string, example: Nuevo Cuestionario}
+        descripcion: {type: string, nullable: true}
+        publico: {type: integer, enum: [0, 1], example: 1}
+        modo_juego: {type: string, example: C}
+        tiempo_limite_pregunta: {type: integer, example: 30}
+        usuario_id: {type: integer, example: 101}
+        url_img_cuestionario: {type: string, nullable: true}
+        codigo_visualizacion: {type: string, example: CODE567}
     CuestionarioActualizacion:
       type: object
-      required:
-        - cuestionario_id
+      required: [cuestionario_id]
       properties:
-        cuestionario_id:
-          type: integer
-          format: int32
-          example: 1
-        nombre_cuestionario:
-          type: string
-          example: Cuestionario Actualizado
-        descripcion:
-          type: string
-          nullable: true
-          example: Descripción actualizada
-        publico:
-          type: integer
-          enum: [0, 1]
-          example: 0
-        modo_juego:
-          type: string
-          example: C
-        tiempo_limite_pregunta:
-          type: integer
-          format: int32
-          example: 60
-        url_img_cuestionario:
-          type: string
-          nullable: true
-          example: https://ejemplo.com/img/update.jpg
-          
+        cuestionario_id: {type: integer, example: 1}
+        nombre_cuestionario: {type: string}
+        descripcion: {type: string, nullable: true}
+        publico: {type: integer, enum: [0, 1]}
+        modo_juego: {type: string}
+        tiempo_limite_pregunta: {type: integer}
+        url_img_cuestionario: {type: string, nullable: true}
+
+    # --- SCHEMAS PREGUNTA ---
     Pregunta:
       type: object
       properties:
-        cuestionario_id:
-          type: integer
-          example: 2
-        media_url:
-          type: string
-          nullable: true
-          example: null
-        pregunta_id:
-          type: integer
-          example: 1
-        texto_pregunta:
-          type: string
-          example: "¿Cuál es la capital de Francia?"
-        tiempo_limite:
-          type: integer
-          nullable: true
-          example: 30
-
+        cuestionario_id: {type: integer, example: 2}
+        media_url: {type: string, nullable: true}
+        pregunta_id: {type: integer, example: 1}
+        texto_pregunta: {type: string, example: "¿Capital de Francia?"}
+        tiempo_limite: {type: integer, nullable: true, example: 30}
     RegistrarPreguntaReq:
       type: object
-      required:
-        - texto_pregunta
-        - cuestionario_id
+      required: [texto_pregunta, cuestionario_id]
       properties:
-        texto_pregunta:
-          type: string
-          example: "¿Cómo se llama la galaxia donde vivimos?"
-        media_url:
-          type: string
-          example: "https://cdn.ejemplo.com/imagen.png"
-        tiempo_limite:
-          type: integer
-          example: 25
-        cuestionario_id:
-          type: integer
-          example: 1
-
+        texto_pregunta: {type: string}
+        media_url: {type: string}
+        tiempo_limite: {type: integer}
+        cuestionario_id: {type: integer}
     ActualizarPreguntaReq:
       type: object
-      required:
-        - pregunta_id
+      required: [pregunta_id]
       properties:
-        pregunta_id:
-          type: integer
-          example: 10
-        texto_pregunta:
-          type: string
-          example: "¿Cuál es el metal más ligero?"
-        media_url:
-          type: string
-          example: null
-        tiempo_limite:
-          type: integer
-          example: 20
-        cuestionario_id:
-          type: integer
-          example: 3
+        pregunta_id: {type: integer}
+        texto_pregunta: {type: string}
+        media_url: {type: string}
+        tiempo_limite: {type: integer}
+        cuestionario_id: {type: integer}
 
-    ErrorBasico:
+    # --- SCHEMAS RESPUESTA ---
+    Respuesta:
       type: object
       properties:
-        status:
-          type: string
-          example: error
-        mensaje:
-          type: string
-          example: Faltan campos obligatorios
-
-    ErrorAuthJWT:
-      type: object
-      properties:
-        description:
-          type: string
-          example: "Request does not contain a valid access token"
-        error:
-          type: string
-          example: "Authorization Required"
-        status:
-          type: string
-          example: error
-        status_code:
-          type: integer
-          example: 401
-
-    ErrorInterno:
-      type: object
-      properties:
-        status:
-          type: string
-          example: error
-        mensaje:
-          type: string
-          example: Error interno inesperado
-          
-    Usuario:
-      type: object
-      properties:
-        cant_monedas:
-          type: integer
-        correo:
-          type: string
-        dni:
-          type: string
-        nombre:
-          type: string
-        tipo_usuario:
-          type: string
-        url_avatar:
-          type: string
-          nullable: true
-        url_foto_perfil:
-          type: string
-          nullable: true
-        username:
-          type: string
-        usuario_id:
-          type: integer
-        verificado:
-          type: integer
-        vigencia:
-          type: integer
-    Respuesta409Usuario:
-      type: object
-      properties:
-        error:
-          type: string
-          example: "Username/correo/DNI ya existe"
-        ok:
-          type: boolean
-          example: false
-      example:
-        error: "Username/correo/DNI ya existe"
-        ok: false
-    RespuestaErrorusuario:
-      type: object
-      properties:
-        error:
-          type: string
-          example: "Usuario no encontrado"
-        ok:
-          type: boolean
-          example: false
-      example:
-        error: "Usuario no encontrado"
-        ok: false
-    ErrorInternoRegistrarUsuario:
-      type: object
-      properties:
-        error:
-          type: string
-          example: error
-        ok:
-          type: boolean
-          example: false
-    RespuestaUsuarios:
+        estado_respuesta: {type: integer, enum: [0, 1], example: 1}
+        pregunta_id: {type: integer, format: int32, example: 5}
+        respuesta_id: {type: integer, format: int32, example: 10}
+        texto_respuesta: {type: string, example: Lima}
+    RespuestaRptaLista:
       type: object
       properties:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/Usuario"
-        ok:
-          type: boolean
-          example: true
-    RespuestaUsuario:
+            $ref: '#/components/schemas/Respuesta'
+        status: {type: string, example: ok}
+    RespuestaRptaUnico:
       type: object
       properties:
         data:
-          $ref: "#/components/schemas/Usuario"
-        ok:
-          type: boolean
-          example: true
-    RegistrarUsuarioReq:
+          $ref: '#/components/schemas/Respuesta'
+        status: {type: string, example: ok}
+    RespuestaRegistro:
       type: object
-      required:
-        - username
-        - nombre
-        - contrasena
-        - correo
-        - dni
-        - tipo_usuario
+      required: [texto_respuesta, estado_respuesta, pregunta_id]
       properties:
-        username:
-          type: string
-        nombre:
-          type: string
-        contrasena:
-          type: string
-        correo:
-          type: string
-        dni:
-          type: string
-        tipo_usuario:
-          type: string
-        cant_monedas:
-          type: integer
-        verificado:
-          type: integer
-        vigencia:
-          type: integer
-        url_foto_perfil:
-          type: string
-          nullable: true
-        url_avatar:
-          type: string
-          nullable: true
-    RespuestaCrearUsuario:
+        texto_respuesta: {type: string, example: Respuesta Correcta}
+        estado_respuesta: {type: integer, enum: [0, 1], example: 1}
+        pregunta_id: {type: integer, format: int32, example: 5}
+    RespuestaActualizacion:
       type: object
+      required: [respuesta_id]
       properties:
-        data:
-          type: object
-          properties:
-            usuario_id:
-              type: integer
-        ok:
-          type: boolean
-          example: true
-    ActualizarUsuarioReq:
-      type: object
-      required:
-        - usuario_id
-      properties:
-        usuario_id:
-          type: integer
-        nombre:
-          type: string
-        cant_monedas:
-          type: integer
-        vigencia:
-          type: integer
-    RespuestaUpdateUsuario:
-      type: object
-      properties:
-        data:
-          type: object
-          properties:
-            actualizado:
-              type: boolean
-              example: true
-            usuario_id:
-              type: integer
-        ok:
-          type: boolean
-          example: true
-    RespuestaDeleteUsuario:
-      type: object
-      properties:
-        data:
-          type: object
-          properties:
-            usuario_id:
-              type: integer
-            vigencia:
-              type: integer
-              example: 0
-        ok:
-          type: boolean
-          example: true
-    
-    ErrorEliminarUsuario:
-      type: object
-      properties:
-        error:
-          type: string
-          example: "string"
-        ok:
-          type: boolean
-          example: false
-          
+        respuesta_id: {type: integer, format: int32, example: 10}
+        texto_respuesta: {type: string, example: Opción actualizada}
+        estado_respuesta: {type: integer, enum: [0, 1], example: 0}
+        pregunta_id: {type: integer, format: int32, example: 6}
+
+    # --- SCHEMAS PARTIDA ---
     Partida:
       type: object
       properties:
-        # Orden de campos ajustado para coincidir con tu ejemplo de Postman
-        codigo_partida:
-          type: string
-          example: "649710"
-        cuestionario_id:
-          type: integer
-          example: 1
-        estado:
-          type: string
-          example: "en_curso"
-        fecha_creacion:
-          type: string
-          example: "Fri, 24 Oct 2025 21:06:25 GMT"
-        num_grupos:
-          type: integer
-          example: 4
-        partida_id:
-          type: integer
-          example: 8
-        pregunta_actual_index:
-          type: integer
-          example: 1
-        respuestas_recibidas:
-          type: integer
-          example: 0
-        tiempo_inicio_pregunta:
-          type: string
-          nullable: true
-          example: null
-        tipo_partida:
-          type: string
-          example: "I"
-        updated_at:
-          type: string
-          nullable: true
-          example: "Fri, 24 Oct 2025 21:09:43 GMT"
-        usuario_creador_id:
-          type: integer
-          example: 4
-
-    # RESPUESTA ÉXITO: data primero, luego ok (igual que Postman)
+        codigo_partida: {type: string, example: "649710"}
+        cuestionario_id: {type: integer, example: 1}
+        estado: {type: string, example: "en_curso"}
+        fecha_creacion: {type: string}
+        num_grupos: {type: integer, example: 4}
+        partida_id: {type: integer, example: 8}
+        pregunta_actual_index: {type: integer, example: 1}
+        respuestas_recibidas: {type: integer, example: 0}
+        tiempo_inicio_pregunta: {type: string, nullable: true}
+        tipo_partida: {type: string, example: "I"}
+        updated_at: {type: string, nullable: true}
+        usuario_creador_id: {type: integer, example: 4}
     RespuestaPartidas:
       type: object
       properties:
@@ -1845,293 +1400,242 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Partida"
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          - codigo_partida: "649710"
-            cuestionario_id: 1
-            estado: "en_curso"
-            fecha_creacion: "Fri, 24 Oct 2025 21:06:25 GMT"
-            num_grupos: 4
-            partida_id: 8
-            pregunta_actual_index: 1
-            respuestas_recibidas: 0
-            tiempo_inicio_pregunta: null
-            tipo_partida: "I"
-            updated_at: "Fri, 24 Oct 2025 21:09:43 GMT"
-            usuario_creador_id: 4
-        ok: true
-
-    # RESPUESTA ÉXITO (uno solo) : data primero, luego ok
+        ok: {type: boolean, example: true}
     RespuestaPartida:
       type: object
       properties:
         data:
           $ref: "#/components/schemas/Partida"
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          codigo_partida: "649710"
-          cuestionario_id: 1
-          estado: "en_curso"
-          fecha_creacion: "Fri, 24 Oct 2025 21:06:25 GMT"
-          num_grupos: 4
-          partida_id: 8
-          pregunta_actual_index: 1
-          respuestas_recibidas: 0
-          tiempo_inicio_pregunta: null
-          tipo_partida: "I"
-          updated_at: "Fri, 24 Oct 2025 21:09:43 GMT"
-          usuario_creador_id: 4
-        ok: true
-
-    RespuestaCrearPartida:
+        ok: {type: boolean, example: true}
+    RegistrarPartidaReq:
       type: object
+      required: [cuestionario_id, usuario_creador_id]
       properties:
-        data:
-          type: object
-          properties:
-            codigo_partida:
-              type: string
-              example: "A8H21D"
-            partida_id:
-              type: integer
-              example: 12
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          codigo_partida: "A8H21D"
-          partida_id: 12
-        ok: true
-        
+        cuestionario_id: {type: integer, example: 1}
+        usuario_creador_id: {type: integer, example: 4}
+        codigo_partida: {type: string, example: "ZHQ712"}
+        estado: {type: string, example: "creada"}
+        num_grupos: {type: integer, example: 4}
+        tipo_partida: {type: string, example: "I"}
+        pregunta_actual_index: {type: integer, example: 0}
     PartidaActualizacion:
       type: object
-      required:
-        - partida_id
+      required: [partida_id]
       properties:
-        partida_id:
-          type: integer
-          format: int32
-          example: 30
-        estado:
-          type: string
-          enum: [creada, en_curso, finalizada]
-          example: en_curso
-        pregunta_actual_index:
-          type: integer
-          format: int32
-          example: 1
-        respuestas_recibidas:
-          type: integer
-          format: int32
-          example: 5
-        tiempo_inicio_pregunta:
-          type: string
-          format: date-time
-          
+        partida_id: {type: integer, example: 30}
+        estado: {type: string, example: "en_curso"}
+        num_grupos: {type: integer, example: 2}
+        tipo_partida: {type: string, example: "G"}
+        pregunta_actual_index: {type: integer, example: 1}
+        tiempo_inicio_pregunta: {type: string}
+        respuestas_recibidas: {type: integer}
     PartidaRptaActualizacion:
       type: object
       properties:
         data:
           type: object
           properties:
-            actualizado:
-              type: boolean
-              example: true
-            partida_id:
-              type: integer
-              format: int32
-              example: 30
-        ok:
-          type: boolean
-          example: true
-    
-
+            actualizado: {type: boolean, example: true}
+            partida_id: {type: integer, example: 30}
+        ok: {type: boolean, example: true}
+    RespuestaCrearPartida:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            codigo_partida: {type: string}
+            partida_id: {type: integer}
+        ok: {type: boolean, example: true}
     RespuestaDeletePartida:
       type: object
       properties:
         data:
           type: object
           properties:
-            eliminado:
-              type: boolean
-              example: true
-            partida_id:
-              type: integer
-              example: 8
-        ok:
-          type: boolean
-          example: true
-      example:
+            eliminado: {type: boolean}
+            partida_id: {type: integer}
+        ok: {type: boolean, example: true}
+    PartidaRptaAvanzar:
+      type: object
+      properties:
+        ok: {type: boolean, example: true}
         data:
-          eliminado: true
-          partida_id: 8
-        ok: true
+          type: object
+          properties:
+            codigo_partida: {type: string, example: ABCXYZ}
+            avanzado: {type: boolean, example: true}
 
-    # RESPUESTA DE ERROR (se mantiene ok=false, error: "...")
-    RespuestaError:
+    # --- SCHEMAS USUARIO ---
+    Usuario:
       type: object
       properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: "Partida no encontrada"
-      example:
-        ok: false
-        error: "Partida no encontrada"
-
-    # REQUESTS
-    RegistrarPartidaReq:
+        cant_monedas: {type: integer}
+        correo: {type: string}
+        dni: {type: string}
+        nombre: {type: string}
+        tipo_usuario: {type: string}
+        url_avatar: {type: string, nullable: true}
+        url_foto_perfil: {type: string, nullable: true}
+        username: {type: string}
+        usuario_id: {type: integer}
+        verificado: {type: integer}
+        vigencia: {type: integer}
+    RespuestaUsuarios:
       type: object
-      required:
-        - cuestionario_id
-        - usuario_creador_id
       properties:
-        cuestionario_id:
-          type: integer
-          example: 1
-        usuario_creador_id:
-          type: integer
-          example: 4
-        codigo_partida:
-          type: string
-          example: "ZHQ712"
-        estado:
-          type: string
-          example: "creada"
-        num_grupos:
-          type: integer
-          example: 4
-        tipo_partida:
-          type: string
-          example: "I"
-        pregunta_actual_index:
-          type: integer
-          example: 0
-
-    ActualizarPartidaReq:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Usuario"
+        ok: {type: boolean, example: true}
+    RespuestaUsuario:
       type: object
-      required:
-        - partida_id
       properties:
-        partida_id:
-          type: integer
-          example: 8
-        estado:
-          type: string
-          example: "jugando"
-        num_grupos:
-          type: integer
-          example: 4
-        tipo_partida:
-          type: string
-          example: "I"
-        pregunta_actual_index:
-          type: integer
-          example: 2
-        tiempo_inicio_pregunta:
-          type: string
-          format: date-time
-        respuestas_recibidas:
-          type: integer
-          example: 12
-    
-    # --- Skin Schema ---
+        data:
+          $ref: "#/components/schemas/Usuario"
+        ok: {type: boolean, example: true}
+    RegistrarUsuarioReq:
+      type: object
+      required: [username, nombre, contrasena, correo, dni, tipo_usuario]
+      properties:
+        username: {type: string}
+        nombre: {type: string}
+        contrasena: {type: string}
+        correo: {type: string}
+        dni: {type: string}
+        tipo_usuario: {type: string}
+        cant_monedas: {type: integer}
+        verificado: {type: integer}
+        vigencia: {type: integer}
+        url_foto_perfil: {type: string}
+        url_avatar: {type: string}
+    RespuestaCrearUsuario:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            usuario_id: {type: integer}
+        ok: {type: boolean, example: true}
+    ActualizarUsuarioReq:
+      type: object
+      required: [usuario_id]
+      properties:
+        usuario_id: {type: integer}
+        nombre: {type: string}
+        cant_monedas: {type: integer}
+        vigencia: {type: integer}
+    RespuestaUpdateUsuario:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            actualizado: {type: boolean}
+            usuario_id: {type: integer}
+        ok: {type: boolean, example: true}
+    RespuestaDeleteUsuario:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            usuario_id: {type: integer}
+            vigencia: {type: integer, example: 0}
+        ok: {type: boolean, example: true}
+    Respuesta409Usuario:
+      type: object
+      properties:
+        error: {type: string, example: "Username/correo/DNI ya existe"}
+        ok: {type: boolean, example: false}
+    RespuestaErrorusuario:
+      type: object
+      properties:
+        error: {type: string, example: "Usuario no encontrado"}
+        ok: {type: boolean, example: false}
+
+    # --- SCHEMAS PARTICIPANTE ---
+    Participante:
+      type: object
+      properties:
+        cant_preguntas_correctas: {type: integer, format: int32}
+        cant_preguntas_incorrectas: {type: integer, format: int32}
+        grupo_id: {type: integer, format: int32, nullable: true}
+        lider_id: {type: integer, format: int32, nullable: true}
+        participante_id: {type: integer, format: int32}
+        partida_id: {type: integer, format: int32}
+        puntuacion_total: {type: number, format: float}
+        usuario_id: {type: integer, format: int32}
+    ParticipanteRptaLista:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participante'
+        status: {type: string, example: ok}
+    ParticipanteRptaUnico:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Participante'
+        status: {type: string, example: ok}
+    ParticipanteRegistro:
+      type: object
+      required: [usuario_id, partida_id]
+      properties:
+        usuario_id: {type: integer}
+        partida_id: {type: integer}
+        puntuacion_total: {type: number}
+        cant_preguntas_correctas: {type: integer}
+        cant_preguntas_incorrectas: {type: integer}
+        lider_id: {type: integer, nullable: true}
+        grupo_id: {type: integer, nullable: true}
+    ParticipanteActualizacion:
+      type: object
+      required: [participante_id]
+      properties:
+        participante_id: {type: integer}
+        puntuacion_total: {type: number}
+        cant_preguntas_correctas: {type: integer}
+        cant_preguntas_incorrectas: {type: integer}
+        lider_id: {type: integer, nullable: true}
+        usuario_id: {type: integer}
+        partida_id: {type: integer}
+        grupo_id: {type: integer, nullable: true}
+
+    # --- SCHEMAS SKIN ---
     Skin:
       type: object
       properties:
-        categoria:
-          type: string
-          example: "N"
-        nombre:
-          type: string
-          example: "Skin Developer"
-        precio:
-          type: integer
-          example: 3000
-        skinDefault:
-          type: integer
-          enum: [0, 1]
-          example: 0
-        skin_id:
-          type: integer
-          format: int32
-          example: 5
-        url_imagen:
-          type: string
-          example: "https://res.cloudinary.com/dpxslk02r/image/upload/v1761267295/4b793a2c-ce12-4fd2-b018-40a4facc7373.png"
-        vigencia:
-          type: integer
-          enum: [0, 1]
-          example: 1
-        
+        categoria: {type: string, example: "N"}
+        nombre: {type: string, example: "Skin Developer"}
+        precio: {type: integer, example: 3000}
+        skinDefault: {type: integer, enum: [0, 1], example: 0}
+        skin_id: {type: integer, format: int32, example: 5}
+        url_imagen: {type: string}
+        vigencia: {type: integer, enum: [0, 1], example: 1}
     SkinRegistro:
       type: object
-      required:
-        - nombre
-        - categoria
-        - precio
-        - url_imagen
+      required: [nombre, categoria, precio, url_imagen]
       properties:
-        nombre:
-          type: string
-          example: "Skin Test"
-        url_imagen:
-          type: string
-          example: "https://example.com/skin.png"
-        precio:
-          type: integer
-          example: 200
-        categoria:
-          type: string
-          example: "N"
-        vigencia:
-          type: integer
-          enum: [0, 1]
-          example: 1
-          description: Estado de vigencia, por defecto 1 (activo).
-        skinDefault:
-          type: integer
-          enum: [0, 1]
-          example: 0
-          description: Indica si es la skin por defecto (1) o no (0).
-          
+        nombre: {type: string}
+        url_imagen: {type: string}
+        precio: {type: integer}
+        categoria: {type: string}
+        vigencia: {type: integer, enum: [0, 1]}
+        skinDefault: {type: integer, enum: [0, 1]}
     SkinActualizacion:
       type: object
-      required:
-        - skin_id
+      required: [skin_id]
       properties:
-        skin_id:
-          type: integer
-          format: int32
-          example: 55
-        precio:
-          type: integer
-          example: 300
-        vigencia:
-          type: integer
-          enum: [0, 1]
-          example: 1
-        nombre:
-          type: string
-          example: "Skin Clásica Azul Oscuro"
-        skinDefault:
-          type: integer
-          enum: [0, 1]
-          example: 1
-        url_imagen:
-          type: string
-          example: "https://ejemplo.com/recursos/skin_clasica_v2.png"
-          
-    # RESPUESTAS DE ÉXITO (ok: true)
+        skin_id: {type: integer}
+        precio: {type: integer}
+        vigencia: {type: integer}
+        nombre: {type: string}
+        skinDefault: {type: integer}
+        url_imagen: {type: string}
     SkinRptaLista:
       type: object
       properties:
@@ -2139,155 +1643,50 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Skin'
-        ok: 
-          type: boolean
-          example: true
-      example:
-        data:
-          - categoria: "N"
-            nombre: "Skin Developer"
-            precio: 3000
-            skinDefault: 0
-            skin_id: 5
-            url_imagen: "https://res.cloudinary.com/dpxslk02r/image/upload/v1761267295/4b793a2c-ce12-4fd2-b018-40a4facc7373.png"
-            vigencia: 1
-        ok: true
-          
+        ok: {type: boolean, example: true}
     SkinRptaUnico:
       type: object
       properties:
         data:
           $ref: '#/components/schemas/Skin'
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          categoria: "N"
-          nombre: "Skin Developer"
-          precio: 3000
-          skinDefault: 0
-          skin_id: 5
-          url_imagen: "https://res.cloudinary.com/dpxslk02r/image/upload/v1761267295/4b793a2c-ce12-4fd2-b018-40a4facc7373.png"
-          vigencia: 1
-        ok: true
-          
+        ok: {type: boolean, example: true}
     SkinRptaRegistro:
       type: object
       properties:
         data:
           type: object
           properties:
-            skin_id:
-              type: integer
-              example: 57
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          skin_id: 57
-        ok: true
-              
+            skin_id: {type: integer}
+        ok: {type: boolean, example: true}
     SkinRptaActualizacion:
       type: object
       properties:
         data:
           type: object
           properties:
-            actualizado:
-              type: boolean
-              example: true
-            skin_id:
-              type: integer
-              example: 55
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          actualizado: true
-          skin_id: 55
-        ok: true
-              
+            actualizado: {type: boolean}
+            skin_id: {type: integer}
+        ok: {type: boolean, example: true}
     SkinRptaEliminacion:
       type: object
       properties:
         data:
           type: object
           properties:
-            skin_id:
-              type: integer
-              example: 56
-            vigencia:
-              type: integer
-              example: 0
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          skin_id: 56
-          vigencia: 0
-        ok: true
-              
-    # RESPUESTA DE ERROR GENERAL (404, etc.)
-    RptaErrorGeneral:
-      type: object
-      properties:
-        error:
-          type: string
-          example: "Skin no encontrada"
-        ok:
-          type: boolean
-          example: false
-      example:
-        error: "Skin no encontrada"
-        ok: false
+            skin_id: {type: integer}
+            vigencia: {type: integer}
+        ok: {type: boolean, example: true}
 
-    # RESPUESTA DE ERROR BAD REQUEST (400)
-    BadRequestErrorSkinSchema:
-      type: object
-      properties:
-        error:
-          type: string
-          example: "skin_id requerido"
-        ok:
-          type: boolean
-          example: false
-      example:
-        error: "skin_id requerido"
-        ok: false
-
-  # --- Inventario Schema ---
+    # --- SCHEMAS INVENTARIO ---
     InventarioItem:
       type: object
       properties:
-        equipada: # Orden 1
-          type: integer
-          enum: [0, 1]
-          example: 1
-        fecha_adquisicion: # Orden 2 (Ajustado a string/date-time por tu ejemplo de GMT)
-          type: string
-          format: date-time
-          example: "Mon, 20 Oct 2025 00:00:00 GMT"
-        id_inventario: # Orden 3
-          type: integer
-          format: int32
-          example: 1001
-        id_item: # Orden 4
-          type: integer
-          format: int32
-          example: 4
-        tipo_item: # Orden 5
-          type: string
-          enum: [SKIN, ACCESORIO]
-          example: SKIN
-        usuario_id: # Orden 6
-          type: integer
-          format: int32
-          example: 1
-    
+        equipada: {type: integer, enum: [0, 1]}
+        fecha_adquisicion: {type: string, format: date-time}
+        id_inventario: {type: integer, format: int32}
+        id_item: {type: integer, format: int32}
+        tipo_item: {type: string, enum: [SKIN, ACCESORIO]}
+        usuario_id: {type: integer, format: int32}
     InventarioRptaLista:
       type: object
       properties:
@@ -2295,174 +1694,68 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InventarioItem'
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          - equipada: 1
-            fecha_adquisicion: "Mon, 20 Oct 2025 00:00:00 GMT"
-            id_inventario: 1001
-            id_item: 4
-            tipo_item: "SKIN"
-            usuario_id: 1
-        ok: true
-        
+        ok: {type: boolean, example: true}
     InventarioRptaUnico:
       type: object
       properties:
         data:
           $ref: '#/components/schemas/InventarioItem'
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          equipada: 1
-          fecha_adquisicion: "Mon, 20 Oct 2025 00:00:00 GMT"
-          id_inventario: 1001
-          id_item: 4
-          tipo_item: "SKIN"
-          usuario_id: 1
-        ok: true
-
+        ok: {type: boolean, example: true}
     InventarioRegistro:
       type: object
-      required:
-        - usuario_id
-        - id_item
-        - tipo_item
-        - equipada
+      required: [usuario_id, id_item, tipo_item, equipada]
       properties:
-        usuario_id: # Request body order
-          type: integer
-          format: int32
-          example: 1
-        id_item: # Request body order
-          type: integer
-          format: int32
-          example: 1
-        tipo_item: # Request body order
-          type: string
-          enum: [SKIN, ACCESORIO]
-          example: SKIN
-        equipada: # Request body order
-          type: integer
-          enum: [0, 1]
-          example: 1
-          
+        usuario_id: {type: integer}
+        id_item: {type: integer}
+        tipo_item: {type: string}
+        equipada: {type: integer}
     InventarioActualizacion:
       type: object
-      required:
-        - id_inventario
+      required: [id_inventario]
       properties:
-        id_inventario: # Request body order
-          type: integer
-          format: int32
-          example: 1022
-        equipada: # Request body minimal update
-          type: integer
-          enum: [0, 1]
-          example: 0
-        id_item:
-          type: integer
-          format: int32
-          example: 16
-        tipo_item:
-          type: string
-          enum: [SKIN, ACCESORIO]
-          example: SKIN
-
+        id_inventario: {type: integer}
+        equipada: {type: integer}
+        id_item: {type: integer}
+        tipo_item: {type: string}
     InventarioRptaRegistro:
       type: object
       properties:
         data:
           type: object
           properties:
-            id_inventario:
-              type: integer
-              example: 1023
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          id_inventario: 1023
-        ok: true
-
+            id_inventario: {type: integer}
+        ok: {type: boolean, example: true}
     InventarioRptaActualizacion:
       type: object
       properties:
         data:
           type: object
           properties:
-            actualizado: # Response body order
-              type: boolean
-              example: true
-            id_inventario: # Response body order
-              type: integer
-              example: 1022
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          actualizado: true
-          id_inventario: 1022
-        ok: true
-
+            actualizado: {type: boolean}
+            id_inventario: {type: integer}
+        ok: {type: boolean, example: true}
     InventarioRptaEliminacion:
       type: object
       properties:
         data:
           type: object
           properties:
-            id_inventario:
-              type: integer
-              example: 1022
-            eliminado:
-              type: boolean
-              example: true
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          eliminado: true
-          id_inventario: 1022
-          
-        ok: true
-        
-    # --- Esquemas para Pregunta Participante ---
+            id_inventario: {type: integer}
+            eliminado: {type: boolean}
+        ok: {type: boolean, example: true}
+
+    # --- SCHEMAS PREGUNTA_PARTICIPANTE ---
     PreguntaParticipante:
       type: object
       properties:
-        correcta:
-          type: integer
-          example: 1
-        participante_id:
-          type: integer
-          example: 10
-        pregunta_id:
-          type: integer
-          example: 55
-        pregunta_participante_id:
-          type: integer
-          example: 304
-        respuesta_seleccionada_id:
-          type: integer
-          nullable: true
-          example: null
-        texto_pregunta:
-          type: string
-          example: "Capital de Perú?"
-        tiempo_maximo_pregunta:
-          type: integer
-          example: 10
-        tiempo_pregunta:
-          type: integer
-          example: 7
-
+        correcta: {type: integer}
+        participante_id: {type: integer}
+        pregunta_id: {type: integer}
+        pregunta_participante_id: {type: integer}
+        respuesta_seleccionada_id: {type: integer, nullable: true}
+        texto_pregunta: {type: string}
+        tiempo_maximo_pregunta: {type: integer}
+        tiempo_pregunta: {type: integer}
     RespuestaPreguntaParticipante:
       type: object
       properties:
@@ -2470,199 +1763,109 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PreguntaParticipante"
-        ok:
-          type: boolean
-          example: true
-      # Ejemplo limitado a 1 solo registro como pediste
-      example:
-        data:
-          - correcta: 1
-            participante_id: 10
-            pregunta_id: 55
-            pregunta_participante_id: 304
-            respuesta_seleccionada_id: null
-            texto_pregunta: "Capital de Perú?"
-            tiempo_maximo_pregunta: 10
-            tiempo_pregunta: 7
-        ok: true
-
+        ok: {type: boolean, example: true}
     RespuestaPreguntaParticipanteUnico:
-        type: object
-        properties:
-          data:
-            # Reutilizamos el esquema del objeto individual definido anteriormente
-            $ref: "#/components/schemas/PreguntaParticipante"
-          ok:
-            type: boolean
-            example: true
-        example:
-          data:
-            correcta: 1
-            participante_id: 1
-            pregunta_id: 2
-            pregunta_participante_id: 3
-            respuesta_seleccionada_id: 8
-            texto_pregunta: "¿Cómo se llama el artefacto poderoso de color azul que Loki intenta robar en la primera película de "
-            tiempo_maximo_pregunta: 30
-            tiempo_pregunta: 4
-          ok: true
-
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/PreguntaParticipante"
+        ok: {type: boolean, example: true}
     RegistrarPreguntaParticipanteReq:
       type: object
-      required:
-        - participante_id
-        - pregunta_id
-        - texto_pregunta
-        - correcta
-        - tiempo_pregunta
-        - tiempo_maximo_pregunta
+      required: [participante_id, pregunta_id, texto_pregunta, correcta, tiempo_pregunta, tiempo_maximo_pregunta]
       properties:
-        participante_id:
-          type: integer
-          example: 10
-        pregunta_id:
-          type: integer
-          example: 55
-        respuesta_seleccionada_id:
-          type: integer
-          nullable: true
-          description: Puede ser null si no respondió nada
-          example: null
-        texto_pregunta:
-          type: string
-          example: "Capital de Perú?"
-        correcta:
-          type: integer
-          description: 1 si es correcta, 0 si no
-          example: 1
-        tiempo_pregunta:
-          type: integer
-          example: 7
-        tiempo_maximo_pregunta:
-          type: integer
-          example: 10
-
+        participante_id: {type: integer}
+        pregunta_id: {type: integer}
+        respuesta_seleccionada_id: {type: integer, nullable: true}
+        texto_pregunta: {type: string}
+        correcta: {type: integer}
+        tiempo_pregunta: {type: integer}
+        tiempo_maximo_pregunta: {type: integer}
+    ActualizarPreguntaParticipanteReq:
+      type: object
+      required: [pregunta_participante_id]
+      properties:
+        pregunta_participante_id: {type: integer}
+        respuesta_seleccionada_id: {type: integer, nullable: true}
+        correcta: {type: integer}
+        tiempo_pregunta: {type: integer}
+        tiempo_maximo_pregunta: {type: integer}
+        texto_pregunta: {type: string}
     RespuestaRegistroPreguntaParticipante:
       type: object
       properties:
         data:
           type: object
           properties:
-            pregunta_participante_id:
-              type: integer
-              example: 305
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          pregunta_participante_id: 305
-        ok: true
-        
-    ActualizarPreguntaParticipanteReq:
-      type: object
-      required:
-        - pregunta_participante_id
-      properties:
-        pregunta_participante_id:
-          type: integer
-          example: 120
-        respuesta_seleccionada_id:
-          type: integer
-          nullable: true
-          description: ID de la respuesta. Enviar 0 o null para desmarcar.
-          example: 120
-        correcta:
-          type: integer
-          enum: [0, 1]
-          example: 1
-        tiempo_pregunta:
-          type: integer
-          example: 5
-        tiempo_maximo_pregunta:
-          type: integer
-          example: 30
-        texto_pregunta:
-          type: string
-          example: "Texto actualizado opcional"
-
+            pregunta_participante_id: {type: integer}
+        ok: {type: boolean, example: true}
     RespuestaUpdatePreguntaParticipante:
       type: object
       properties:
         data:
           type: object
           properties:
-            actualizado:
-              type: boolean
-              example: true
-            pregunta_participante_id:
-              type: integer
-              example: 120
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          actualizado: true
-          pregunta_participante_id: 120
-        ok: true
-    
+            actualizado: {type: boolean}
+            pregunta_participante_id: {type: integer}
+        ok: {type: boolean, example: true}
     EliminarPreguntaParticipanteReq:
       type: object
-      required:
-        - pregunta_participante_id
+      required: [pregunta_participante_id]
       properties:
-        pregunta_participante_id:
-          type: integer
-          example: 120
-
+        pregunta_participante_id: {type: integer}
     RespuestaDeletePreguntaParticipante:
       type: object
       properties:
         data:
           type: object
           properties:
-            eliminado:
-              type: boolean
-              example: true
-            pregunta_participante_id:
-              type: integer
-              example: 306
-        ok:
-          type: boolean
-          example: true
-      example:
-        data:
-          eliminado: true
-          pregunta_participante_id: 306
-        ok: true
+            eliminado: {type: boolean}
+            pregunta_participante_id: {type: integer}
+        ok: {type: boolean, example: true}
 
-
+  # --- RESPUESTAS REUTILIZABLES (RESPONSES) ---
   responses:
     UnauthorizedError:
-      description: No autenticado
+      description: No autenticado (Token no proporcionado o inválido)
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorAuthJWT'
-            
-    ServerErrorGeneral:
+    BadRequestError:
+      description: Datos de entrada inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBasico'
+    ServerError:
       description: Error interno del servidor
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorInterno'
-            
+    ServerErrorGeneral:
+      description: Error interno del servidor (Versión ok=false)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInternoRegistrarUsuario'
     BadRequestErrorGeneral:
-      description: Solicitud incorrecta (datos incompletos, formato inválido, etc.)
+      description: Bad Request (Versión ok=false)
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/BadRequestErrorSkinSchema'
-    
-    BadRequestErrorSkin: # Definición de la respuesta 400 para las APIs de Skin (se mantiene por coherencia con el esquema anterior, aunque BadReqErrorGeneral ya apunta al mismo schema de error)
-      description: Solicitud incorrecta (datos incompletos, formato inválido, etc.)
+            $ref: '#/components/schemas/RespuestaError'
+    BadRequestErrorSkin:
+      description: Bad Request para Skins
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/BadRequestErrorSkinSchema'
+            $ref: '#/components/schemas/RespuestaError'
+
+  # --- SECURITY SCHEMES ---
+  securitySchemes:
+    jwt_auth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Autenticación mediante JSON Web Token (JWT) en el header Authorization.
